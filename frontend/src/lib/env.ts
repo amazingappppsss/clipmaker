@@ -12,6 +12,8 @@ export interface PublicEnv {
   supabaseAnonKey: string | null;
   /** Local development login through the backend's /dev/token endpoint. */
   devAuth: boolean;
+  /** Show "Continue with Google" (only once the Google provider is enabled in Supabase). */
+  googleAuth: boolean;
 }
 
 function readEnv(): PublicEnv {
@@ -23,6 +25,7 @@ function readEnv(): PublicEnv {
     supabaseUrl,
     supabaseAnonKey,
     devAuth: process.env.NEXT_PUBLIC_DEV_AUTH === "true",
+    googleAuth: process.env.NEXT_PUBLIC_GOOGLE_AUTH === "true",
   };
 }
 

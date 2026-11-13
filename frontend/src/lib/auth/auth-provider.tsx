@@ -38,6 +38,15 @@ export interface AuthContextValue {
   /** Supabase: sends a magic link. Dev: signs in immediately. */
   signInWithEmail: (email: string, redirectPath: string) => Promise<"link_sent" | "signed_in">;
   signInWithGoogle: (redirectPath: string) => Promise<void>;
+  /**
+   * Supabase email + password. Sends no email when "Confirm email" is off in Supabase, so it is
+   * not affected by email rate limits. Returns "check_email" if confirmation is still required.
+   */
+  passwordAuth: (
+    mode: "sign_in" | "sign_up",
+    email: string,
+    password: string,
+  ) => Promise<"signed_in" | "check_email">;
   signOut: () => Promise<void>;
 }
 
@@ -160,6 +169,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw new Error(error.message);
   }, []);
 
+  const passwordAuth = useCallback(
+    async (
+      mode: "sign_in" | "sign_up",
+      email: string,
+      password: string,
+    ): Promise<"signed_in" | "check_email"> => {
+      const supabase = getSupabase();
+      if (!supabase) throw new Error("Password sign-in requires Supabase to be configured.");
+      const { data, error } =
+        mode === "sign_in"
+          ? await supabase.auth.signInWithPassword({ email, password })
+          : await supabase.auth.signUp({ email, password });
+      if (error) throw new Error(error.message);
+      return data.session ? "signed_in" : "check_email";
+    },
+    [],
+  );
+
   const signOut = useCallback(async (): Promise<void> => {
     if (authMode === "supabase") await getSupabase()?.auth.signOut();
     writeStorage(DEV_TOKEN_KEY, null);
@@ -169,8 +196,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ mode: authMode, status, user, signInWithEmail, signInWithGoogle, signOut }),
-    [status, user, signInWithEmail, signInWithGoogle, signOut],
+    () => ({
+      mode: authMode,
+      status,
+      user,
+      signInWithEmail,
+      signInWithGoogle,
+      passwordAuth,
+      signOut,
+    }),
+    [status, user, signInWithEmail, signInWithGoogle, passwordAuth, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
