@@ -6,9 +6,10 @@ import uuid
 
 from fastapi import APIRouter, Query, Response, status
 
-from clipmaker.api.deps import AppSettings, CurrentUser, DbSession, JobQueue, Storage
+from clipmaker.api.deps import AppSettings, CurrentUser, DbSession, Importer, JobQueue, Storage
 from clipmaker.schemas import (
     ClipOut,
+    ImportRequest,
     JobStatusOut,
     ProjectCreate,
     ProjectList,
@@ -16,6 +17,7 @@ from clipmaker.schemas import (
     UploadRequest,
     UploadTicket,
 )
+from clipmaker.services import imports as import_service
 from clipmaker.services import processing as processing_service
 from clipmaker.services import projects as project_service
 from clipmaker.services import uploads as upload_service
@@ -29,6 +31,20 @@ def create_project(
 ) -> ProjectOut:
     """Create a project; upload its source video next."""
     project = project_service.create_project(db, user, body)
+    return project_service.to_project_out(db, storage, project)
+
+
+@router.post("/import", status_code=status.HTTP_201_CREATED)
+def import_project(
+    body: ImportRequest,
+    user: CurrentUser,
+    db: DbSession,
+    storage: Storage,
+    settings: AppSettings,
+    importer: Importer,
+) -> ProjectOut:
+    """Create a project from a video link (e.g. YouTube). The download runs in the worker."""
+    project = import_service.import_from_url(db, settings, importer, user, body)
     return project_service.to_project_out(db, storage, project)
 
 

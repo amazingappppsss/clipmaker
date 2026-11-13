@@ -15,6 +15,7 @@ from clipmaker.core.rate_limit import Counter, get_counter, is_allowed
 from clipmaker.core.security import verify_access_token
 from clipmaker.db.models import User
 from clipmaker.db.session import get_db
+from clipmaker.media.url_import import UrlImporter, YtDlpImporter
 from clipmaker.services.users import get_or_create_user
 from clipmaker.storage.base import ObjectStorage
 from clipmaker.storage.factory import get_storage
@@ -57,3 +58,14 @@ def get_job_queue() -> Callable[[uuid.UUID], None]:
 
 
 JobQueue = Annotated[Callable[[uuid.UUID], None], Depends(get_job_queue)]
+
+
+def get_url_importer(settings: AppSettings) -> UrlImporter:
+    """Link importer (yt-dlp in production; overridden in tests)."""
+    return YtDlpImporter(
+        max_height=settings.url_import_max_height,
+        socket_timeout=settings.url_import_timeout_seconds,
+    )
+
+
+Importer = Annotated[UrlImporter, Depends(get_url_importer)]

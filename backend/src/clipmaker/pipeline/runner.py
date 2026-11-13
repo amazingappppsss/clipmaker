@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from clipmaker.core.config import Settings
 from clipmaker.core.enums import PIPELINE_STAGES, TERMINAL_STATES, ProjectState, UsageKind
 from clipmaker.db.models import ProcessingJob, Project, UsageRecord, User
+from clipmaker.media.url_import import YtDlpImporter
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import JobCancelledError, StageError
 from clipmaker.pipeline.stages import ingest, transcribe, understand
@@ -90,6 +91,7 @@ class JobRunner:
         handlers: dict[ProjectState, StageFn] | None = None,
         llm_factory: Callable[[Settings], Any] = build_llm_provider,
         transcriber_factory: Callable[[Settings], Any] = build_transcription_provider,
+        importer_factory: Callable[[Settings], Any] | None = None,
     ) -> None:
         self.job_id = job_id
         self.worker_id = worker_id
@@ -99,6 +101,9 @@ class JobRunner:
         self.handlers = STAGE_HANDLERS if handlers is None else handlers
         self.llm_factory = llm_factory
         self.transcriber_factory = transcriber_factory
+        self.importer_factory = importer_factory or (
+            lambda s: YtDlpImporter(s.url_import_max_height, s.url_import_timeout_seconds)
+        )
 
     # --- lease ------------------------------------------------------------------------
     def _acquire_lease(self) -> bool:
@@ -184,6 +189,7 @@ class JobRunner:
                 heartbeat=self.heartbeat,
                 llm_factory=self.llm_factory,
                 transcriber_factory=self.transcriber_factory,
+                importer_factory=self.importer_factory,
             )
             db.commit()
 

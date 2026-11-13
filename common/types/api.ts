@@ -48,6 +48,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Project
+         * @description Create a project from a video link (e.g. YouTube). The download runs in the worker.
+         */
+        post: operations["import_project_projects_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{project_id}": {
         parameters: {
             query?: never;
@@ -365,6 +385,19 @@ export interface components {
             version: string;
         };
         /**
+         * ImportRequest
+         * @description POST /projects/import body: create a project from a video link.
+         */
+        ImportRequest: {
+            /** Url */
+            url: string;
+            /** Rights Confirmed */
+            rights_confirmed: boolean;
+            /** Title */
+            title?: string | null;
+            settings?: components["schemas"]["ProjectSettings"];
+        };
+        /**
          * JobStatusOut
          * @description GET /projects/{id}/status — real progress, never simulated.
          */
@@ -487,9 +520,13 @@ export interface components {
         ProjectState: "CREATED" | "UPLOADED" | "INGESTING" | "TRANSCRIBING" | "UNDERSTANDING" | "SELECTING" | "EDITING" | "RENDERING" | "QUALITY_CHECK" | "COMPLETED" | "NEEDS_REVIEW" | "FAILED" | "CANCELLED";
         /**
          * SourceVideoOut
-         * @description Public view of the uploaded source video.
+         * @description Public view of the source video (uploaded or imported from a link).
          */
         SourceVideoOut: {
+            /** Source Kind */
+            source_kind: string;
+            /** Source Url */
+            source_url: string | null;
             /** Original Filename */
             original_filename: string;
             /** Size Bytes */
@@ -673,6 +710,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ProjectCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_project_projects_import_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRequest"];
             };
         };
         responses: {

@@ -94,6 +94,12 @@ class Settings(BaseSettings):
     assemblyai_usd_per_hour: float = 0.15
     transcription_timeout_seconds: int = 3600
 
+    # --- Link import (e.g. YouTube) -------------------------------------------------------
+    # Kill switch: set false to turn link import off instantly.
+    enable_url_import: bool = True
+    url_import_max_height: int = 1080
+    url_import_timeout_seconds: int = 30  # metadata lookup during the API request
+
     # --- Pipeline -------------------------------------------------------------------------
     stage_max_attempts: int = Field(default=3, ge=1, le=10)
     job_lease_seconds: int = Field(default=900, ge=60)

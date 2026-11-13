@@ -21,13 +21,15 @@ dependencies = [
   "celery[redis]>=5.4",        # background workers, kept separate from the API process
   "redis>=5.2",                # Celery broker + API rate limiting
   "python-multipart>=0.0.12",  # raw body handling for the local-storage signed upload endpoint
+  "anthropic==2.3.*",          # Claude API (full-video understanding, clip selection)
+  "httpx>=0.28",               # AssemblyAI REST client
+  "yt-dlp[default,deno]==2026.10.21",  # link import (YouTube); deno = JS runtime YouTube needs
 ]
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8.3",               # test runner
   "pytest-cov>=6.0",           # coverage reports
-  "httpx>=0.28",               # FastAPI TestClient transport
   "ruff>=0.8",                 # linting + formatting
   "mypy>=1.13",                # static type checking (strict)
 ]

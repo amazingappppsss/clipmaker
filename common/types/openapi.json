@@ -163,6 +163,66 @@
         }
       }
     },
+    "/projects/import": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Import Project",
+        "description": "Create a project from a video link (e.g. YouTube). The download runs in the worker.",
+        "operationId": "import_project_projects_import_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{project_id}": {
       "get": {
         "tags": [
@@ -1131,6 +1191,43 @@
         "title": "HealthOut",
         "description": "GET /health response."
       },
+      "ImportRequest": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 8,
+            "title": "Url"
+          },
+          "rights_confirmed": {
+            "type": "boolean",
+            "title": "Rights Confirmed"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ProjectSettings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url",
+          "rights_confirmed"
+        ],
+        "title": "ImportRequest",
+        "description": "POST /projects/import body: create a project from a video link."
+      },
       "JobStatusOut": {
         "properties": {
           "project_state": {
@@ -1431,6 +1528,21 @@
       },
       "SourceVideoOut": {
         "properties": {
+          "source_kind": {
+            "type": "string",
+            "title": "Source Kind"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
           "original_filename": {
             "type": "string",
             "title": "Original Filename"
@@ -1500,6 +1612,8 @@
         },
         "type": "object",
         "required": [
+          "source_kind",
+          "source_url",
           "original_filename",
           "size_bytes",
           "upload_status",
@@ -1510,7 +1624,7 @@
           "error_message"
         ],
         "title": "SourceVideoOut",
-        "description": "Public view of the uploaded source video."
+        "description": "Public view of the source video (uploaded or imported from a link)."
       },
       "StageStatusOut": {
         "properties": {

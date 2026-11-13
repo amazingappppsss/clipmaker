@@ -16,6 +16,7 @@ from typing import Any
 from sqlalchemy.orm import Session, sessionmaker
 
 from clipmaker.core.config import Settings
+from clipmaker.media.url_import import UrlImporter
 from clipmaker.pipeline.errors import PermanentStageError
 from clipmaker.providers.llm.base import LLMError, LLMProvider
 from clipmaker.providers.transcription.base import TranscriptionError, TranscriptionProvider
@@ -45,6 +46,7 @@ class StageContext:
     heartbeat: Callable[[], None]
     llm_factory: Callable[[Settings], LLMProvider]
     transcriber_factory: Callable[[Settings], TranscriptionProvider]
+    importer_factory: Callable[[Settings], UrlImporter]
     _llm: LLMProvider | None = None
     _transcriber: TranscriptionProvider | None = None
 
@@ -60,6 +62,9 @@ class StageContext:
             except LLMError as exc:
                 raise PermanentStageError("llm_unavailable", str(exc)) from exc
         return self._llm
+
+    def importer(self) -> UrlImporter:
+        return self.importer_factory(self.settings)
 
     def transcriber(self) -> TranscriptionProvider:
         if self._transcriber is None:

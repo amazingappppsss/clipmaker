@@ -134,6 +134,11 @@ class SourceVideo(TimestampMixin, Base):
         ForeignKey("projects.id", ondelete="CASCADE"), unique=True, nullable=False
     )
     storage_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    # "upload" (browser → storage) or "url" (imported by a worker from source_url).
+    source_kind: Mapped[str] = mapped_column(
+        String(20), default="upload", server_default="upload", nullable=False
+    )
+    source_url: Mapped[str | None] = mapped_column(Text)
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     content_type: Mapped[str] = mapped_column(String(100), nullable=False)
     size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)

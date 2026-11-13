@@ -60,9 +60,22 @@ class ProjectCreate(BaseModel):
     settings: ProjectSettings = Field(default_factory=ProjectSettings)
 
 
-class SourceVideoOut(ApiModel):
-    """Public view of the uploaded source video."""
+class ImportRequest(BaseModel):
+    """POST /projects/import body: create a project from a video link."""
 
+    model_config = ConfigDict(extra="forbid")
+
+    url: Annotated[str, StringConstraints(strip_whitespace=True, min_length=8, max_length=2048)]
+    rights_confirmed: bool
+    title: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] | None = None
+    settings: ProjectSettings = Field(default_factory=ProjectSettings)
+
+
+class SourceVideoOut(ApiModel):
+    """Public view of the source video (uploaded or imported from a link)."""
+
+    source_kind: str
+    source_url: str | None
     original_filename: str
     size_bytes: int
     upload_status: UploadStatus
