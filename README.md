@@ -47,9 +47,14 @@ cp ../.env.example .env          # keep only the backend section
 
 # 3. Frontend (from the repository root)
 npm install
-printf 'NEXT_PUBLIC_API_URL=http://localhost:8000\nNEXT_PUBLIC_DEV_AUTH=true\n' > frontend/.env.local
+printf 'NEXT_PUBLIC_API_URL=/api\nNEXT_PUBLIC_DEV_AUTH=true\nAPI_PROXY_TARGET=http://localhost:8000\n' > frontend/.env.local
 npm run dev:web                                           # http://localhost:3000
 ```
+
+With `API_PROXY_TARGET` set, the web server forwards `/api/*` to the backend, so everything is
+served from one port (handy for previews and tunnels). Then set `API_PUBLIC_URL=/api` in
+`backend/.env` so local-storage upload links use the same origin. In production leave
+`API_PROXY_TARGET` unset and point `NEXT_PUBLIC_API_URL` at the API's domain.
 
 ## Tests and checks
 
