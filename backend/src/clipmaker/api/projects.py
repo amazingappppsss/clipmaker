@@ -6,8 +6,17 @@ import uuid
 
 from fastapi import APIRouter, Query, Response, status
 
-from clipmaker.api.deps import AppSettings, CurrentUser, DbSession, Storage
-from clipmaker.schemas import ProjectCreate, ProjectList, ProjectOut, UploadRequest, UploadTicket
+from clipmaker.api.deps import AppSettings, CurrentUser, DbSession, JobQueue, Storage
+from clipmaker.schemas import (
+    ClipOut,
+    JobStatusOut,
+    ProjectCreate,
+    ProjectList,
+    ProjectOut,
+    UploadRequest,
+    UploadTicket,
+)
+from clipmaker.services import processing as processing_service
 from clipmaker.services import projects as project_service
 from clipmaker.services import uploads as upload_service
 
@@ -87,3 +96,27 @@ def complete_upload(
     project = project_service.get_owned_project(db, user, project_id)
     upload_service.complete_upload(db, storage, settings, project)
     return project_service.to_project_out(db, storage, project)
+
+
+@router.post("/{project_id}/process", status_code=status.HTTP_202_ACCEPTED)
+def start_processing(
+    project_id: uuid.UUID, user: CurrentUser, db: DbSession, storage: Storage, enqueue: JobQueue
+) -> ProjectOut:
+    """Charge credits and start (or retry) the clipping pipeline in the background."""
+    project = project_service.get_owned_project(db, user, project_id)
+    processing_service.start_processing(db, user, project, enqueue)
+    return project_service.to_project_out(db, storage, project)
+
+
+@router.get("/{project_id}/status")
+def get_status(project_id: uuid.UUID, user: CurrentUser, db: DbSession) -> JobStatusOut:
+    """Per-stage processing status."""
+    project = project_service.get_owned_project(db, user, project_id)
+    return processing_service.job_status(db, project)
+
+
+@router.get("/{project_id}/clips")
+def get_clips(project_id: uuid.UUID, user: CurrentUser, db: DbSession) -> list[ClipOut]:
+    """Selected clips for the project, best first."""
+    project = project_service.get_owned_project(db, user, project_id)
+    return processing_service.list_clips(db, project)

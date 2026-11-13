@@ -72,6 +72,40 @@ class Settings(BaseSettings):
     # --- Rate limiting -------------------------------------------------------------------
     rate_limit_per_minute: int = 120
 
+    # --- AI providers (PRD §7: swappable through configuration) --------------------------
+    llm_provider: str = "anthropic"
+    anthropic_api_key: SecretStr | None = None
+    # "smart" = full-video understanding + clip selection (the quality-critical step).
+    llm_smart_model: str = "claude-opus-5-5"
+    llm_smart_effort: str = "high"
+    # "fast" = titles, hooks, captions, hashtags (cheap, high-volume).
+    llm_fast_model: str = "claude-haiku-5-5"
+    llm_fast_effort: str = "low"
+    # Server-side refusal fallback for the smart model (on by default; set false to disable).
+    llm_refusal_fallback: bool = True
+
+    transcription_provider: str = "assemblyai"
+    assemblyai_api_key: SecretStr | None = None
+    assemblyai_base_url: str = "https://api.assemblyai.com"
+    # Estimated list price used for cost tracking; verify against the provider's pricing page.
+    assemblyai_usd_per_hour: float = 0.15
+    transcription_timeout_seconds: int = 3600
+
+    # --- Pipeline -------------------------------------------------------------------------
+    stage_max_attempts: int = Field(default=3, ge=1, le=10)
+    job_lease_seconds: int = Field(default=900, ge=60)
+    min_clip_seconds: float = 20.0
+    max_clip_seconds: float = 90.0
+    # Minimum weighted score (0-100) a candidate needs to become a clip. Fewer, better clips
+    # beat padding the result with weak ones.
+    min_clip_score: float = 55.0
+    # Editorial scoring weights (PRD §5.4) — initial heuristics, kept configurable. JSON object.
+    score_weights_json: str = (
+        '{"standalone_context": 0.25, "strong_opening": 0.20, "story_payoff": 0.20,'
+        ' "emotional_engagement": 0.15, "information_value": 0.10, "natural_ending": 0.10}'
+    )
+    work_dir: str = "./.data/work"
+
     @model_validator(mode="after")
     def _check_production_safety(self) -> Settings:
         """Fail fast on insecure configuration instead of discovering it in production."""

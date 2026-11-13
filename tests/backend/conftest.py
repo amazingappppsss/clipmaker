@@ -32,6 +32,9 @@ os.environ.update(
         "LOCAL_STORAGE_DIR": str(_STORAGE_DIR),
         "API_PUBLIC_URL": "http://testserver",
         "MIN_VIDEO_DURATION_SECONDS": "5",
+        "WORK_DIR": "/tmp/clipmaker-test-work",
+        "ANTHROPIC_API_KEY": "",
+        "ASSEMBLYAI_API_KEY": "",
     }
 )
 
@@ -209,3 +212,31 @@ def short_video(media_dir: Path) -> Path:
         ]
     )
     return out
+
+
+@pytest.fixture
+def queued(client: TestClient) -> list[uuid.UUID]:
+    """Capture enqueued job ids instead of sending them to Celery."""
+    from clipmaker.api.deps import get_job_queue
+    from clipmaker.main import app
+
+    jobs: list[uuid.UUID] = []
+    app.dependency_overrides[get_job_queue] = lambda: jobs.append
+    return jobs
+
+
+def upload_project(client: TestClient, auth: dict[str, str], video: Path) -> str:
+    pid = client.post("/projects", json={"title": "Pod"}, headers=auth).json()["id"]
+    ticket = client.post(
+        f"/projects/{pid}/upload",
+        headers=auth,
+        json={
+            "filename": video.name,
+            "content_type": "video/mp4",
+            "size_bytes": video.stat().st_size,
+        },
+    ).json()
+    url = ticket["upload_url"].removeprefix("http://testserver")
+    assert client.put(url, content=video.read_bytes(), headers=ticket["headers"]).status_code == 204
+    assert client.post(f"/projects/{pid}/upload/complete", headers=auth).status_code == 200
+    return pid

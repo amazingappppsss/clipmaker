@@ -112,6 +112,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{project_id}/process": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Processing
+         * @description Charge credits and start (or retry) the clipping pipeline in the background.
+         */
+        post: operations["start_processing_projects__project_id__process_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{project_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Status
+         * @description Per-stage processing status.
+         */
+        get: operations["get_status_projects__project_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{project_id}/clips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Clips
+         * @description Selected clips for the project, best first.
+         */
+        get: operations["get_clips_projects__project_id__clips_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/usage": {
         parameters: {
             query?: never;
@@ -216,6 +276,46 @@ export interface components {
             plans: components["schemas"]["PlanOut"][];
         };
         /**
+         * ClipOut
+         * @description A selected clip: its moment in the source video plus publishing metadata.
+         */
+        ClipOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Rank */
+            rank: number;
+            status: components["schemas"]["ClipStatus"];
+            /** Title */
+            title: string | null;
+            /** Hook */
+            hook: string | null;
+            /** Alt Titles */
+            alt_titles: string[];
+            /** Social Caption */
+            social_caption: string | null;
+            /** Hashtags */
+            hashtags: string[];
+            /** Duration Seconds */
+            duration_seconds: number | null;
+            /** Start Seconds */
+            start_seconds?: number | null;
+            /** End Seconds */
+            end_seconds?: number | null;
+            /** Transcript */
+            transcript?: string | null;
+            /** Score */
+            score?: number | null;
+        };
+        /**
+         * ClipStatus
+         * @description Lifecycle of a single generated clip.
+         * @enum {string}
+         */
+        ClipStatus: "planned" | "rendering" | "qa" | "ready" | "needs_review" | "failed";
+        /**
          * ContentCategory
          * @description User-selected content category (PRD §4 step 2).
          * @enum {string}
@@ -263,6 +363,23 @@ export interface components {
             redis: boolean;
             /** Version */
             version: string;
+        };
+        /**
+         * JobStatusOut
+         * @description GET /projects/{id}/status — real progress, never simulated.
+         */
+        JobStatusOut: {
+            project_state: components["schemas"]["ProjectState"];
+            /** Progress */
+            progress: number;
+            /** Stages */
+            stages: components["schemas"]["StageStatusOut"][];
+            /** Message */
+            message: string | null;
+            /** Started At */
+            started_at: string | null;
+            /** Completed At */
+            completed_at: string | null;
         };
         /**
          * Plan
@@ -386,6 +503,20 @@ export interface components {
             has_audio: boolean | null;
             /** Error Message */
             error_message: string | null;
+        };
+        /**
+         * StageStatusOut
+         * @description One pipeline stage as recorded by the runner.
+         */
+        StageStatusOut: {
+            stage: components["schemas"]["ProjectState"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "running" | "done" | "failed";
+            /** Attempts */
+            attempts: number;
         };
         /**
          * UploadRequest
@@ -684,6 +815,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_processing_projects__project_id__process_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_status_projects__project_id__status_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_clips_projects__project_id__clips_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClipOut"][];
                 };
             };
             /** @description Validation Error */

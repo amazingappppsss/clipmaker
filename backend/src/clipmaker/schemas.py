@@ -117,7 +117,7 @@ class UploadTicket(BaseModel):
 
 # --- Clips -------------------------------------------------------------------------------
 class ClipOut(ApiModel):
-    """A generated clip (populated from Milestone 2 onwards)."""
+    """A selected clip: its moment in the source video plus publishing metadata."""
 
     id: uuid.UUID
     rank: int
@@ -128,6 +128,32 @@ class ClipOut(ApiModel):
     social_caption: str | None
     hashtags: list[str]
     duration_seconds: float | None
+    start_seconds: float | None = None
+    end_seconds: float | None = None
+    transcript: str | None = None
+    score: float | None = None
+
+
+StageRunStatus = Literal["pending", "running", "done", "failed"]
+
+
+class StageStatusOut(BaseModel):
+    """One pipeline stage as recorded by the runner."""
+
+    stage: ProjectState
+    status: StageRunStatus
+    attempts: int
+
+
+class JobStatusOut(BaseModel):
+    """GET /projects/{id}/status — real progress, never simulated."""
+
+    project_state: ProjectState
+    progress: float
+    stages: list[StageStatusOut]
+    message: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
 
 
 # --- Account -----------------------------------------------------------------------------

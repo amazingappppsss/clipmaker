@@ -57,5 +57,5 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["../tests/backend"]
-pythonpath = ["src"]
+pythonpath = ["src", "../tests/backend"]
 addopts = "-ra"

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import uuid
+from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends, Header
@@ -45,3 +47,13 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def get_job_queue() -> Callable[[uuid.UUID], None]:
+    """How the API hands jobs to workers (Celery in production; overridden in tests)."""
+    from clipmaker.workers.tasks import enqueue_job
+
+    return enqueue_job
+
+
+JobQueue = Annotated[Callable[[uuid.UUID], None], Depends(get_job_queue)]

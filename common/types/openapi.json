@@ -404,6 +404,190 @@
         }
       }
     },
+    "/projects/{project_id}/process": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Start Processing",
+        "description": "Charge credits and start (or retry) the clipping pipeline in the background.",
+        "operationId": "start_processing_projects__project_id__process_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/status": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Get Status",
+        "description": "Per-stage processing status.",
+        "operationId": "get_status_projects__project_id__status_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatusOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/clips": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Get Clips",
+        "description": "Selected clips for the project, best first.",
+        "operationId": "get_clips_projects__project_id__clips_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClipOut"
+                  },
+                  "title": "Response Get Clips Projects  Project Id  Clips Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/account/usage": {
       "get": {
         "tags": [
@@ -707,6 +891,151 @@
         "title": "AccountUsage",
         "description": "GET /account/usage response."
       },
+      "ClipOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ClipStatus"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "hook": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hook"
+          },
+          "alt_titles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Alt Titles"
+          },
+          "social_caption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Social Caption"
+          },
+          "hashtags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Hashtags"
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Seconds"
+          },
+          "start_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Seconds"
+          },
+          "end_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Seconds"
+          },
+          "transcript": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcript"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rank",
+          "status",
+          "title",
+          "hook",
+          "alt_titles",
+          "social_caption",
+          "hashtags",
+          "duration_seconds"
+        ],
+        "title": "ClipOut",
+        "description": "A selected clip: its moment in the source video plus publishing metadata."
+      },
+      "ClipStatus": {
+        "type": "string",
+        "enum": [
+          "planned",
+          "rendering",
+          "qa",
+          "ready",
+          "needs_review",
+          "failed"
+        ],
+        "title": "ClipStatus",
+        "description": "Lifecycle of a single generated clip."
+      },
       "ContentCategory": {
         "type": "string",
         "enum": [
@@ -801,6 +1130,70 @@
         ],
         "title": "HealthOut",
         "description": "GET /health response."
+      },
+      "JobStatusOut": {
+        "properties": {
+          "project_state": {
+            "$ref": "#/components/schemas/ProjectState"
+          },
+          "progress": {
+            "type": "number",
+            "title": "Progress"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageStatusOut"
+            },
+            "type": "array",
+            "title": "Stages"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_state",
+          "progress",
+          "stages",
+          "message",
+          "started_at",
+          "completed_at"
+        ],
+        "title": "JobStatusOut",
+        "description": "GET /projects/{id}/status \u2014 real progress, never simulated."
       },
       "Plan": {
         "type": "string",
@@ -1107,6 +1500,35 @@
         ],
         "title": "SourceVideoOut",
         "description": "Public view of the uploaded source video."
+      },
+      "StageStatusOut": {
+        "properties": {
+          "stage": {
+            "$ref": "#/components/schemas/ProjectState"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stage",
+          "status",
+          "attempts"
+        ],
+        "title": "StageStatusOut",
+        "description": "One pipeline stage as recorded by the runner."
       },
       "UploadRequest": {
         "properties": {
