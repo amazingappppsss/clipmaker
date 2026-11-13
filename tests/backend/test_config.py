@@ -45,3 +45,8 @@ def test_valid_single_node_production_config() -> None:
 def test_unsafe_production_config_refused(override: dict[str, object], message: str) -> None:
     with pytest.raises(ValidationError, match=message):
         Settings(**{**PROD_OK, "supabase_jwt_secret": None, **override})
+
+
+def test_cors_origins_tolerate_spaces_and_trailing_slash() -> None:
+    settings = Settings(cors_origins=" https://a.app/ , https://b.app")
+    assert settings.cors_origin_list == ["https://a.app", "https://b.app"]
