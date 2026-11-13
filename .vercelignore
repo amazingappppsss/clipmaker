@@ -1,0 +1,10 @@
+# Only the web app (frontend/ + shared common/ types + root workspace files) is deployed to Vercel.
+backend/
+tests/
+scripts/
+.github/
+docker-compose.yml
+**/node_modules
+**/.next
+**/.env
+**/.env.local
