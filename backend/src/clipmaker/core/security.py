@@ -61,6 +61,9 @@ def verify_access_token(token: str, settings: Settings) -> AuthenticatedUser:
         except jwt.PyJWTError as exc:
             raise AuthError("Unable to verify token signature") from exc
         algorithms = _ASYMMETRIC_ALGS
+    elif alg in _ASYMMETRIC_ALGS:
+        # Supabase's current signing keys (ES256/RS256) are verified against the project's JWKS.
+        raise AuthError("Server misconfigured: SUPABASE_URL is required to verify sign-in tokens")
     else:
         raise AuthError("Unsupported token algorithm")
 

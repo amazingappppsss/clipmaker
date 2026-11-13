@@ -82,6 +82,10 @@ def main() -> int:
         else:
             print(f"{WARN} {name} is missing: video processing will fail until it is set")
 
+    if settings.app_env.value == "production" and not settings.supabase_url:
+        print(
+            f"{WARN} SUPABASE_URL is not set: sign-ins with Supabase signing keys will be refused"
+        )
     if settings.app_env.value == "production" and not os.environ.get("API_PUBLIC_URL"):
         print(f"{WARN} API_PUBLIC_URL is not set: upload links will point to localhost")
 

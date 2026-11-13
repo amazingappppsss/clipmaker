@@ -72,3 +72,15 @@ def test_non_uuid_subject_rejected() -> None:
 def test_malformed_token_rejected() -> None:
     with pytest.raises(AuthError):
         verify_access_token("abc.def", get_settings())
+
+
+def test_asymmetric_token_without_supabase_url_explains_misconfiguration() -> None:
+    import base64
+    import json
+
+    def b64(data: dict[str, str]) -> str:
+        return base64.urlsafe_b64encode(json.dumps(data).encode()).rstrip(b"=").decode()
+
+    header_only = f"{b64({'alg': 'ES256', 'typ': 'JWT'})}.{b64({'sub': 'x'})}.c2ln"
+    with pytest.raises(AuthError, match="SUPABASE_URL"):
+        verify_access_token(header_only, get_settings())
