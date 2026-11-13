@@ -3,14 +3,8 @@
 # If either process exits, the container exits too so the platform restarts it (no zombie halves).
 set -euo pipefail
 
-STORAGE_DIR="${LOCAL_STORAGE_DIR:-./.data/storage}"
-WORK_DIR="${WORK_DIR:-./.data/work}"
-mkdir -p "$STORAGE_DIR" "$WORK_DIR" || true
-if [ "${STORAGE_BACKEND:-local}" = "local" ] && ! touch "$STORAGE_DIR/.write-test" 2>/dev/null; then
-  echo "ERROR: storage dir $STORAGE_DIR is not writable (on Railway set RAILWAY_RUN_UID=0)." >&2
-  exit 1
-fi
-rm -f "$STORAGE_DIR/.write-test"
+# Plain-English checklist of settings, database, Redis, storage and keys; stops on a blocker.
+python -m clipmaker.preflight
 
 alembic upgrade head
 
