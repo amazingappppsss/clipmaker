@@ -22,7 +22,7 @@ export function StageTimeline({ state }: { state: ProjectState }) {
                 status === "done"
                   ? "gradient-fill text-white"
                   : status === "current"
-                    ? "bg-sun text-ink"
+                    ? "bg-violet/20 text-violet-bright"
                     : "border border-line-strong"
               }`}
             >

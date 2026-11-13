@@ -1,25 +1,18 @@
 "use client";
 
 /**
- * Landing hero: full-bleed animated gradient, huge headline, and the product's single input.
+ * Landing hero: headline, the product's single input, and the product preview right below.
  * Dropping a file here hands it to /new (via sign-in when needed) — no re-picking.
  */
-import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ProductPreview } from "@/components/landing/product-preview";
 import { SiteHeader } from "@/components/landing/site-header";
 import { VideoDropZone } from "@/components/upload/video-drop-zone";
 import { Alert } from "@/components/ui/alert";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { setPendingUpload } from "@/lib/pending-upload";
-
-const PROMISES = [
-  "Best moments, auto-picked",
-  "9:16 speaker framing",
-  "Animated captions",
-  "Quality-checked",
-];
 
 export function Hero() {
   const router = useRouter();
@@ -32,49 +25,37 @@ export function Hero() {
   };
 
   return (
-    <section className="mesh-gradient rounded-b-[2.5rem] pb-40 sm:rounded-b-[4rem] sm:pb-48">
+    <section className="spotlight overflow-hidden">
+      <div aria-hidden className="grid-backdrop pointer-events-none absolute inset-0 -z-10" />
       <SiteHeader />
-      <div className="mx-auto max-w-5xl px-4 pt-12 text-center sm:px-6 sm:pt-20">
-        <p className="animate-pop mx-auto inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/30 backdrop-blur">
-          <Sparkles className="size-4" aria-hidden />
-          The AI editor that makes your shorts for you
+      <div className="mx-auto max-w-4xl px-4 pt-16 text-center sm:px-6 sm:pt-24">
+        <p className="animate-pop mx-auto inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface/70 px-3.5 py-1.5 text-xs font-medium text-ink-soft backdrop-blur sm:text-sm">
+          <span className="size-1.5 rounded-full bg-violet-bright shadow-[0_0_8px_var(--color-violet-bright)]" />
+          AI clipping for podcasts & long videos
         </p>
-        <h1 className="animate-pop mt-7 text-[3.25rem] leading-[0.95] font-extrabold tracking-[-0.04em] text-white [animation-delay:80ms] sm:text-8xl">
-          Paste a video.
+        <h1 className="animate-pop mt-6 text-5xl leading-[1.02] font-bold tracking-[-0.035em] [animation-delay:80ms] sm:text-7xl">
+          1 long video.
           <br />
-          Get{" "}
-          <span className="relative inline-block">
-            <span
-              aria-hidden
-              className="absolute inset-x-[-0.12em] bottom-[0.06em] h-[0.42em] -rotate-1 rounded-lg bg-sun"
-            />
-            <span className="relative text-ink">finished shorts.</span>
-          </span>
+          <span className="gradient-text">10 ready-to-post shorts.</span>
         </h1>
-        <p className="animate-pop mx-auto mt-7 max-w-2xl text-lg font-medium text-white/90 [animation-delay:160ms] sm:text-xl">
-          Upload a podcast or long video. ClipMaker watches all of it, picks the moments worth
-          sharing, and edits them into ready-to-post vertical clips.
+        <p className="animate-pop mx-auto mt-6 max-w-xl text-base text-muted [animation-delay:160ms] sm:text-lg">
+          ClipMaker watches your whole video, finds the moments worth sharing, and edits them into
+          vertical clips with captions, hooks and speaker framing. No editing skills needed.
         </p>
-
-        <div className="animate-pop mx-auto mt-10 max-w-2xl [animation-delay:240ms]">
+        <div className="animate-pop mx-auto mt-9 max-w-2xl [animation-delay:240ms]">
           <VideoDropZone variant="bar" onFile={handleFile} onReject={setError} />
           {error ? (
-            <div className="mt-4 text-left">
+            <div className="mt-3 text-left">
               <Alert tone="error">{error}</Alert>
             </div>
           ) : null}
+          <p className="mt-4 text-xs text-muted">
+            60 free minutes · No credit card · Only upload videos you have the rights to
+          </p>
         </div>
-
-        <ul className="mx-auto mt-7 flex max-w-3xl flex-wrap justify-center gap-2 text-sm font-semibold text-white">
-          {PROMISES.map((p) => (
-            <li
-              key={p}
-              className="rounded-full bg-white/15 px-3.5 py-1.5 ring-1 ring-white/25 backdrop-blur"
-            >
-              {p}
-            </li>
-          ))}
-        </ul>
+      </div>
+      <div className="animate-pop mx-auto mt-16 max-w-6xl px-4 pb-24 [animation-delay:320ms] sm:px-6">
+        <ProductPreview />
       </div>
     </section>
   );

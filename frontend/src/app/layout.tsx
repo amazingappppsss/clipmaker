@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "ClipMaker turns long videos and podcasts into ready-to-post vertical shorts with captions, hooks and speaker-aware framing.",
 };
 
-export const viewport: Viewport = { themeColor: "#ff3d8b" };
+export const viewport: Viewport = { themeColor: "#09090b" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

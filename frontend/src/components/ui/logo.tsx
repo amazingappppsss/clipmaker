@@ -13,11 +13,11 @@ export function Logo({ href = "/", tone = "dark" }: { href?: string; tone?: "dar
         aria-hidden
         className={`grid size-8 place-items-center rounded-xl ${
           tone === "light" ? "bg-white" : "gradient-fill"
-        } -rotate-6 shadow-sm`}
+        } shadow-[var(--shadow-glow)]`}
       >
         <span
           className={`h-0 w-0 translate-x-px border-y-[6px] border-l-[9px] border-y-transparent ${
-            tone === "light" ? "border-l-magenta" : "border-l-white"
+            tone === "light" ? "border-l-violet" : "border-l-white"
           }`}
         />
       </span>

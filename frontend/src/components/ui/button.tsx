@@ -11,16 +11,15 @@ export type ButtonVariant = "primary" | "dark" | "white" | "secondary" | "ghost"
 export type ButtonSize = "sm" | "md" | "lg";
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  /** Main call to action: pink → orange gradient. */
-  primary:
-    "gradient-fill text-white shadow-[var(--shadow-glow)] hover:brightness-110 hover:-translate-y-px",
-  /** Strong neutral action. */
-  dark: "bg-ink text-white hover:bg-ink-soft hover:-translate-y-px",
-  /** For use on top of gradient backgrounds. */
-  white: "bg-white text-ink shadow-[var(--shadow-card)] hover:-translate-y-px",
-  secondary: "bg-surface text-ink border-2 border-line hover:border-line-strong hover:bg-sunken",
+  /** Main call to action: glowing violet. */
+  primary: "gradient-fill text-white shadow-[var(--shadow-glow)] hover:brightness-110",
+  /** High-contrast neutral (white on the dark theme). */
+  dark: "bg-white text-black hover:bg-white/90",
+  /** Same as dark; kept for use on colored or image backgrounds. */
+  white: "bg-white text-black hover:bg-white/90",
+  secondary: "bg-surface text-ink border border-line-strong hover:bg-sunken",
   ghost: "text-ink-soft hover:bg-sunken hover:text-ink",
-  danger: "bg-surface text-danger border-2 border-line hover:bg-danger-soft",
+  danger: "bg-surface text-danger border border-line-strong hover:bg-danger-soft",
 };
 
 const SIZES: Record<ButtonSize, string> = {

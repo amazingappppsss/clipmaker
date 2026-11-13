@@ -1,6 +1,6 @@
 "use client";
 
-/** Public site header, drawn on top of the gradient hero (white text). */
+/** Public site header (dark theme). */
 import Link from "next/link";
 
 import { ButtonLink } from "@/components/ui/button";
@@ -16,33 +16,30 @@ const LINKS = [
 export function SiteHeader() {
   const { status } = useAuth();
   return (
-    <header className="relative z-20">
-      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Logo tone="light" />
-        <nav
-          className="hidden items-center gap-1 rounded-full bg-white/15 p-1 text-sm font-medium text-white backdrop-blur md:flex"
-          aria-label="Main"
-        >
+    <header className="relative z-20 border-b border-line/60">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <Logo />
+        <nav className="hidden items-center gap-8 text-sm text-muted md:flex" aria-label="Main">
           {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="rounded-full px-4 py-2 hover:bg-white/20">
+            <Link key={l.href} href={l.href} className="transition-colors hover:text-ink">
               {l.label}
             </Link>
           ))}
         </nav>
         <div className="flex items-center gap-2">
           {status === "signed_in" ? (
-            <ButtonLink href="/dashboard" variant="white" size="sm">
+            <ButtonLink href="/dashboard" variant="dark" size="sm">
               Dashboard
             </ButtonLink>
           ) : (
             <>
               <Link
                 href="/login"
-                className="hidden rounded-full px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 sm:inline-flex"
+                className="hidden px-3 py-2 text-sm font-medium text-muted hover:text-ink sm:inline-flex"
               >
                 Log in
               </Link>
-              <ButtonLink href="/login" variant="white" size="sm">
+              <ButtonLink href="/login" variant="dark" size="sm">
                 Get started
               </ButtonLink>
             </>

@@ -11,7 +11,7 @@ export function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       href={`/projects/${project.id}`}
-      className="group overflow-hidden rounded-[var(--radius-card)] bg-surface ring-1 ring-line transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-float)]"
+      className="group overflow-hidden rounded-[var(--radius-card)] bg-surface ring-1 ring-line transition-all hover:-translate-y-1 hover:ring-violet/50"
     >
       <div className="video-tone-1 relative aspect-video">
         {project.thumbnail_url ? (
@@ -24,7 +24,7 @@ export function ProjectCard({ project }: { project: Project }) {
           </div>
         )}
         {duration ? (
-          <span className="absolute right-2.5 bottom-2.5 rounded-md bg-ink/80 px-1.5 py-0.5 text-xs font-medium text-white tabular-nums">
+          <span className="absolute right-2.5 bottom-2.5 rounded-md bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white tabular-nums">
             {formatDuration(duration)}
           </span>
         ) : null}
