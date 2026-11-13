@@ -85,6 +85,8 @@ class ProjectOut(ApiModel):
     updated_at: datetime
     source_video: SourceVideoOut | None
     thumbnail_url: str | None = None
+    # Short-lived signed URL for in-browser preview of picked moments (inline playback).
+    source_video_url: str | None = None
     clip_count: int = 0
 
 

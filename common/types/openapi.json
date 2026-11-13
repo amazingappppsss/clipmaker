@@ -1346,6 +1346,17 @@
             ],
             "title": "Thumbnail Url"
           },
+          "source_video_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Video Url"
+          },
           "clip_count": {
             "type": "integer",
             "title": "Clip Count",

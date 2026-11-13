@@ -44,6 +44,7 @@ def test_full_upload_flow(client: TestClient, auth: dict[str, str], sample_video
     assert src["upload_status"] == "verified"
     assert (src["width"], src["height"]) == (1280, 720)
     assert src["has_audio"] is True
+    assert project["source_video_url"] is not None
 
 
 def test_complete_without_bytes_fails(

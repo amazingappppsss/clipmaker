@@ -2,7 +2,7 @@
  * Presentation rules for project states (mirrors ProjectState in backend core/enums.py).
  * Pure and unit-tested: the UI must never claim a stage is done before the backend says so.
  */
-import type { ProjectState } from "@/services/api-types";
+import type { ProjectState, StageStatus } from "@/services/api-types";
 
 export type StateTone = "neutral" | "active" | "success" | "warning" | "danger";
 
@@ -50,7 +50,7 @@ export function isProcessing(state: ProjectState): boolean {
   return stateTone(state) === "active";
 }
 
-export type StepStatus = "done" | "current" | "pending";
+export type StepStatus = "done" | "current" | "pending" | "failed";
 
 /**
  * Status of each pipeline step for a given project state.
@@ -63,4 +63,16 @@ export function stepStatuses(state: ProjectState): StepStatus[] {
   return PIPELINE_STEPS.map((_, i) =>
     index < 0 ? "pending" : i < index ? "done" : i === index ? "current" : "pending",
   );
+}
+
+/** Step statuses from the backend's real per-stage records (preferred over `stepStatuses`). */
+export function stepStatusesFromJob(stages: StageStatus[]): StepStatus[] {
+  const byStage = new Map(stages.map((s) => [s.stage, s.status]));
+  return PIPELINE_STEPS.map(({ state }) => {
+    const status = byStage.get(state);
+    if (status === "done") return "done";
+    if (status === "running") return "current";
+    if (status === "failed") return "failed";
+    return "pending";
+  });
 }

@@ -22,3 +22,6 @@ export type ContentCategory = Schemas["ContentCategory"];
 export type VideoStyle = Schemas["VideoStyle"];
 export type DevToken = Schemas["DevTokenOut"];
 export type ClipCount = NonNullable<ProjectSettings["clip_count"]>;
+export type Clip = Schemas["ClipOut"];
+export type JobStatus = Schemas["JobStatusOut"];
+export type StageStatus = Schemas["StageStatusOut"];

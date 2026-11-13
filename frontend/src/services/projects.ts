@@ -1,6 +1,8 @@
 /** Project endpoints (backend/src/clipmaker/api/projects.py). */
 import { apiRequest } from "@/services/api-client";
 import type {
+  Clip,
+  JobStatus,
   Project,
   ProjectCreate,
   ProjectList,
@@ -37,4 +39,17 @@ export function completeUpload(id: string): Promise<Project> {
   return apiRequest<Project>(`/projects/${encodeURIComponent(id)}/upload/complete`, {
     method: "POST",
   });
+}
+
+/** Charge credits and start (or retry) background processing. */
+export function startProcessing(id: string): Promise<Project> {
+  return apiRequest<Project>(`/projects/${encodeURIComponent(id)}/process`, { method: "POST" });
+}
+
+export function getStatus(id: string, signal?: AbortSignal): Promise<JobStatus> {
+  return apiRequest<JobStatus>(`/projects/${encodeURIComponent(id)}/status`, { signal });
+}
+
+export function getClips(id: string, signal?: AbortSignal): Promise<Clip[]> {
+  return apiRequest<Clip[]>(`/projects/${encodeURIComponent(id)}/clips`, { signal });
 }

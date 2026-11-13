@@ -10,6 +10,7 @@ from datetime import datetime
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from clipmaker.core.enums import UploadStatus
 from clipmaker.core.errors import NotFoundError, ValidationFailedError
 from clipmaker.db.models import Clip, Project, User
 from clipmaker.schemas import ProjectCreate, ProjectOut, ProjectSettings, SourceVideoOut
@@ -111,6 +112,11 @@ def to_project_out(db: Session, storage: ObjectStorage, project: Project) -> Pro
         source_video=SourceVideoOut.model_validate(src) if src else None,
         thumbnail_url=(
             storage.presign_download(src.thumbnail_key) if src and src.thumbnail_key else None
+        ),
+        source_video_url=(
+            storage.presign_download(src.storage_key)
+            if src and src.upload_status == UploadStatus.VERIFIED
+            else None
         ),
         clip_count=clip_count,
     )

@@ -5,6 +5,7 @@ import {
   isProcessing,
   stateTone,
   stepStatuses,
+  stepStatusesFromJob,
 } from "@/lib/project-state";
 
 describe("stepStatuses", () => {
@@ -37,5 +38,35 @@ describe("tones and polling", () => {
   it("maps terminal tones", () => {
     expect(stateTone("FAILED")).toBe("danger");
     expect(stateTone("NEEDS_REVIEW")).toBe("warning");
+  });
+});
+
+describe("stepStatusesFromJob", () => {
+  it("maps real backend stage records, including failures", () => {
+    const stages = PIPELINE_STEPS.map((s, i) => ({
+      stage: s.state,
+      status: (["done", "done", "failed"][i] ?? "pending") as
+        | "done"
+        | "failed"
+        | "pending",
+      attempts: 1,
+    }));
+    expect(stepStatusesFromJob(stages).slice(0, 4)).toEqual([
+      "done",
+      "done",
+      "failed",
+      "pending",
+    ]);
+  });
+
+  it("shows running as current", () => {
+    const stages = [
+      {
+        stage: "TRANSCRIBING" as const,
+        status: "running" as const,
+        attempts: 1,
+      },
+    ];
+    expect(stepStatusesFromJob(stages)[1]).toBe("current");
   });
 });

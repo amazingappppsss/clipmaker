@@ -450,6 +450,8 @@ export interface components {
             source_video: components["schemas"]["SourceVideoOut"] | null;
             /** Thumbnail Url */
             thumbnail_url?: string | null;
+            /** Source Video Url */
+            source_video_url?: string | null;
             /**
              * Clip Count
              * @default 0
