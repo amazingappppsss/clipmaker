@@ -1,0 +1,1284 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ClipMaker API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "description": "Report dependency status; 503 when any dependency is down.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Create Project",
+        "description": "Create a project; upload its source video next.",
+        "operationId": "create_project_projects_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "List Projects",
+        "description": "The user's projects, newest first.",
+        "operationId": "list_projects_projects_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Get Project",
+        "description": "One project with its source-video metadata.",
+        "operationId": "get_project_projects__project_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Delete Project",
+        "description": "Permanently delete a project and all of its files.",
+        "operationId": "delete_project_projects__project_id__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/upload": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Request Upload",
+        "description": "Issue a signed URL to upload the source video directly to storage.",
+        "operationId": "request_upload_projects__project_id__upload_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadTicket"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/upload/complete": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Complete Upload",
+        "description": "Verify the uploaded file (exists, full size, readable video with audio).",
+        "operationId": "complete_upload_projects__project_id__upload_complete_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/usage": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "summary": "Get Usage",
+        "description": "Current plan, credit balance, recent ledger entries and the plan catalog.",
+        "operationId": "get_usage_account_usage_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountUsage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plans": {
+      "get": {
+        "tags": [
+          "plans"
+        ],
+        "summary": "List Plans",
+        "description": "Plans with indicative prices and monthly credit allowances.",
+        "operationId": "list_plans_plans_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlanOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Plans Plans Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/storage/local/{key}": {
+      "put": {
+        "tags": [
+          "local-storage"
+        ],
+        "summary": "Put Object",
+        "description": "Stream the request body to disk, refusing anything larger than the signed size.",
+        "operationId": "put_object_storage_local__key__put",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          },
+          {
+            "name": "expires",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Expires"
+            }
+          },
+          {
+            "name": "sig",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sig"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "local-storage"
+        ],
+        "summary": "Get Object",
+        "description": "Serve a stored file (supports HTTP Range for video seeking).",
+        "operationId": "get_object_storage_local__key__get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          },
+          {
+            "name": "expires",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Expires"
+            }
+          },
+          {
+            "name": "sig",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sig"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filename"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dev/token": {
+      "post": {
+        "tags": [
+          "dev"
+        ],
+        "summary": "Dev Token",
+        "description": "Return an access token for a deterministic dev user derived from the email.",
+        "operationId": "dev_token_dev_token_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevTokenOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountUsage": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/Plan"
+          },
+          "credits_balance": {
+            "type": "integer",
+            "title": "Credits Balance"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/UsageRecordOut"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/PlanOut"
+            },
+            "type": "array",
+            "title": "Plans"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "plan",
+          "credits_balance",
+          "history",
+          "plans"
+        ],
+        "title": "AccountUsage",
+        "description": "GET /account/usage response."
+      },
+      "ContentCategory": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "podcast",
+          "interview",
+          "educational",
+          "business",
+          "gaming"
+        ],
+        "title": "ContentCategory",
+        "description": "User-selected content category (PRD \u00a74 step 2)."
+      },
+      "DevTokenOut": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "user_id"
+        ],
+        "title": "DevTokenOut",
+        "description": "A locally minted access token (development only)."
+      },
+      "DevTokenRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 320,
+            "minLength": 3,
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "DevTokenRequest",
+        "description": "POST /dev/token body (development only)."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status"
+          },
+          "database": {
+            "type": "boolean",
+            "title": "Database"
+          },
+          "redis": {
+            "type": "boolean",
+            "title": "Redis"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "database",
+          "redis",
+          "version"
+        ],
+        "title": "HealthOut",
+        "description": "GET /health response."
+      },
+      "Plan": {
+        "type": "string",
+        "enum": [
+          "free",
+          "creator",
+          "pro"
+        ],
+        "title": "Plan",
+        "description": "Subscription plans. Prices are hypotheses (PRD \u00a711) and live in services/billing."
+      },
+      "PlanOut": {
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/Plan"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "monthly_credits": {
+            "type": "integer",
+            "title": "Monthly Credits"
+          },
+          "price_inr": {
+            "type": "integer",
+            "title": "Price Inr"
+          },
+          "watermark": {
+            "type": "boolean",
+            "title": "Watermark"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan",
+          "name",
+          "monthly_credits",
+          "price_inr",
+          "watermark"
+        ],
+        "title": "PlanOut",
+        "description": "Plan catalog entry."
+      },
+      "ProjectCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ProjectSettings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "ProjectCreate",
+        "description": "POST /projects body."
+      },
+      "ProjectList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ProjectList",
+        "description": "Paginated project list."
+      },
+      "ProjectOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ProjectState"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ProjectSettings"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "source_video": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceVideoOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
+          },
+          "clip_count": {
+            "type": "integer",
+            "title": "Clip Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "state",
+          "settings",
+          "error_message",
+          "created_at",
+          "updated_at",
+          "source_video"
+        ],
+        "title": "ProjectOut",
+        "description": "A project as returned by the API."
+      },
+      "ProjectSettings": {
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/ContentCategory",
+            "default": "auto"
+          },
+          "language": {
+            "type": "string",
+            "pattern": "^(auto|[a-z]{2}(-[A-Z]{2})?)$",
+            "title": "Language",
+            "default": "auto"
+          },
+          "clip_count": {
+            "enum": [
+              "auto",
+              3,
+              5,
+              10
+            ],
+            "title": "Clip Count",
+            "default": "auto"
+          },
+          "style": {
+            "$ref": "#/components/schemas/VideoStyle",
+            "default": "auto"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ProjectSettings",
+        "description": "User choices for a project (PRD \u00a74 step 2). Every field has a sensible default."
+      },
+      "ProjectState": {
+        "type": "string",
+        "enum": [
+          "CREATED",
+          "UPLOADED",
+          "INGESTING",
+          "TRANSCRIBING",
+          "UNDERSTANDING",
+          "SELECTING",
+          "EDITING",
+          "RENDERING",
+          "QUALITY_CHECK",
+          "COMPLETED",
+          "NEEDS_REVIEW",
+          "FAILED",
+          "CANCELLED"
+        ],
+        "title": "ProjectState",
+        "description": "Lifecycle of a project; mirrors the pipeline stages in PRD \u00a78."
+      },
+      "SourceVideoOut": {
+        "properties": {
+          "original_filename": {
+            "type": "string",
+            "title": "Original Filename"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "upload_status": {
+            "$ref": "#/components/schemas/UploadStatus"
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Seconds"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "has_audio": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Audio"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "original_filename",
+          "size_bytes",
+          "upload_status",
+          "duration_seconds",
+          "width",
+          "height",
+          "has_audio",
+          "error_message"
+        ],
+        "title": "SourceVideoOut",
+        "description": "Public view of the uploaded source video."
+      },
+      "UploadRequest": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Filename"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Size Bytes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "filename",
+          "content_type",
+          "size_bytes"
+        ],
+        "title": "UploadRequest",
+        "description": "POST /projects/{id}/upload body: what the client intends to upload."
+      },
+      "UploadStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "verified",
+          "failed"
+        ],
+        "title": "UploadStatus",
+        "description": "State of the source-video upload."
+      },
+      "UploadTicket": {
+        "properties": {
+          "upload_url": {
+            "type": "string",
+            "title": "Upload Url"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Headers"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          }
+        },
+        "type": "object",
+        "required": [
+          "upload_url",
+          "method",
+          "headers",
+          "expires_in"
+        ],
+        "title": "UploadTicket",
+        "description": "Signed instructions for uploading the file directly to storage."
+      },
+      "UsageKind": {
+        "type": "string",
+        "enum": [
+          "grant",
+          "debit",
+          "refund"
+        ],
+        "title": "UsageKind",
+        "description": "Ledger entry types in `usage_records`."
+      },
+      "UsageRecordOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/UsageKind"
+          },
+          "credits": {
+            "type": "integer",
+            "title": "Credits"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "credits",
+          "description",
+          "project_id",
+          "created_at"
+        ],
+        "title": "UsageRecordOut",
+        "description": "One ledger entry."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VideoStyle": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "modern_creator",
+          "minimal_professional"
+        ],
+        "title": "VideoStyle",
+        "description": "Visual style for captions and titles."
+      }
+    }
+  }
+}

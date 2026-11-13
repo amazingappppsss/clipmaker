@@ -1,0 +1,27 @@
+# Dependencies & builds
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local data & secrets (never commit real keys)
+.env
+.env.local
+.env.*.local
+backend/.data/
+*.log
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/

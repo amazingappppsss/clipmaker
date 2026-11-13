@@ -1,0 +1,13 @@
+{
+  "name": "clipmaker",
+  "private": true,
+  "workspaces": ["frontend"],
+  "scripts": {
+    "dev:web": "npm --workspace frontend run dev",
+    "build:web": "npm --workspace frontend run build",
+    "lint:web": "npm --workspace frontend run lint",
+    "typecheck:web": "npm --workspace frontend run typecheck",
+    "test:web": "npm --workspace frontend run test",
+    "gen:types": "bash scripts/gen-types.sh"
+  }
+}

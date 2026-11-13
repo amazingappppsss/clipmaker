@@ -1,0 +1,59 @@
+# Local full stack: `docker compose up --build`  →  web http://localhost:3000, API http://localhost:8000
+# Uses local storage + dev login. Production uses Supabase + R2 (see README "Deploying").
+x-backend-env: &backend-env
+  APP_ENV: development
+  DATABASE_URL: postgresql+psycopg://clipmaker:clipmaker@db:5432/clipmaker
+  REDIS_URL: redis://redis:6379/0
+  SUPABASE_JWT_SECRET: local-dev-secret-at-least-32-characters-long
+  ENABLE_DEV_AUTH: "true"
+  STORAGE_BACKEND: local
+  LOCAL_STORAGE_DIR: /app/.data/storage
+  API_PUBLIC_URL: http://localhost:8000
+  CORS_ORIGINS: http://localhost:3000
+
+services:
+  db:
+    image: postgres:16
+    environment: { POSTGRES_USER: clipmaker, POSTGRES_PASSWORD: clipmaker, POSTGRES_DB: clipmaker }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "clipmaker"], interval: 5s, retries: 10 }
+
+  redis:
+    image: redis:7
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, retries: 10 }
+
+  migrate:
+    build: ./backend
+    environment: *backend-env
+    command: ["alembic", "upgrade", "head"]
+    depends_on: { db: { condition: service_healthy } }
+
+  api:
+    build: ./backend
+    environment: *backend-env
+    ports: ["8000:8000"]
+    volumes: [storage:/app/.data]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  worker:
+    build: ./backend
+    environment: *backend-env
+    command: ["celery", "-A", "clipmaker.workers.celery_app", "worker", "-Q", "pipeline,render", "--loglevel=INFO"]
+    volumes: [storage:/app/.data]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args: { NEXT_PUBLIC_API_URL: "http://localhost:8000", NEXT_PUBLIC_DEV_AUTH: "true" }
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  storage:

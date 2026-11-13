@@ -1,0 +1,41 @@
+{
+  "name": "clipmaker-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource/instrument-serif": "^5.2.8",
+    "@supabase/supabase-js": "^2.86.0",
+    "lucide-react": "^0.555.0",
+    "next": "16.4.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.5",
+    "jsdom": "^27.2.0",
+    "openapi-typescript": "^7.10.1",
+    "prettier": "^3.7.3",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.0.14"
+  }
+}

@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clipmaker"
+version = "0.1.0"
+description = "ClipMaker backend: API + autonomous video-clipping pipeline workers"
+requires-python = ">=3.12"
+# Why each dependency exists (keep this list honest — no unexplained packages):
+dependencies = [
+  "fastapi==0.115.*",          # HTTP API framework
+  "uvicorn[standard]>=0.32",   # ASGI server for the API
+  "pydantic>=2.9",             # request/response validation, the source of truth for shared types
+  "pydantic-settings>=2.6",    # typed configuration from environment variables
+  "sqlalchemy>=2.0.36",        # ORM / query layer for PostgreSQL (Supabase)
+  "psycopg[binary]>=3.2",      # PostgreSQL driver
+  "alembic>=1.14",             # database migrations
+  "pyjwt[crypto]>=2.10",       # verify Supabase Auth JWTs (HS256 secret or ES256/RS256 JWKS)
+  "boto3>=1.35",               # S3-compatible object storage (Cloudflare R2) + presigned URLs
+  "celery[redis]>=5.4",        # background workers, kept separate from the API process
+  "redis>=5.2",                # Celery broker + API rate limiting
+  "python-multipart>=0.0.12",  # raw body handling for the local-storage signed upload endpoint
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",               # test runner
+  "pytest-cov>=6.0",           # coverage reports
+  "httpx>=0.28",               # FastAPI TestClient transport
+  "ruff>=0.8",                 # linting + formatting
+  "mypy>=1.13",                # static type checking (strict)
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "../tests/backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "S", "ANN", "RUF"]
+ignore = ["ANN401", "S101", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"../tests/**" = ["S", "ANN"]
+"src/clipmaker/db/migrations/**" = ["ANN", "N999"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["../tests/backend"]
+pythonpath = ["src"]
+addopts = "-ra"
