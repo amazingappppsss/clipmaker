@@ -10,6 +10,7 @@ reported as `source_blocked` with a clear message suggesting a file upload — n
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -165,3 +166,182 @@ class YtDlpImporter:
                 "source_failed", "The download produced no video file.", retryable=True
             )
         return files[0]
+
+
+# --- Apify (managed downloader with its own unblocked infrastructure) -----------------------
+_QUALITY_SUFFIX = re.compile(r"\s*\((?:\d{3,4}p|audio)[^)]*\)\s*\.\w+$", re.IGNORECASE)
+_DOWNLOAD_CHUNK = 1024 * 1024
+
+
+class ApifyImporter:
+    """UrlImporter that asks an Apify actor to fetch the video, then streams its short-lived link.
+
+    Default actor: `coder2077~youtube-video-downloader` (input `{"urls": [...], "format": "1080p"}`,
+    output items with `ok`, `duration`, `filename`, `download_url`, `error`). The download link is
+    valid for ~5 minutes and a few opens, so `download` streams it to disk immediately.
+    """
+
+    def __init__(
+        self,
+        token: str,
+        actor: str,
+        video_format: str = "1080p",
+        base_url: str = "https://api.apify.com",
+        client: Any = None,
+        run_timeout_seconds: int = 240,
+        download_client: Any = None,
+    ) -> None:
+        import httpx
+
+        self._actor = actor
+        self._format = video_format
+        self._run_timeout = run_timeout_seconds
+        self._client = client or httpx.Client(
+            base_url=base_url,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=httpx.Timeout(run_timeout_seconds + 30, connect=15.0),
+            follow_redirects=True,
+        )
+        # Separate client WITHOUT the Apify token: the file link is on a third-party host.
+        self._download_client = download_client or httpx.Client(
+            timeout=httpx.Timeout(600.0, connect=15.0), follow_redirects=True
+        )
+
+    def _run(self, url: str) -> dict[str, Any]:
+        import httpx
+
+        try:
+            response = self._client.post(
+                f"/v2/acts/{self._actor}/run-sync-get-dataset-items",
+                params={"timeout": self._run_timeout},
+                json={"urls": [url], "format": self._format},
+            )
+        except httpx.HTTPError as exc:
+            raise UrlImportError(
+                "source_network", "Couldn't reach the download service.", retryable=True
+            ) from exc
+        if response.status_code in (401, 403):
+            raise UrlImportError("importer_unavailable", "Download service key is invalid.")
+        if response.status_code == 402:
+            raise UrlImportError("importer_unavailable", "Download service has no credit left.")
+        if response.status_code >= 400:
+            raise UrlImportError(
+                "source_network",
+                f"Download service error {response.status_code}.",
+                retryable=response.status_code >= 500 or response.status_code == 408,
+            )
+        items = response.json()
+        item = items[0] if isinstance(items, list) and items else None
+        if not isinstance(item, dict):
+            raise UrlImportError(
+                "source_failed", "The download service returned no result.", retryable=True
+            )
+        if not item.get("ok"):
+            raise _classify(str(item.get("error") or "unknown error"))
+        if not item.get("download_url"):
+            raise UrlImportError(
+                "source_failed", "The download service returned no file.", retryable=True
+            )
+        return item
+
+    def inspect(self, url: str) -> RemoteVideo:
+        item = self._run(url)
+        filename = str(item.get("filename") or "YouTube video")
+        title = _QUALITY_SUFFIX.sub("", filename).strip() or "YouTube video"
+        return RemoteVideo(
+            url=str(item.get("url") or url),
+            title=title[:200],
+            duration_seconds=float(item.get("duration") or 0.0),
+            thumbnail_url=(item.get("thumbnails") or {}).get("max"),
+            is_live=False,
+        )
+
+    def download(self, url: str, dest_dir: Path, heartbeat: Callable[[], None]) -> Path:
+        import httpx
+
+        item = self._run(url)  # fresh link: they expire after ~5 minutes
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        path = dest_dir / "source.mp4"
+        last_beat = 0
+        try:
+            with self._download_client.stream("GET", str(item["download_url"])) as r:
+                if r.status_code >= 400:
+                    raise UrlImportError(
+                        "source_failed", f"Download link failed ({r.status_code}).", retryable=True
+                    )
+                with path.open("wb") as fh:
+                    for chunk in r.iter_bytes(_DOWNLOAD_CHUNK):
+                        fh.write(chunk)
+                        last_beat += len(chunk)
+                        if last_beat >= 64 * _DOWNLOAD_CHUNK:
+                            heartbeat()
+                            last_beat = 0
+        except httpx.HTTPError as exc:
+            raise UrlImportError(
+                "source_network", "The download was interrupted.", retryable=True
+            ) from exc
+        if path.stat().st_size == 0:
+            raise UrlImportError(
+                "source_failed", "The download produced an empty file.", retryable=True
+            )
+        return path
+
+
+# --- provider chain ---------------------------------------------------------------------------
+# Errors about the *video itself* — another provider cannot fix these, so the chain stops.
+_FINAL_CODES = frozenset(
+    {"source_private", "source_restricted", "source_unavailable", "unsupported_url"}
+)
+
+
+class FallbackImporter:
+    """Tries importers in order; moves on when one is blocked or broken."""
+
+    def __init__(self, importers: list[UrlImporter]) -> None:
+        if not importers:
+            raise ValueError("FallbackImporter needs at least one importer")
+        self._importers = importers
+
+    def _attempt(self, call: Callable[[UrlImporter], Any]) -> Any:
+        last: UrlImportError | None = None
+        for importer in self._importers:
+            try:
+                return call(importer)
+            except UrlImportError as exc:
+                if exc.code in _FINAL_CODES:
+                    raise
+                last = exc
+        assert last is not None
+        raise last
+
+    def inspect(self, url: str) -> RemoteVideo:
+        result: RemoteVideo = self._attempt(lambda i: i.inspect(url))
+        return result
+
+    def download(self, url: str, dest_dir: Path, heartbeat: Callable[[], None]) -> Path:
+        result: Path = self._attempt(lambda i: i.download(url, dest_dir, heartbeat))
+        return result
+
+
+def build_url_importer(settings: Any) -> UrlImporter:
+    """Importer chain from settings: URL_IMPORT_PROVIDERS="apify,ytdlp" (order matters).
+    Apify is skipped when no APIFY_TOKEN is configured."""
+    chain: list[UrlImporter] = []
+    for name in [p.strip() for p in str(settings.url_import_providers).split(",") if p.strip()]:
+        if name == "apify":
+            token = settings.apify_token.get_secret_value() if settings.apify_token else ""
+            if token:
+                chain.append(
+                    ApifyImporter(
+                        token, settings.apify_youtube_actor, f"{settings.url_import_max_height}p"
+                    )
+                )
+        elif name == "ytdlp":
+            chain.append(
+                YtDlpImporter(settings.url_import_max_height, settings.url_import_timeout_seconds)
+            )
+    if not chain:
+        chain.append(
+            YtDlpImporter(settings.url_import_max_height, settings.url_import_timeout_seconds)
+        )
+    return chain[0] if len(chain) == 1 else FallbackImporter(chain)

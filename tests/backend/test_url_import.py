@@ -211,3 +211,143 @@ def test_blocked_download_fails_with_clear_message_and_refund(
     project = client.get(f"/projects/{pid}", headers=auth).json()
     assert "upload the file instead" in project["error_message"]
     assert "refunded" in project["error_message"]
+
+
+# --- Apify managed downloader -------------------------------------------------------------
+import json as _json  # noqa: E402
+
+import httpx  # noqa: E402
+
+from clipmaker.media.url_import import (  # noqa: E402
+    ApifyImporter,
+    FallbackImporter,
+    build_url_importer,
+)
+
+YT = "https://www.youtube.com/watch?v=abc123"
+
+
+def _apify(
+    items: object, status: int = 200, file_status: int = 200, seen: dict[str, object] | None = None
+) -> ApifyImporter:
+    seen = seen if seen is not None else {}
+
+    def api(req: httpx.Request) -> httpx.Response:
+        seen["api_auth"] = req.headers.get("authorization")
+        seen["api_path"] = req.url.path
+        seen["api_body"] = _json.loads(req.content)
+        return httpx.Response(status, json=items)
+
+    def files(req: httpx.Request) -> httpx.Response:
+        seen["file_auth"] = req.headers.get("authorization")
+        return httpx.Response(file_status, content=b"\x00\x00\x00\x18ftypmp42" + b"x" * 5000)
+
+    return ApifyImporter(
+        "apify-test-token",
+        "coder2077~youtube-video-downloader",
+        "1080p",
+        client=httpx.Client(
+            base_url="https://api.apify.test",
+            transport=httpx.MockTransport(api),
+            headers={"Authorization": "Bearer apify-test-token"},
+        ),
+        download_client=httpx.Client(transport=httpx.MockTransport(files)),
+    )
+
+
+OK_ITEM = {
+    "ok": True,
+    "url": YT,
+    "duration": 577,
+    "filename": "My Great Podcast Ep 4 (1080p, av1, youtube).mp4",
+    "download_url": "https://api.fastsaver.test/v1/tunnel?id=x",
+    "thumbnails": {"max": "https://i.ytimg.com/x.jpg"},
+}
+
+
+def test_apify_inspect_parses_title_and_duration() -> None:
+    seen: dict[str, object] = {}
+    info = _apify([OK_ITEM], seen=seen).inspect(YT)
+    assert info.title == "My Great Podcast Ep 4"
+    assert info.duration_seconds == 577
+    assert (
+        seen["api_path"] == "/v2/acts/coder2077~youtube-video-downloader/run-sync-get-dataset-items"
+    )
+    assert seen["api_body"] == {"urls": [YT], "format": "1080p"}
+    assert seen["api_auth"] == "Bearer apify-test-token"
+
+
+def test_apify_download_streams_file_without_leaking_token(tmp_path: Path) -> None:
+    seen: dict[str, object] = {}
+    beats: list[int] = []
+    path = _apify([OK_ITEM], seen=seen).download(YT, tmp_path / "dl", lambda: beats.append(1))
+    assert path.name == "source.mp4" and path.stat().st_size > 5000
+    assert seen["file_auth"] is None  # the Apify token never goes to the file host
+
+
+@pytest.mark.parametrize(
+    ("items", "status", "code", "retryable"),
+    [
+        ([{"ok": False, "error": "Video unavailable"}], 200, "source_unavailable", False),
+        ([{"ok": False, "error": "This is a private video"}], 200, "source_private", False),
+        ([], 200, "source_failed", True),
+        ([OK_ITEM], 401, "importer_unavailable", False),
+        ([OK_ITEM], 402, "importer_unavailable", False),
+        ([OK_ITEM], 503, "source_network", True),
+    ],
+)
+def test_apify_errors(items: object, status: int, code: str, retryable: bool) -> None:
+    with pytest.raises(UrlImportError) as err:
+        _apify(items, status=status).inspect(YT)
+    assert (err.value.code, err.value.retryable) == (code, retryable)
+
+
+def test_apify_expired_link_is_retryable(tmp_path: Path) -> None:
+    with pytest.raises(UrlImportError) as err:
+        _apify([OK_ITEM], file_status=410).download(YT, tmp_path, lambda: None)
+    assert err.value.retryable
+
+
+class _Stub:
+    def __init__(self, error: UrlImportError | None, title: str) -> None:
+        self.error, self.title, self.calls = error, title, 0
+
+    def inspect(self, url: str) -> RemoteVideo:
+        self.calls += 1
+        if self.error:
+            raise self.error
+        return RemoteVideo(
+            url=url, title=self.title, duration_seconds=60, thumbnail_url=None, is_live=False
+        )
+
+    def download(self, url: str, dest_dir: Path, heartbeat: Callable[[], None]) -> Path:
+        raise NotImplementedError
+
+
+def test_fallback_moves_on_when_blocked_or_broken() -> None:
+    blocked = _Stub(_classify("Sign in to confirm you're not a bot"), "a")
+    broken = _Stub(UrlImportError("importer_unavailable", "bad key"), "b")
+    good = _Stub(None, "from-third")
+    assert FallbackImporter([blocked, broken, good]).inspect(YT).title == "from-third"
+
+
+def test_fallback_stops_on_video_problems() -> None:
+    private = _Stub(_classify("Private video"), "a")
+    never = _Stub(None, "b")
+    with pytest.raises(UrlImportError, match="private"):
+        FallbackImporter([private, never]).inspect(YT)
+    assert never.calls == 0
+
+
+def test_build_chain_from_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pydantic import SecretStr
+
+    from clipmaker.core.config import get_settings
+    from clipmaker.media.url_import import YtDlpImporter
+
+    s = get_settings()
+    assert isinstance(build_url_importer(s), YtDlpImporter)  # no APIFY_TOKEN → yt-dlp only
+    monkeypatch.setattr(s, "apify_token", SecretStr("tok"))
+    assert isinstance(build_url_importer(s), FallbackImporter)
+    monkeypatch.setattr(s, "url_import_providers", "apify")
+    assert isinstance(build_url_importer(s), ApifyImporter)
