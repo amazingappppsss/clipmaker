@@ -43,14 +43,10 @@ export function LoginForm() {
   };
 
   return (
-    <div className="relative grid min-h-dvh place-items-center overflow-hidden px-4">
-      <div
-        aria-hidden
-        className="brand-glow pointer-events-none absolute top-1/2 left-1/2 h-72 w-[38rem] -translate-1/2 opacity-30"
-      />
-      <div className="relative w-full max-w-sm rounded-[1.6rem] border border-line bg-surface p-8 shadow-[var(--shadow-float)]">
+    <div className="mesh-gradient grid min-h-dvh place-items-center px-4 py-10">
+      <div className="animate-pop relative w-full max-w-sm rounded-[2rem] bg-surface p-8 shadow-[var(--shadow-float)]">
         <Logo />
-        <h1 className="mt-8 text-2xl font-semibold tracking-tight">Welcome</h1>
+        <h1 className="mt-8 text-4xl font-extrabold tracking-tight">Let&apos;s make shorts.</h1>
         <p className="mt-1 text-sm text-muted">
           Sign in or create an account — it&apos;s the same step.
         </p>
@@ -101,7 +97,7 @@ export function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="mt-1.5 h-11 w-full rounded-xl border border-line bg-canvas px-3.5 outline-none focus:border-ink/50 focus:bg-surface"
+                  className="mt-1.5 h-12 w-full rounded-2xl border-2 border-line bg-canvas px-4 outline-none focus:border-magenta focus:bg-surface"
                 />
               </label>
               <Button type="submit" className="w-full" size="lg" loading={busy}>

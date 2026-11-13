@@ -11,16 +11,16 @@ export function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       href={`/projects/${project.id}`}
-      className="group overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface transition-shadow hover:shadow-[var(--shadow-card)]"
+      className="group overflow-hidden rounded-[var(--radius-card)] bg-surface ring-1 ring-line transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-float)]"
     >
-      <div className="relative aspect-video bg-sunken">
+      <div className="video-tone-1 relative aspect-video">
         {project.thumbnail_url ? (
           // Signed storage URLs are short-lived and external, so next/image optimisation does not apply.
           // eslint-disable-next-line @next/next/no-img-element
           <img src={project.thumbnail_url} alt="" className="size-full object-cover" />
         ) : (
-          <div className="grid size-full place-items-center text-muted">
-            <Film className="size-6" aria-hidden />
+          <div className="grid size-full place-items-center text-white/80">
+            <Film className="size-8" aria-hidden />
           </div>
         )}
         {duration ? (
@@ -30,9 +30,7 @@ export function ProjectCard({ project }: { project: Project }) {
         ) : null}
       </div>
       <div className="p-4">
-        <p className="truncate font-medium group-hover:underline group-hover:underline-offset-4">
-          {project.title}
-        </p>
+        <p className="truncate font-display text-lg font-bold">{project.title}</p>
         <div className="mt-2 flex items-center justify-between gap-2">
           <StateBadge state={project.state} />
           <span className="text-xs text-muted">{formatDate(project.created_at)}</span>

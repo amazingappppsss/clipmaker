@@ -32,10 +32,10 @@ function CreditsPill() {
   return (
     <Link
       href="/account"
-      className="hidden rounded-full border border-line px-3 py-1.5 text-sm text-ink-soft hover:bg-sunken sm:inline-flex"
+      className="hidden items-center rounded-full bg-sun px-3.5 py-1.5 text-sm font-semibold text-ink hover:brightness-95 sm:inline-flex"
       title="1 credit = 1 minute of video"
     >
-      <span className="font-semibold text-ink tabular-nums">{credits}</span>&nbsp;credits
+      <span className="font-extrabold tabular-nums">{credits}</span>&nbsp;credits
     </Link>
   );
 }
@@ -58,8 +58,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-dvh">
-      <header className="sticky top-0 z-30 border-b border-line bg-canvas/85 backdrop-blur-md">
+    <div className="relative min-h-dvh">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-gradient-to-b from-magenta/15 via-coral/10 to-transparent"
+      />
+      <header className="sticky top-0 z-30 border-b border-line/70 bg-white/75 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 sm:px-6">
           <Logo href="/dashboard" />
           <nav className="flex items-center gap-1 text-sm" aria-label="App">
@@ -70,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`rounded-full px-3 py-1.5 ${active ? "bg-sunken font-medium text-ink" : "text-muted hover:text-ink"}`}
+                  className={`rounded-full px-4 py-2 font-semibold ${active ? "bg-ink text-white" : "text-muted hover:bg-sunken hover:text-ink"}`}
                 >
                   {item.label}
                 </Link>

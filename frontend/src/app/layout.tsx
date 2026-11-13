@@ -1,6 +1,5 @@
 import "@fontsource-variable/inter";
-import "@fontsource/instrument-serif/400.css";
-import "@fontsource/instrument-serif/400-italic.css";
+import "@fontsource-variable/bricolage-grotesque";
 import "./globals.css";
 
 import type { Metadata, Viewport } from "next";
@@ -14,7 +13,7 @@ export const metadata: Metadata = {
     "ClipMaker turns long videos and podcasts into ready-to-post vertical shorts with captions, hooks and speaker-aware framing.",
 };
 
-export const viewport: Viewport = { themeColor: "#fbfaf7" };
+export const viewport: Viewport = { themeColor: "#ff3d8b" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

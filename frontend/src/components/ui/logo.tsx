@@ -1,16 +1,27 @@
-/** ClipMaker wordmark: a vertical "clip" glyph with the brand gradient. */
+/** ClipMaker wordmark. `tone="light"` for use on gradient/dark backgrounds. */
 import Link from "next/link";
 
-export function Logo({ href = "/" }: { href?: string }) {
+export function Logo({ href = "/", tone = "dark" }: { href?: string; tone?: "dark" | "light" }) {
   return (
-    <Link href={href} className="inline-flex items-center gap-2 font-semibold tracking-tight">
+    <Link
+      href={href}
+      className={`inline-flex items-center gap-2 font-display text-xl font-extrabold tracking-tight ${
+        tone === "light" ? "text-white" : "text-ink"
+      }`}
+    >
       <span
         aria-hidden
-        className="relative grid h-7 w-5 place-items-center rounded-md bg-gradient-to-b from-coral via-magenta to-violet"
+        className={`grid size-8 place-items-center rounded-xl ${
+          tone === "light" ? "bg-white" : "gradient-fill"
+        } -rotate-6 shadow-sm`}
       >
-        <span className="h-2 w-1.5 translate-x-px border-y-[4px] border-l-[6px] border-y-transparent border-l-white" />
+        <span
+          className={`h-0 w-0 translate-x-px border-y-[6px] border-l-[9px] border-y-transparent ${
+            tone === "light" ? "border-l-magenta" : "border-l-white"
+          }`}
+        />
       </span>
-      <span className="text-[17px]">ClipMaker</span>
+      ClipMaker
     </Link>
   );
 }

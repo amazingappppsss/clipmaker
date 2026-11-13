@@ -1,40 +1,48 @@
 "use client";
 
-/** Public site header. Shows "Dashboard" instead of sign-in buttons when signed in. */
+/** Public site header, drawn on top of the gradient hero (white text). */
 import Link from "next/link";
 
 import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/lib/auth/auth-provider";
 
+const LINKS = [
+  { href: "#how-it-works", label: "How it works" },
+  { href: "#features", label: "Features" },
+  { href: "#pricing", label: "Pricing" },
+];
+
 export function SiteHeader() {
   const { status } = useAuth();
   return (
-    <header className="sticky top-0 z-30 border-b border-transparent bg-canvas/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Logo />
-        <nav className="hidden items-center gap-7 text-sm text-ink-soft md:flex" aria-label="Main">
-          <Link href="#how-it-works" className="hover:text-ink">
-            How it works
-          </Link>
-          <Link href="#features" className="hover:text-ink">
-            Features
-          </Link>
-          <Link href="#pricing" className="hover:text-ink">
-            Pricing
-          </Link>
+    <header className="relative z-20">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <Logo tone="light" />
+        <nav
+          className="hidden items-center gap-1 rounded-full bg-white/15 p-1 text-sm font-medium text-white backdrop-blur md:flex"
+          aria-label="Main"
+        >
+          {LINKS.map((l) => (
+            <Link key={l.href} href={l.href} className="rounded-full px-4 py-2 hover:bg-white/20">
+              {l.label}
+            </Link>
+          ))}
         </nav>
         <div className="flex items-center gap-2">
           {status === "signed_in" ? (
-            <ButtonLink href="/dashboard" size="sm">
+            <ButtonLink href="/dashboard" variant="white" size="sm">
               Dashboard
             </ButtonLink>
           ) : (
             <>
-              <ButtonLink href="/login" variant="ghost" size="sm">
+              <Link
+                href="/login"
+                className="hidden rounded-full px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 sm:inline-flex"
+              >
                 Log in
-              </ButtonLink>
-              <ButtonLink href="/login" size="sm">
+              </Link>
+              <ButtonLink href="/login" variant="white" size="sm">
                 Get started
               </ButtonLink>
             </>

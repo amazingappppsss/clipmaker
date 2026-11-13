@@ -1,37 +1,75 @@
 @import "tailwindcss";
 
 /*
- * Design tokens. Components use these via Tailwind classes (bg-canvas, text-ink, ...);
- * never hardcode colors in components.
+ * Design tokens — "bold & colorful". Components use these via Tailwind classes
+ * (bg-canvas, text-ink, from-magenta ...); never hardcode colors in components.
  */
 @theme {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-display: "Bricolage Grotesque Variable", "Inter Variable", ui-sans-serif, sans-serif;
 
-  --color-canvas: #fbfaf7;
+  --color-canvas: #fff8f4;
   --color-surface: #ffffff;
-  --color-sunken: #f4f2ee;
-  --color-ink: #121115;
-  --color-ink-soft: #3a3840;
-  --color-muted: #6e6b75;
-  --color-line: #e8e5df;
-  --color-line-strong: #d6d2ca;
+  --color-sunken: #f7f1fb;
+  --color-ink: #170e2b;
+  --color-ink-soft: #3b3155;
+  --color-muted: #6e6585;
+  --color-line: #ece4f3;
+  --color-line-strong: #d9cde6;
 
-  --color-coral: #ff6a3d;
-  --color-magenta: #e2408f;
-  --color-violet: #7b5cff;
+  --color-magenta: #ff3d8b;
+  --color-coral: #ff7a3d;
+  --color-sun: #ffc83d;
+  --color-violet: #7c4dff;
+  --color-blue: #2e7bff;
 
-  --color-success: #15803d;
-  --color-success-soft: #e8f6ec;
-  --color-warning: #b45309;
-  --color-warning-soft: #fdf3e3;
-  --color-danger: #c62828;
-  --color-danger-soft: #fdecec;
-  --color-info-soft: #efecff;
+  --color-success: #12a150;
+  --color-success-soft: #e6f8ee;
+  --color-warning: #c26a00;
+  --color-warning-soft: #fff4e0;
+  --color-danger: #e5294b;
+  --color-danger-soft: #ffe9ee;
+  --color-info-soft: #f0eaff;
 
-  --radius-card: 1.25rem;
-  --shadow-card: 0 1px 2px rgb(18 17 21 / 0.04), 0 8px 24px -12px rgb(18 17 21 / 0.12);
-  --shadow-float: 0 2px 4px rgb(18 17 21 / 0.04), 0 24px 60px -20px rgb(18 17 21 / 0.25);
+  --radius-card: 1.5rem;
+  --shadow-card: 0 1px 2px rgb(23 14 43 / 0.05), 0 12px 32px -16px rgb(23 14 43 / 0.18);
+  --shadow-float: 0 4px 8px rgb(23 14 43 / 0.06), 0 30px 70px -24px rgb(23 14 43 / 0.35);
+  --shadow-glow: 0 10px 30px -8px rgb(255 61 139 / 0.55);
+
+  --animate-drift: drift 18s ease-in-out infinite alternate;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pop: pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+
+  @keyframes drift {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(6%, -4%, 0) scale(1.12);
+    }
+    100% {
+      transform: translate3d(-5%, 5%, 0) scale(0.95);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-12px);
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 @layer base {
@@ -44,34 +82,86 @@
     color: var(--color-ink);
     font-family: var(--font-sans);
   }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
   ::selection {
-    background: color-mix(in oklab, var(--color-violet) 22%, transparent);
+    background: color-mix(in oklab, var(--color-magenta) 25%, transparent);
   }
   :focus-visible {
-    outline: 2px solid var(--color-violet);
+    outline: 3px solid var(--color-violet);
     outline-offset: 2px;
   }
 }
 
 @layer components {
-  /* The signature glow behind the primary drop box. */
-  .brand-glow {
-    background:
-      radial-gradient(40% 60% at 20% 50%, rgb(255 106 61 / 0.55), transparent 70%),
-      radial-gradient(40% 60% at 50% 40%, rgb(226 64 143 / 0.45), transparent 70%),
-      radial-gradient(40% 60% at 80% 55%, rgb(123 92 255 / 0.5), transparent 70%);
-    filter: blur(48px);
+  /* Full-bleed animated mesh gradient used by the hero, login and CTA bands. */
+  .mesh-gradient {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: linear-gradient(
+      125deg,
+      var(--color-magenta) 0%,
+      var(--color-coral) 38%,
+      var(--color-violet) 72%,
+      var(--color-blue) 100%
+    );
   }
-  .brand-text {
+  .mesh-gradient::before,
+  .mesh-gradient::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 70%;
+    aspect-ratio: 1;
+    border-radius: 9999px;
+    filter: blur(80px);
+    opacity: 0.75;
+    animation: var(--animate-drift);
+  }
+  .mesh-gradient::before {
+    top: -30%;
+    left: -15%;
+    background: var(--color-sun);
+  }
+  .mesh-gradient::after {
+    bottom: -40%;
+    right: -20%;
+    background: var(--color-blue);
+    animation-delay: -9s;
+  }
+
+  .gradient-text {
     background: linear-gradient(
       90deg,
-      var(--color-coral),
       var(--color-magenta),
+      var(--color-coral),
       var(--color-violet)
     );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+
+  .gradient-fill {
+    background: linear-gradient(100deg, var(--color-magenta), var(--color-coral));
+  }
+
+  /* Faux video backgrounds for illustrations (never real footage). */
+  .video-tone-1 {
+    background: linear-gradient(160deg, #3a1d6e, #ff3d8b);
+  }
+  .video-tone-2 {
+    background: linear-gradient(160deg, #0f2a6b, #2e7bff 60%, #7c4dff);
+  }
+  .video-tone-3 {
+    background: linear-gradient(160deg, #6b2a0f, #ff7a3d 55%, #ffc83d);
+  }
+  .video-tone-4 {
+    background: linear-gradient(160deg, #10363a, #12a150 50%, #c6f23d);
   }
 }
 
@@ -80,6 +170,7 @@
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

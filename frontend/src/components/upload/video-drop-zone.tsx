@@ -1,10 +1,12 @@
 "use client";
 
 /**
- * The primary input of the product: a single large drop target.
- * Used by the landing hero and the New Project page so users learn one interaction.
+ * The primary input of the product: one drop target, two looks.
+ * - "bar":   chunky prompt-style input for the landing hero.
+ * - "panel": large dashed area for the New Project page and empty dashboard.
+ * Same behavior everywhere so users learn one interaction.
  */
-import { UploadCloud } from "lucide-react";
+import { ArrowRight, UploadCloud } from "lucide-react";
 import { useId, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 
 import { ACCEPTED_VIDEO_TYPES, resolveContentType } from "@/services/upload";
@@ -13,8 +15,7 @@ interface VideoDropZoneProps {
   onFile: (file: File) => void;
   onReject?: (message: string) => void;
   disabled?: boolean;
-  /** Shorter variant for pages where the drop zone is not the hero. */
-  compact?: boolean;
+  variant?: "bar" | "panel";
 }
 
 const ACCEPT_ATTR = [
@@ -22,11 +23,13 @@ const ACCEPT_ATTR = [
   ...Object.values(ACCEPTED_VIDEO_TYPES),
 ].join(",");
 
+const HINT = "MP4, MOV, WebM or MKV · up to 4 hours";
+
 export function VideoDropZone({
   onFile,
   onReject,
   disabled = false,
-  compact = false,
+  variant = "panel",
 }: VideoDropZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const hintId = useId();
@@ -58,60 +61,96 @@ export function VideoDropZone({
     }
   };
 
+  const shared = {
+    role: "button" as const,
+    tabIndex: disabled ? -1 : 0,
+    "aria-disabled": disabled,
+    "aria-describedby": hintId,
+    onClick: openPicker,
+    onKeyDown,
+    onDragOver: (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      if (!disabled) setDragging(true);
+    },
+    onDragLeave: () => setDragging(false),
+    onDrop,
+  };
+
+  const input = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept={ACCEPT_ATTR}
+      className="sr-only"
+      tabIndex={-1}
+      aria-hidden
+      onChange={(e) => {
+        accept(e.target.files?.[0]);
+        e.target.value = "";
+      }}
+    />
+  );
+
+  if (variant === "bar") {
+    return (
+      <div
+        {...shared}
+        className={[
+          "group flex w-full cursor-pointer items-center gap-4 rounded-[1.75rem] bg-white p-3 pl-4 text-left",
+          "shadow-[var(--shadow-float)] ring-4 transition-all duration-200 sm:p-4 sm:pl-5",
+          dragging ? "scale-[1.02] ring-sun" : "ring-white/30 hover:ring-white/60",
+          disabled ? "cursor-not-allowed opacity-60" : "",
+        ].join(" ")}
+      >
+        <span className="gradient-fill grid size-12 shrink-0 place-items-center rounded-2xl text-white sm:size-14">
+          <UploadCloud className="size-6" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-lg font-bold text-ink sm:text-xl">
+            {dragging ? "Drop it!" : "Drop your video here"}
+          </span>
+          <span id={hintId} className="block truncate text-sm text-muted">
+            or click to browse · {HINT}
+          </span>
+        </span>
+        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-ink text-white transition-transform group-hover:translate-x-0.5 sm:size-14">
+          <ArrowRight className="size-5" aria-hidden />
+        </span>
+        {input}
+      </div>
+    );
+  }
+
   return (
     <div
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-disabled={disabled}
-      aria-describedby={hintId}
-      onClick={openPicker}
-      onKeyDown={onKeyDown}
-      onDragOver={(e) => {
-        e.preventDefault();
-        if (!disabled) setDragging(true);
-      }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={onDrop}
+      {...shared}
       className={[
-        "group flex w-full cursor-pointer flex-col items-center justify-center rounded-[var(--radius-card)]",
-        "border-2 border-dashed bg-surface text-center transition-all duration-200",
-        compact ? "gap-2 px-6 py-8" : "gap-3 px-6 py-12 sm:py-14",
+        "group flex w-full cursor-pointer flex-col items-center justify-center gap-4 rounded-[var(--radius-card)]",
+        "border-[3px] border-dashed bg-surface px-6 py-14 text-center transition-all duration-200",
         dragging
-          ? "scale-[1.01] border-violet bg-info-soft"
-          : "border-line-strong hover:border-ink/40",
+          ? "scale-[1.01] border-magenta bg-info-soft"
+          : "border-line-strong hover:border-magenta/60",
         disabled ? "cursor-not-allowed opacity-60" : "",
       ].join(" ")}
     >
-      <span
-        className={`grid place-items-center rounded-2xl bg-sunken text-ink transition-transform group-hover:-translate-y-0.5 ${
-          compact ? "size-11" : "size-14"
-        }`}
-      >
-        <UploadCloud className={compact ? "size-5" : "size-6"} aria-hidden />
+      <span className="gradient-fill grid size-16 -rotate-6 place-items-center rounded-3xl text-white shadow-[var(--shadow-glow)] transition-transform group-hover:rotate-0">
+        <UploadCloud className="size-7" aria-hidden />
       </span>
       <div>
-        <p className={`font-medium ${compact ? "text-base" : "text-lg"}`}>
-          {dragging ? "Drop to upload" : "Drop your video here"}
+        <p className="font-display text-2xl font-bold">
+          {dragging ? "Drop it!" : "Drop your video here"}
         </p>
-        <p className="mt-1 text-sm text-muted">
-          or <span className="font-medium text-ink underline underline-offset-4">browse files</span>
+        <p className="mt-1 text-muted">
+          or{" "}
+          <span className="font-semibold text-magenta underline underline-offset-4">
+            browse files
+          </span>
         </p>
       </div>
       <p id={hintId} className="text-xs text-muted">
-        MP4, MOV, WebM or MKV · up to 4 hours · podcasts and talking-head videos work best
+        {HINT} · podcasts and talking-head videos work best
       </p>
-      <input
-        ref={inputRef}
-        type="file"
-        accept={ACCEPT_ATTR}
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden
-        onChange={(e) => {
-          accept(e.target.files?.[0]);
-          e.target.value = "";
-        }}
-      />
+      {input}
     </div>
   );
 }
