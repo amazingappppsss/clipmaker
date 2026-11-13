@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg curl \
 WORKDIR /app
 COPY pyproject.toml ./
 COPY src ./src
-COPY alembic.ini ./
+COPY alembic.ini start-single-node.sh ./
 RUN pip install .
 
 RUN useradd --create-home --uid 10001 app && mkdir -p /app/.data && chown -R app /app/.data
@@ -17,5 +17,6 @@ USER app
 
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -fsS http://localhost:8000/health || exit 1
-# Migrations run as a separate one-off step (see docker-compose.yml `migrate`).
-CMD ["uvicorn", "clipmaker.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# Default: single-node mode (migrations + API + worker in one container), e.g. Railway.
+# docker-compose.yml overrides the command to run API and worker as separate services.
+CMD ["bash", "start-single-node.sh"]

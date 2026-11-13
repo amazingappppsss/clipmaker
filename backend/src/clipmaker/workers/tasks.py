@@ -50,8 +50,3 @@ def reap_stale_jobs() -> int:
         logger.warning("requeue_stale_job", extra={"job_id": str(job_id)})
         enqueue_job(job_id)
     return len(ids)
-
-
-celery_app.conf.beat_schedule = {
-    "reap-stale-jobs": {"task": "clipmaker.workers.tasks.reap_stale_jobs", "schedule": 300.0},
-}

@@ -32,4 +32,8 @@ celery_app.conf.update(
     broker_transport_options={"visibility_timeout": 4 * 3600},  # > longest task
     worker_hijack_root_logger=False,
 )
+# Crash recovery: re-queue jobs whose worker died (see workers/tasks.py::reap_stale_jobs).
+celery_app.conf.beat_schedule = {
+    "reap-stale-jobs": {"task": "clipmaker.workers.tasks.reap_stale_jobs", "schedule": 300.0},
+}
 celery_app.autodiscover_tasks(["clipmaker.workers"], force=True)

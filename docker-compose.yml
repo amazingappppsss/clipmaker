@@ -31,6 +31,7 @@ services:
   api:
     build: ./backend
     environment: *backend-env
+    command: ["uvicorn", "clipmaker.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
     ports: ["8000:8000"]
     volumes: [storage:/app/.data]
     depends_on:

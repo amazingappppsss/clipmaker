@@ -9,7 +9,7 @@ from __future__ import annotations
 from enum import StrEnum
 from functools import lru_cache
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -54,6 +54,9 @@ class Settings(BaseSettings):
 
     # --- Storage ------------------------------------------------------------------------
     storage_backend: StorageBackend = StorageBackend.LOCAL
+    # Single-node deployments (one container + a persistent volume, e.g. Railway) may keep files
+    # on that volume in production. Requires explicit opt-in; move to R2 when scaling out.
+    allow_single_node_storage: bool = False
     local_storage_dir: str = "./.data/storage"
     # HMAC key for local signed URLs. Must be set explicitly outside dev/test.
     storage_signing_key: SecretStr = SecretStr("dev-only-signing-key-change-me")
@@ -106,14 +109,28 @@ class Settings(BaseSettings):
     )
     work_dir: str = "./.data/work"
 
+    @field_validator("database_url")
+    @classmethod
+    def _normalise_db_url(cls, value: str) -> str:
+        """Hosting platforms hand out `postgres://`/`postgresql://`; we use the psycopg 3 driver."""
+        for prefix in ("postgres://", "postgresql://"):
+            if value.startswith(prefix):
+                return "postgresql+psycopg://" + value[len(prefix) :]
+        return value
+
     @model_validator(mode="after")
     def _check_production_safety(self) -> Settings:
         """Fail fast on insecure configuration instead of discovering it in production."""
         if self.app_env == AppEnv.PRODUCTION:
             if self.enable_dev_auth:
                 raise ValueError("ENABLE_DEV_AUTH must be false in production")
-            if self.storage_backend == StorageBackend.LOCAL:
-                raise ValueError("STORAGE_BACKEND=local is not allowed in production")
+            if self.storage_backend == StorageBackend.LOCAL and not self.allow_single_node_storage:
+                raise ValueError(
+                    "STORAGE_BACKEND=local in production needs ALLOW_SINGLE_NODE_STORAGE=true "
+                    "(one container with a persistent volume)"
+                )
+            if self.storage_signing_key.get_secret_value() == "dev-only-signing-key-change-me":
+                raise ValueError("Set a strong STORAGE_SIGNING_KEY in production")
             if not self.supabase_url and not self.supabase_jwt_secret:
                 raise ValueError("Set SUPABASE_URL or SUPABASE_JWT_SECRET in production")
         if self.storage_backend == StorageBackend.S3 and not self.s3_bucket:
