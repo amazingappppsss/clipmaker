@@ -351,3 +351,65 @@ def test_build_chain_from_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(build_url_importer(s), FallbackImporter)
     monkeypatch.setattr(s, "url_import_providers", "apify")
     assert isinstance(build_url_importer(s), ApifyImporter)
+
+
+# --- unknown length (download services that report duration: null) ---------------------------
+def _credits(client: TestClient, auth: dict[str, str]) -> int:
+    return int(client.get("/account/usage", headers=auth).json()["credits_balance"])
+
+
+def test_unknown_length_is_measured_and_charged_after_download(
+    client: TestClient, auth: dict[str, str], importer: FakeImporter, queued: list[uuid.UUID]
+) -> None:
+    from clipmaker.pipeline.runner import Outcome
+
+    importer.duration = 0  # like the Apify actor's `"duration": null`
+    project = _import(client, auth)
+    assert project["state"] == "UPLOADED" and project["source_video"]["duration_seconds"] is None
+    before = _credits(client, auth)
+    assert client.post(f"/projects/{project['id']}/process", headers=auth).status_code == 202
+    assert _credits(client, auth) == before  # not charged yet: length unknown
+    assert _run(queued[-1], importer) == Outcome.PAUSED
+    assert _credits(client, auth) == before - 1  # 12 s video → 1 credit, charged once
+    _run(queued[-1], importer)
+    assert _credits(client, auth) == before - 1
+
+
+def test_too_short_after_measuring_is_rejected_without_charge(
+    client: TestClient,
+    auth: dict[str, str],
+    importer: FakeImporter,
+    queued: list[uuid.UUID],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from clipmaker.core.config import get_settings
+    from clipmaker.pipeline.runner import Outcome
+
+    importer.duration = 0
+    pid = _import(client, auth)["id"]
+    before = _credits(client, auth)
+    client.post(f"/projects/{pid}/process", headers=auth)
+    monkeypatch.setattr(get_settings(), "min_video_duration_seconds", 30)
+    assert _run(queued[-1], importer) == Outcome.FAILED
+    project = client.get(f"/projects/{pid}", headers=auth).json()
+    assert "too short" in project["error_message"]
+    assert "refunded" not in project["error_message"]  # nothing was charged
+    assert _credits(client, auth) == before
+
+
+def test_not_enough_credits_after_measuring(
+    client: TestClient, auth: dict[str, str], importer: FakeImporter, queued: list[uuid.UUID]
+) -> None:
+    from clipmaker.db.models import User
+    from clipmaker.db.session import get_session_factory
+    from clipmaker.pipeline.runner import Outcome
+
+    importer.duration = 0
+    pid = _import(client, auth)["id"]
+    client.post(f"/projects/{pid}/process", headers=auth)
+    with get_session_factory()() as db:
+        db.query(User).update({"credits_balance": 0})
+        db.commit()
+    assert _run(queued[-1], importer) == Outcome.FAILED
+    message = client.get(f"/projects/{pid}", headers=auth).json()["error_message"]
+    assert "credits" in message and "refunded" not in message

@@ -24,12 +24,12 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import or_, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from clipmaker.core.config import Settings
-from clipmaker.core.enums import PIPELINE_STAGES, TERMINAL_STATES, ProjectState, UsageKind
-from clipmaker.db.models import ProcessingJob, Project, UsageRecord, User
+from clipmaker.core.enums import PIPELINE_STAGES, TERMINAL_STATES, ProjectState
+from clipmaker.db.models import ProcessingJob, Project, User
 from clipmaker.media.url_import import build_url_importer
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import JobCancelledError, StageError
@@ -37,7 +37,7 @@ from clipmaker.pipeline.stages import ingest, transcribe, understand
 from clipmaker.pipeline.stages import select as select_stage
 from clipmaker.providers.llm.factory import build_llm_provider
 from clipmaker.providers.transcription.factory import build_transcription_provider
-from clipmaker.services.billing import refund_credits
+from clipmaker.services.billing import project_net_charge, refund_credits
 from clipmaker.storage.base import ObjectStorage
 
 logger = logging.getLogger(__name__)
@@ -302,20 +302,17 @@ class JobRunner:
                 return Outcome.RETRY, backoff_seconds(attempts)
             job.state = project.state = ProjectState.FAILED
             job.completed_at = _now()
-            project.error_message = f"{user_message} Your credits have been refunded."
-            self._refund(db, project)
+            refunded = self._refund(db, project)
+            suffix = " Your credits have been refunded." if refunded else ""
+            project.error_message = f"{user_message}{suffix}"
             db.commit()
         return Outcome.FAILED, 0
 
-    def _refund(self, db: Session, project: Project) -> None:
-        """Return the credits charged for this project's current run (once)."""
-        records = db.scalars(
-            select(UsageRecord)
-            .where(UsageRecord.project_id == project.id)
-            .order_by(UsageRecord.created_at)
-        ).all()
-        net = sum(r.credits for r in records if r.kind in (UsageKind.DEBIT, UsageKind.REFUND))
-        if net < 0:
-            user = db.get(User, project.user_id)
-            if user is not None:
-                refund_credits(db, user, -net, project.id, "Refund: processing failed")
+    def _refund(self, db: Session, project: Project) -> bool:
+        """Return the credits charged for this project's current run (once). True if refunded."""
+        charged = project_net_charge(db, project.id)
+        user = db.get(User, project.user_id)
+        if charged > 0 and user is not None:
+            refund_credits(db, user, charged, project.id, "Refund: processing failed")
+            return True
+        return False

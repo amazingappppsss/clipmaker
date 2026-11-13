@@ -59,12 +59,15 @@ def import_from_url(
         raise ValidationFailedError(
             "Live streams can't be imported. Try again after it ends.", code="source_live"
         )
-    if remote.duration_seconds < settings.min_video_duration_seconds:
+    # Some download services don't report a length; then the worker measures it after the
+    # download (and checks limits + charges credits there) instead of rejecting the link.
+    known = remote.duration_seconds > 0
+    if known and remote.duration_seconds < settings.min_video_duration_seconds:
         raise ValidationFailedError(
             f"Video is too short (minimum {_minutes(settings.min_video_duration_seconds)}).",
             code="too_short",
         )
-    if remote.duration_seconds > settings.max_video_duration_seconds:
+    if known and remote.duration_seconds > settings.max_video_duration_seconds:
         raise ValidationFailedError(
             f"Video is too long (maximum {_minutes(settings.max_video_duration_seconds)}).",
             code="too_long",
@@ -87,7 +90,7 @@ def import_from_url(
         content_type="video/mp4",
         size_bytes=0,  # known after the worker downloads it
         upload_status=UploadStatus.PENDING,
-        duration_seconds=remote.duration_seconds,
+        duration_seconds=remote.duration_seconds if known else None,
     )
     db.commit()
     db.refresh(project)

@@ -200,11 +200,11 @@ export function ProjectDetail() {
               >
                 <Sparkles className="size-5" aria-hidden /> Find my clips
               </Button>
-              {credits ? (
-                <p className="text-xs text-muted">
-                  Uses {credits} credit{credits === 1 ? "" : "s"} (1 per minute of video)
-                </p>
-              ) : null}
+              <p className="text-xs text-muted">
+                {credits
+                  ? `Uses ${credits} credit${credits === 1 ? "" : "s"} (1 per minute of video)`
+                  : "Charged by length once we've fetched the video (1 credit per minute)"}
+              </p>
             </div>
           ) : processing ? (
             <div>

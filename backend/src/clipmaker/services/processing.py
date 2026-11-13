@@ -51,11 +51,15 @@ def start_processing(db: Session, user: User, project: Project, enqueue: Enqueue
             else "This project is already processing or finished."
         )
     src = project.source_video
-    if src is None or src.duration_seconds is None:
+    if src is None or (src.duration_seconds is None and src.source_kind != "url"):
         raise ConflictError("Upload a video first.")
 
-    credits = credits_for_duration(src.duration_seconds)
-    debit_credits(db, user, credits, project.id, f"Processing: {project.title[:120]}")
+    # Length known → charge now. A link whose length is unknown is charged by the worker once the
+    # download has been measured (pipeline/stages/ingest.py), so users pay for the real length.
+    credits = 0  # deferred: charged after download for links with an unknown length
+    if src.duration_seconds is not None:
+        credits = credits_for_duration(src.duration_seconds)
+        debit_credits(db, user, credits, project.id, f"Processing: {project.title[:120]}")
 
     job = latest_job(db, project.id) if project.state == ProjectState.FAILED else None
     if job is None:

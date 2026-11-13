@@ -13,12 +13,14 @@ from __future__ import annotations
 from typing import Any
 
 from clipmaker.core.enums import UploadStatus
-from clipmaker.db.models import SourceVideo
+from clipmaker.core.errors import InsufficientCreditsError
+from clipmaker.db.models import Project, SourceVideo, User
 from clipmaker.media.audio import MediaError, extract_audio, make_thumbnail
 from clipmaker.media.probe import ProbeError, probe_media
 from clipmaker.media.url_import import UrlImportError
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError, RetryableStageError
+from clipmaker.services.billing import credits_for_duration, debit_credits, project_net_charge
 
 _CONTENT_TYPES = {
     ".mp4": "video/mp4",
@@ -48,6 +50,16 @@ def _fetch_from_link(ctx: StageContext, src: SourceVideo) -> dict[str, Any]:
         raise PermanentStageError(
             "no_audio", "This video has no audio track, so there is nothing to transcribe."
         )
+    limits = ctx.settings
+    if meta.duration_seconds < limits.min_video_duration_seconds:
+        raise PermanentStageError(
+            "too_short", f"Video is too short (minimum {limits.min_video_duration_seconds} s)."
+        )
+    if meta.duration_seconds > limits.max_video_duration_seconds:
+        raise PermanentStageError(
+            "too_long",
+            f"Video is too long (maximum {limits.max_video_duration_seconds // 60} min).",
+        )
 
     key = src.storage_key.rsplit(".", 1)[0] + path.suffix
     try:
@@ -70,6 +82,26 @@ def _fetch_from_link(ctx: StageContext, src: SourceVideo) -> dict[str, Any]:
     }
 
 
+def _charge_if_not_charged(db: Any, ctx: StageContext, duration: float) -> None:
+    """Link imports with an unknown length are charged here, once, for the measured length."""
+    if project_net_charge(db, ctx.project_id) > 0:
+        return
+    user = db.get(User, ctx.user_id)
+    project = db.get(Project, ctx.project_id)
+    if user is None or project is None:
+        raise PermanentStageError("no_source", "This project no longer exists.")
+    try:
+        debit_credits(
+            db,
+            user,
+            credits_for_duration(duration),
+            ctx.project_id,
+            f"Processing: {project.title[:120]}",
+        )
+    except InsufficientCreditsError as exc:
+        raise PermanentStageError("insufficient_credits", exc.message) from exc
+
+
 def run(ctx: StageContext) -> StageOutput:
     audio_key = f"{ctx.prefix}work/audio.mp3"
     thumb_key = f"{ctx.prefix}work/thumbnail.jpg"
@@ -84,6 +116,7 @@ def run(ctx: StageContext) -> StageOutput:
             updates = _fetch_from_link(ctx, src)
             for field, value in updates.items():
                 setattr(src, field, value)
+            _charge_if_not_charged(db, ctx, float(updates["duration_seconds"]))
             db.commit()
             outputs["downloaded_bytes"] = updates["size_bytes"]
         source_key, duration = src.storage_key, float(src.duration_seconds or 0)

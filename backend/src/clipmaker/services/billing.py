@@ -123,3 +123,14 @@ def plan_catalog() -> list[PlanOut]:
         )
         for p in PLANS.values()
     ]
+
+
+def project_net_charge(db: Session, project_id: uuid.UUID) -> int:
+    """Credits currently charged for a project's processing (debits minus refunds, >= 0)."""
+    total = db.scalar(
+        select(func.coalesce(func.sum(UsageRecord.credits), 0)).where(
+            UsageRecord.project_id == project_id,
+            UsageRecord.kind.in_((UsageKind.DEBIT, UsageKind.REFUND)),
+        )
+    )
+    return max(0, -int(total or 0))
