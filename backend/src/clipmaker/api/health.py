@@ -12,6 +12,8 @@ from sqlalchemy import text
 from clipmaker import __version__
 from clipmaker.api.deps import AppSettings, DbSession
 from clipmaker.schemas import HealthOut
+from clipmaker.storage.factory import get_storage
+from clipmaker.storage.local import LocalStorage
 
 router = APIRouter(tags=["health"])
 
@@ -40,8 +42,15 @@ def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOu
         transcription_ready=_has(settings.assemblyai_api_key),
         llm_ready=_has(settings.anthropic_api_key),
         link_import_ready=settings.enable_url_import and _has(settings.apify_token),
+        storage_base_url=storage_base_url(),
     )
 
 
 def _has(secret: SecretStr | None) -> bool:
     return bool(secret and secret.get_secret_value().strip())
+
+
+def storage_base_url() -> str | None:
+    """Where signed upload links point for this request (None when not using local storage)."""
+    storage = get_storage()
+    return storage.base_url() if isinstance(storage, LocalStorage) else None

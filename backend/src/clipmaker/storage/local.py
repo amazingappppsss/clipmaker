@@ -59,8 +59,11 @@ class LocalStorage:
         if size is not None:
             params["size"] = str(size)
         params.update(extra)
-        base = self._base or request_base_url.get() or DEFAULT_BASE_URL
-        return f"{base}/storage/local/{quote(key)}?{urlencode(params)}"
+        return f"{self.base_url()}/storage/local/{quote(key)}?{urlencode(params)}"
+
+    def base_url(self) -> str:
+        """Configured public URL, else the address of the current request, else localhost."""
+        return self._base or request_base_url.get() or DEFAULT_BASE_URL
 
     def verify(self, method: str, key: str, expires: int, sig: str, size: int | None) -> None:
         """Raise InvalidSignatureError unless the URL was signed by us and is still valid."""

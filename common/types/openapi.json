@@ -1205,6 +1205,17 @@
             "type": "boolean",
             "title": "Link Import Ready",
             "default": false
+          },
+          "storage_base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Base Url"
           }
         },
         "type": "object",

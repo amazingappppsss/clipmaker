@@ -400,6 +400,8 @@ export interface components {
              * @default false
              */
             link_import_ready: boolean;
+            /** Storage Base Url */
+            storage_base_url?: string | null;
         };
         /**
          * ImportRequest
