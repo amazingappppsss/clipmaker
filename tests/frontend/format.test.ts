@@ -4,7 +4,7 @@ import {
   formatBytes,
   formatDate,
   formatDuration,
-  formatInr,
+  formatUsd,
 } from "@/lib/format";
 
 describe("formatBytes", () => {
@@ -28,12 +28,13 @@ describe("formatDuration", () => {
   );
 });
 
-describe("formatDate / formatInr", () => {
+describe("formatDate / formatUsd", () => {
   it("formats ISO dates", () =>
     expect(formatDate("2026-11-13T10:00:00Z")).toBe("13 Nov 2026"));
   it("handles invalid dates", () => expect(formatDate("nope")).toBe("—"));
-  it("formats rupees", () => {
-    expect(formatInr(0)).toBe("Free");
-    expect(formatInr(1999)).toBe("₹1,999");
+  it("formats dollars", () => {
+    expect(formatUsd(0)).toBe("Free");
+    expect(formatUsd(1500)).toBe("$15");
+    expect(formatUsd(1499)).toBe("$14.99");
   });
 });

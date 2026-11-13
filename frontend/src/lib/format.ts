@@ -31,7 +31,9 @@ export function formatDate(iso: string, locale = "en-GB"): string {
   return date.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
 }
 
-/** 799 → "₹799". */
-export function formatInr(amount: number): string {
-  return amount === 0 ? "Free" : `₹${amount.toLocaleString("en-IN")}`;
+/** 1500 (cents) → "$15", 1499 → "$14.99", 0 → "Free". */
+export function formatUsd(cents: number): string {
+  if (cents === 0) return "Free";
+  const dollars = cents / 100;
+  return `$${Number.isInteger(dollars) ? dollars.toLocaleString("en-US") : dollars.toFixed(2)}`;
 }

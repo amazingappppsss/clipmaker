@@ -6,11 +6,11 @@ import { useEffect, useState } from "react";
 
 import { ButtonLink } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { formatInr } from "@/lib/format";
+import { formatUsd } from "@/lib/format";
 import { listPlans } from "@/services/account";
 import type { PlanInfo } from "@/services/api-types";
 
-const HIGHLIGHT: PlanInfo["plan"] = "creator";
+const HIGHLIGHT: PlanInfo["plan"] = "starter";
 
 function features(plan: PlanInfo): string[] {
   return [
@@ -67,8 +67,10 @@ export function Pricing() {
                     ) : null}
                   </div>
                   <p className="mt-6 flex items-baseline gap-1">
-                    <span className="display-heavy text-5xl">{formatInr(plan.price_inr)}</span>
-                    {plan.price_inr > 0 ? (
+                    <span className="display-heavy text-5xl">
+                      {formatUsd(plan.price_usd_cents)}
+                    </span>
+                    {plan.price_usd_cents > 0 ? (
                       <span className={hi ? "text-white/75" : "text-muted"}>/mo</span>
                     ) : null}
                   </p>
@@ -90,7 +92,7 @@ export function Pricing() {
                     size="lg"
                     className="mt-8 w-full uppercase"
                   >
-                    {plan.price_inr === 0 ? "Start free" : `Choose ${plan.name}`}
+                    {plan.price_usd_cents === 0 ? "Start free" : `Choose ${plan.name}`}
                   </ButtonLink>
                 </div>
               );
@@ -98,7 +100,7 @@ export function Pricing() {
           </div>
         )}
         <p className="mt-6 text-center text-xs text-muted">
-          Prices in INR. Paid plans launch soon — everyone starts on the free trial.
+          Prices in USD. Paid plans launch soon — everyone starts with a free trial.
         </p>
       </div>
     </section>

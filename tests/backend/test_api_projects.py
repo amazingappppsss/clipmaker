@@ -63,9 +63,9 @@ def test_delete(client: TestClient, auth: dict[str, str]) -> None:
 
 def test_account_usage_shows_trial(client: TestClient, auth: dict[str, str]) -> None:
     usage = client.get("/account/usage", headers=auth).json()
-    assert usage["credits_balance"] == 60
+    assert usage["credits_balance"] == 15
     assert usage["history"][0]["kind"] == "grant"
-    assert [p["plan"] for p in usage["plans"]] == ["free", "creator", "pro"]
+    assert [p["plan"] for p in usage["plans"]] == ["free", "starter", "pro"]
 
 
 def test_rate_limit(client: TestClient, auth: dict[str, str], counter: object) -> None:
@@ -85,4 +85,4 @@ def test_health(client: TestClient) -> None:
 
 def test_public_plans(client: TestClient) -> None:
     plans = client.get("/plans").json()
-    assert [p["price_inr"] for p in plans] == [0, 799, 1999]
+    assert [p["price_usd_cents"] for p in plans] == [0, 1500, 2900]

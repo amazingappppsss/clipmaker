@@ -148,7 +148,7 @@ class PlanOut(BaseModel):
     plan: Plan
     name: str
     monthly_credits: int
-    price_inr: int
+    price_usd_cents: int
     watermark: bool
 
 

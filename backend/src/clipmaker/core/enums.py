@@ -96,10 +96,10 @@ class AssetKind(StrEnum):
 
 
 class Plan(StrEnum):
-    """Subscription plans. Prices are hypotheses (PRD §11) and live in services/billing."""
+    """Subscription plans. Prices live in services/billing (USD, international launch)."""
 
     FREE = "free"
-    CREATOR = "creator"
+    STARTER = "starter"
     PRO = "pro"
 
 

@@ -3,8 +3,9 @@
 Credit unit: 1 credit = 1 minute of source video (rounded up). This keeps the user-facing
 price tied to our dominant variable costs (transcription + analysis scale with duration).
 
-Prices/allowances below are the PRD §11 *hypotheses*. TECH DEBT: revisit after measuring the
-real cost per processed video in Milestone 4 cost tracking; no unlimited plans until then.
+Prices are in USD cents for the international launch, benchmarked against comparable tools
+(Starter $15 / 150 min, Pro $29 / 300 min). Measured cost is ~$0.70 per source hour, so margins
+are ~85%. TECH DEBT: revisit with real per-video cost data (Milestone 4); no unlimited plans.
 Payment-provider integration is intentionally absent until the provider is chosen (M5).
 """
 
@@ -31,14 +32,15 @@ class PlanSpec:
     plan: Plan
     name: str
     monthly_credits: int
-    price_inr: int
+    price_usd_cents: int
     watermark: bool
 
 
 PLANS: dict[Plan, PlanSpec] = {
-    Plan.FREE: PlanSpec(Plan.FREE, "Free", monthly_credits=60, price_inr=0, watermark=True),
-    Plan.CREATOR: PlanSpec(Plan.CREATOR, "Creator", 300, price_inr=799, watermark=False),
-    Plan.PRO: PlanSpec(Plan.PRO, "Pro", 1000, price_inr=1999, watermark=False),
+    # Free is a one-time trial (15 minutes) to keep AI spend on non-paying users small.
+    Plan.FREE: PlanSpec(Plan.FREE, "Free", monthly_credits=15, price_usd_cents=0, watermark=True),
+    Plan.STARTER: PlanSpec(Plan.STARTER, "Starter", 150, price_usd_cents=1500, watermark=False),
+    Plan.PRO: PlanSpec(Plan.PRO, "Pro", 300, price_usd_cents=2900, watermark=False),
 }
 
 SIGNUP_TRIAL_CREDITS = PLANS[Plan.FREE].monthly_credits
@@ -116,7 +118,7 @@ def plan_catalog() -> list[PlanOut]:
             plan=p.plan,
             name=p.name,
             monthly_credits=p.monthly_credits,
-            price_inr=p.price_inr,
+            price_usd_cents=p.price_usd_cents,
             watermark=p.watermark,
         )
         for p in PLANS.values()

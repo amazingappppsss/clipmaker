@@ -109,7 +109,7 @@ export function Hero() {
             </div>
           ) : null}
           <p className="mt-5 text-center text-xs font-medium text-white/75">
-            60 free minutes · No credit card · Only upload videos you have the rights to
+            15 free minutes · No credit card · Only upload videos you have the rights to
           </p>
         </div>
       </div>

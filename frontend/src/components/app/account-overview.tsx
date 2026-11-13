@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
-import { formatDate, formatInr } from "@/lib/format";
+import { formatDate, formatUsd } from "@/lib/format";
 import { getUsage } from "@/services/account";
 import { ApiError } from "@/services/api-client";
 import type { AccountUsage } from "@/services/api-types";
@@ -49,7 +49,9 @@ export function AccountOverview() {
           <p className="text-sm text-muted">Current plan</p>
           <p className="mt-2 display-heavy text-5xl">{plan?.name ?? usage.plan}</p>
           <p className="mt-1 text-sm text-muted">
-            {plan ? `${plan.monthly_credits} credits / month · ${formatInr(plan.price_inr)}` : ""}
+            {plan
+              ? `${plan.monthly_credits} credits / month · ${formatUsd(plan.price_usd_cents)}`
+              : ""}
             {" · "}Paid plans launch soon
           </p>
         </div>

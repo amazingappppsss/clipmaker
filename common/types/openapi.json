@@ -806,11 +806,11 @@
         "type": "string",
         "enum": [
           "free",
-          "creator",
+          "starter",
           "pro"
         ],
         "title": "Plan",
-        "description": "Subscription plans. Prices are hypotheses (PRD \u00a711) and live in services/billing."
+        "description": "Subscription plans. Prices live in services/billing (USD, international launch)."
       },
       "PlanOut": {
         "properties": {
@@ -825,9 +825,9 @@
             "type": "integer",
             "title": "Monthly Credits"
           },
-          "price_inr": {
+          "price_usd_cents": {
             "type": "integer",
-            "title": "Price Inr"
+            "title": "Price Usd Cents"
           },
           "watermark": {
             "type": "boolean",
@@ -839,7 +839,7 @@
           "plan",
           "name",
           "monthly_credits",
-          "price_inr",
+          "price_usd_cents",
           "watermark"
         ],
         "title": "PlanOut",

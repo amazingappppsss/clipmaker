@@ -266,10 +266,10 @@ export interface components {
         };
         /**
          * Plan
-         * @description Subscription plans. Prices are hypotheses (PRD §11) and live in services/billing.
+         * @description Subscription plans. Prices live in services/billing (USD, international launch).
          * @enum {string}
          */
-        Plan: "free" | "creator" | "pro";
+        Plan: "free" | "starter" | "pro";
         /**
          * PlanOut
          * @description Plan catalog entry.
@@ -280,8 +280,8 @@ export interface components {
             name: string;
             /** Monthly Credits */
             monthly_credits: number;
-            /** Price Inr */
-            price_inr: number;
+            /** Price Usd Cents */
+            price_usd_cents: number;
             /** Watermark */
             watermark: boolean;
         };
