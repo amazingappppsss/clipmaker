@@ -272,8 +272,11 @@ class JobRunner:
     ) -> tuple[Outcome, int]:
         retryable = exc.retryable if isinstance(exc, StageError) else True
         code = exc.code if isinstance(exc, StageError) else "internal_error"
+        # Unexpected errors name the exception so a user report is enough to diagnose them.
         user_message = (
-            exc.message if isinstance(exc, StageError) else "An unexpected error occurred."
+            exc.message
+            if isinstance(exc, StageError)
+            else f"An unexpected error occurred ({type(exc).__name__}: {str(exc)[:200]})."
         )
         logger.warning(
             "stage_failed",
