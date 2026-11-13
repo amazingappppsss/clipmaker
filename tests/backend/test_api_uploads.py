@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from urllib.parse import urlparse
 
+import pytest
 from fastapi.testclient import TestClient
 
 
@@ -128,3 +129,20 @@ def test_delete_removes_stored_files(
     assert get_storage().head(key) is not None
     client.delete(f"/projects/{pid}", headers=auth)
     assert get_storage().head(key) is None
+
+
+def test_upload_url_follows_request_host_when_public_url_unset(
+    client: TestClient, auth: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Single-node deploys need no API_PUBLIC_URL: links use the proxy's forwarded host."""
+    from clipmaker.storage.factory import get_storage
+
+    store = get_storage()
+    monkeypatch.setattr(store, "_base", None)
+    pid = client.post("/projects", json={"title": "t"}, headers=auth).json()["id"]
+    body = {"filename": "a.mp4", "content_type": "video/mp4", "size_bytes": 10}
+    headers = {**auth, "x-forwarded-proto": "https", "x-forwarded-host": "api.example.com"}
+    ticket = client.post(f"/projects/{pid}/upload", json=body, headers=headers).json()
+    assert ticket["upload_url"].startswith("https://api.example.com/storage/local/")
+    plain = client.post(f"/projects/{pid}/upload", json=body, headers=auth).json()
+    assert plain["upload_url"].startswith("http://testserver/storage/local/")

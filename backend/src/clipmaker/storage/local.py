@@ -11,10 +11,17 @@ import hashlib
 import hmac
 import shutil
 import time
+from contextvars import ContextVar
 from pathlib import Path
 from urllib.parse import quote, urlencode
 
 from clipmaker.storage.base import ObjectInfo, SignedUpload
+
+DEFAULT_BASE_URL = "http://localhost:8000"
+
+# Set per request by the API (main.py) from the Host / X-Forwarded-* headers, so signed URLs
+# point back at whatever public address the browser used when API_PUBLIC_URL is not configured.
+request_base_url: ContextVar[str | None] = ContextVar("request_base_url", default=None)
 
 
 class InvalidSignatureError(Exception):
@@ -24,10 +31,12 @@ class InvalidSignatureError(Exception):
 class LocalStorage:
     """Stores objects under `root`; keys map to relative paths."""
 
-    def __init__(self, root: Path, signing_key: bytes, public_base_url: str, ttl: int) -> None:
+    def __init__(
+        self, root: Path, signing_key: bytes, public_base_url: str | None, ttl: int
+    ) -> None:
         self._root = root.resolve()
         self._key = signing_key
-        self._base = public_base_url.rstrip("/")
+        self._base = public_base_url.rstrip("/") if public_base_url else None
         self._ttl = ttl
         self._root.mkdir(parents=True, exist_ok=True)
 
@@ -50,7 +59,8 @@ class LocalStorage:
         if size is not None:
             params["size"] = str(size)
         params.update(extra)
-        return f"{self._base}/storage/local/{quote(key)}?{urlencode(params)}"
+        base = self._base or request_base_url.get() or DEFAULT_BASE_URL
+        return f"{base}/storage/local/{quote(key)}?{urlencode(params)}"
 
     def verify(self, method: str, key: str, expires: int, sig: str, size: int | None) -> None:
         """Raise InvalidSignatureError unless the URL was signed by us and is still valid."""

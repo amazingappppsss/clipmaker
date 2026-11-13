@@ -35,8 +35,9 @@ class Settings(BaseSettings):
 
     app_env: AppEnv = AppEnv.DEVELOPMENT
     log_level: str = "INFO"
-    # Public base URL of this API, used to build local-storage signed URLs.
-    api_public_url: str = "http://localhost:8000"
+    # Public base URL of this API, used to build local-storage signed URLs. When unset, the
+    # URLs use the host the browser called (so a single-node deploy needs no extra config).
+    api_public_url: str | None = None
     # Comma-separated list of browser origins allowed to call the API.
     cors_origins: str = "http://localhost:3000"
 

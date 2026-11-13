@@ -21,8 +21,16 @@ from clipmaker.api import account, dev, health, local_storage, plans, projects
 from clipmaker.core.config import AppEnv, StorageBackend, get_settings
 from clipmaker.core.errors import AppError
 from clipmaker.core.logging import configure_logging
+from clipmaker.storage.local import request_base_url
 
 logger = logging.getLogger("clipmaker.api")
+
+
+def public_base_url(request: Request) -> str:
+    """The address the browser used to reach us, honouring the platform's proxy headers."""
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme).split(",")[0].strip()
+    host = request.headers.get("x-forwarded-host", request.headers.get("host", "localhost"))
+    return f"{proto}://{host.split(',')[0].strip()}"
 
 
 def create_app() -> FastAPI:
@@ -46,6 +54,7 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def request_logging(request: Request, call_next: RequestResponseEndpoint) -> Response:
         request_id = request.headers.get("x-request-id") or uuid.uuid4().hex
+        request_base_url.set(public_base_url(request))
         response = await call_next(request)
         response.headers["x-request-id"] = request_id
         logger.info(

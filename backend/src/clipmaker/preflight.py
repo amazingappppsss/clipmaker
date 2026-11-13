@@ -7,7 +7,6 @@ non-zero on a blocking problem. Never prints secret values.
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -86,8 +85,8 @@ def main() -> int:
         print(
             f"{WARN} SUPABASE_URL is not set: sign-ins with Supabase signing keys will be refused"
         )
-    if settings.app_env.value == "production" and not os.environ.get("API_PUBLIC_URL"):
-        print(f"{WARN} API_PUBLIC_URL is not set: upload links will point to localhost")
+    if settings.app_env.value == "production" and not settings.api_public_url:
+        print(f"{OK} API_PUBLIC_URL not set: upload links will use the address the browser calls")
 
     if problems:
         print(f"{problems} blocking problem(s). Fix them and redeploy.")
