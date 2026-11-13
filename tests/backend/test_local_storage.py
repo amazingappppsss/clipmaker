@@ -54,3 +54,18 @@ def test_upload_download_delete_prefix(store: LocalStorage, tmp_path: Path) -> N
     assert (tmp_path / "out.bin").read_bytes() == b"x" * 5
     assert store.delete_prefix("users/u/projects/p/") == 1
     assert store.head("users/u/projects/p/a.bin") is None
+
+
+def test_request_address_beats_absolute_setting(tmp_path: Path) -> None:
+    """A stale/placeholder API_PUBLIC_URL must not break uploads made through the API."""
+    from clipmaker.storage.local import request_base_url
+
+    store = LocalStorage(tmp_path / "r", b"k" * 32, "https://placeholder-xxxx.example", ttl=60)
+    assert store.base_url() == "https://placeholder-xxxx.example"  # worker: no request
+    token = request_base_url.set("https://real.example")
+    try:
+        assert store.presign_upload("a.mp4", "video/mp4", 1).url.startswith("https://real.example/")
+        relative = LocalStorage(tmp_path / "r2", b"k" * 32, "/api", ttl=60)
+        assert relative.base_url() == "/api"
+    finally:
+        request_base_url.reset(token)

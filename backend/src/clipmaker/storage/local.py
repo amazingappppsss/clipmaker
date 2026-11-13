@@ -62,8 +62,17 @@ class LocalStorage:
         return f"{self.base_url()}/storage/local/{quote(key)}?{urlencode(params)}"
 
     def base_url(self) -> str:
-        """Configured public URL, else the address of the current request, else localhost."""
-        return self._base or request_base_url.get() or DEFAULT_BASE_URL
+        """Where signed links point.
+
+        During an API request the browser's own address is used: it is always reachable, while a
+        hand-typed absolute API_PUBLIC_URL can be stale or a placeholder. A relative setting
+        (e.g. "/api" behind the dev proxy) still wins, and outside requests (workers) the setting
+        or localhost is used.
+        """
+        from_request = request_base_url.get()
+        if self._base and (self._base.startswith("/") or not from_request):
+            return self._base
+        return from_request or self._base or DEFAULT_BASE_URL
 
     def verify(self, method: str, key: str, expires: int, sig: str, size: int | None) -> None:
         """Raise InvalidSignatureError unless the URL was signed by us and is still valid."""
