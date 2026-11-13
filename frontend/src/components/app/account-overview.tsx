@@ -35,23 +35,19 @@ export function AccountOverview() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-4xl font-extrabold tracking-tight">Account</h1>
+        <h1 className="display-heavy text-4xl">Account</h1>
         <p className="mt-1 text-muted">{usage.email ?? "Signed in"}</p>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="rounded-[var(--radius-card)] border border-line bg-surface p-6">
           <p className="text-sm text-muted">Credits remaining</p>
-          <p className="mt-2 font-display text-5xl font-extrabold tracking-tight tabular-nums">
-            {usage.credits_balance}
-          </p>
+          <p className="mt-2 display-heavy text-5xl tabular-nums">{usage.credits_balance}</p>
           <p className="mt-1 text-sm text-muted">1 credit = 1 minute of uploaded video</p>
         </div>
         <div className="rounded-[var(--radius-card)] border border-line bg-surface p-6">
           <p className="text-sm text-muted">Current plan</p>
-          <p className="mt-2 font-display text-5xl font-extrabold tracking-tight">
-            {plan?.name ?? usage.plan}
-          </p>
+          <p className="mt-2 display-heavy text-5xl">{plan?.name ?? usage.plan}</p>
           <p className="mt-1 text-sm text-muted">
             {plan ? `${plan.monthly_credits} credits / month · ${formatInr(plan.price_inr)}` : ""}
             {" · "}Paid plans launch soon

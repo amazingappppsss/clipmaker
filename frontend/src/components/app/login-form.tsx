@@ -43,10 +43,10 @@ export function LoginForm() {
   };
 
   return (
-    <div className="spotlight grid min-h-dvh place-items-center px-4 py-10">
+    <div className="blue-grid grid min-h-dvh place-items-center px-4 py-10">
       <div className="animate-pop relative w-full max-w-sm rounded-[1.5rem] border border-line bg-surface p-8 shadow-[var(--shadow-float)]">
         <Logo />
-        <h1 className="mt-8 text-4xl font-extrabold tracking-tight">Let&apos;s make shorts.</h1>
+        <h1 className="display-heavy mt-8 text-4xl">Let&apos;s make shorts.</h1>
         <p className="mt-1 text-sm text-muted">
           Sign in or create an account — it&apos;s the same step.
         </p>
@@ -97,7 +97,7 @@ export function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="mt-1.5 h-12 w-full rounded-2xl border border-line-strong bg-canvas px-4 outline-none focus:border-violet"
+                  className="mt-1.5 h-12 w-full rounded-2xl border border-line-strong bg-canvas px-4 outline-none focus:border-blue"
                 />
               </label>
               <Button type="submit" className="w-full" size="lg" loading={busy}>

@@ -123,7 +123,7 @@ export function NewProjectFlow() {
                 aria-valuenow={progress.phase === "uploading" ? percent : undefined}
               >
                 <div
-                  className={`h-full rounded-full bg-gradient-to-r from-coral via-magenta to-violet transition-[width] duration-300 ${
+                  className={`h-full rounded-full bg-blue transition-[width] duration-300 ${
                     progress.phase === "uploading" ? "" : "w-full animate-pulse"
                   }`}
                   style={progress.phase === "uploading" ? { width: `${percent}%` } : undefined}

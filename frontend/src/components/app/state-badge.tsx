@@ -4,7 +4,7 @@ import type { ProjectState } from "@/services/api-types";
 
 const TONE_CLASSES: Record<StateTone, string> = {
   neutral: "bg-sunken text-ink-soft",
-  active: "bg-info-soft text-violet",
+  active: "bg-info-soft text-blue",
   success: "bg-success-soft text-success",
   warning: "bg-warning-soft text-warning",
   danger: "bg-danger-soft text-danger",

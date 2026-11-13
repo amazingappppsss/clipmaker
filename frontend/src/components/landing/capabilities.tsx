@@ -36,17 +36,21 @@ const ITEMS = [
 
 export function Capabilities() {
   return (
-    <section id="features" className="scroll-mt-8 border-t border-line px-4 py-24 sm:px-6">
+    <section id="features" className="scroll-mt-8 px-4 py-24 sm:px-8">
       <div className="mx-auto max-w-6xl">
-        <p className="text-sm font-medium text-violet-bright">Features</p>
-        <h2 className="mt-3 max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
-          A short-form editor, minus the editing.
+        <h2 className="display-heavy text-center text-4xl sm:text-6xl">
+          An editor, <span className="rounded-2xl bg-lime px-3">minus</span> the editing
         </h2>
-        <div className="mt-12 grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ITEMS.map(({ Icon, title, body }) => (
-            <div key={title} className="bg-surface p-7 transition-colors hover:bg-sunken">
-              <Icon className="size-5 text-violet-bright" aria-hidden />
-              <h3 className="mt-5 font-semibold">{title}</h3>
+            <div
+              key={title}
+              className="rounded-[1.75rem] bg-surface p-7 transition-transform hover:-translate-y-1"
+            >
+              <span className="grid size-12 place-items-center rounded-2xl bg-blue text-white">
+                <Icon className="size-5" aria-hidden />
+              </span>
+              <h3 className="display-heavy mt-6 text-lg">{title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{body}</p>
             </div>
           ))}

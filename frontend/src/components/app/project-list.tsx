@@ -49,7 +49,7 @@ export function ProjectList() {
     <div>
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight">Projects</h1>
+          <h1 className="display-heavy text-4xl">Projects</h1>
           <p className="mt-1 text-muted">Every video you upload and the clips made from it.</p>
         </div>
         {items && items.length > 0 ? <ButtonLink href="/new">New project</ButtonLink> : null}

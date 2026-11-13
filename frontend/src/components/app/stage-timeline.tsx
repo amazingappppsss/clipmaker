@@ -20,9 +20,9 @@ export function StageTimeline({ state }: { state: ProjectState }) {
             <span
               className={`grid size-6 shrink-0 place-items-center rounded-full ${
                 status === "done"
-                  ? "gradient-fill text-white"
+                  ? "bg-blue text-white"
                   : status === "current"
-                    ? "bg-violet/20 text-violet-bright"
+                    ? "bg-lime text-ink"
                     : "border border-line-strong"
               }`}
             >

@@ -32,7 +32,7 @@ function CreditsPill() {
   return (
     <Link
       href="/account"
-      className="hidden items-center rounded-full bg-violet/15 px-3.5 py-1.5 text-sm font-semibold text-violet-bright ring-1 ring-violet/30 hover:bg-violet/25 sm:inline-flex"
+      className="hidden items-center rounded-full bg-lime px-3.5 py-1.5 text-sm font-bold text-ink hover:bg-lime-deep sm:inline-flex"
       title="1 credit = 1 minute of video"
     >
       <span className="font-extrabold tabular-nums">{credits}</span>&nbsp;credits
@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="relative min-h-dvh">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-gradient-to-b from-violet/12 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-gradient-to-b from-blue/10 to-transparent"
       />
       <header className="sticky top-0 z-30 border-b border-line bg-canvas/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 sm:px-6">

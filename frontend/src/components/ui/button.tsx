@@ -7,19 +7,28 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { Spinner } from "@/components/ui/spinner";
 
-export type ButtonVariant = "primary" | "dark" | "white" | "secondary" | "ghost" | "danger";
+export type ButtonVariant =
+  | "primary"
+  | "dark"
+  | "lime"
+  | "white"
+  | "secondary"
+  | "ghost"
+  | "danger";
 export type ButtonSize = "sm" | "md" | "lg";
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  /** Main call to action: glowing violet. */
-  primary: "gradient-fill text-white shadow-[var(--shadow-glow)] hover:brightness-110",
-  /** High-contrast neutral (white on the dark theme). */
-  dark: "bg-white text-black hover:bg-white/90",
-  /** Same as dark; kept for use on colored or image backgrounds. */
-  white: "bg-white text-black hover:bg-white/90",
-  secondary: "bg-surface text-ink border border-line-strong hover:bg-sunken",
+  /** Main call to action: cobalt blue. */
+  primary: "bg-blue text-white hover:bg-blue-deep",
+  /** Strong neutral: black. */
+  dark: "bg-ink text-white hover:bg-ink-soft",
+  /** Neon lime — for use on blue backgrounds. */
+  lime: "bg-lime text-ink hover:bg-lime-deep",
+  /** White — for use on blue backgrounds. */
+  white: "bg-white text-ink hover:bg-white/90",
+  secondary: "bg-surface text-ink border-2 border-ink hover:bg-ink hover:text-white",
   ghost: "text-ink-soft hover:bg-sunken hover:text-ink",
-  danger: "bg-surface text-danger border border-line-strong hover:bg-danger-soft",
+  danger: "bg-surface text-danger border-2 border-line hover:bg-danger-soft",
 };
 
 const SIZES: Record<ButtonSize, string> = {
@@ -31,7 +40,7 @@ const SIZES: Record<ButtonSize, string> = {
 /** Class string shared by <Button> and <ButtonLink>. */
 export function buttonClasses(variant: ButtonVariant = "primary", size: ButtonSize = "md"): string {
   return [
-    "inline-flex items-center justify-center rounded-full font-semibold whitespace-nowrap",
+    "inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap",
     "transition-all duration-150 disabled:pointer-events-none disabled:opacity-50",
     VARIANTS[variant],
     SIZES[size],

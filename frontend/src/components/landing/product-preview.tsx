@@ -118,14 +118,14 @@ export function ProductPreview() {
     <figure className="relative">
       <div
         aria-hidden
-        className="absolute -inset-x-10 -top-10 bottom-10 -z-10 rounded-[3rem] bg-violet/20 blur-3xl"
+        className="absolute inset-x-0 -top-6 bottom-6 -z-10 rounded-[3rem] bg-blue/10 blur-3xl"
       />
-      <div className="overflow-hidden rounded-2xl border border-line-strong bg-surface/95 shadow-[var(--shadow-float)]">
+      <div className="overflow-hidden rounded-[1.75rem] border-2 border-ink bg-surface shadow-[8px_8px_0_0_var(--color-ink)]">
         {/* window chrome */}
         <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-          <span className="size-2.5 rounded-full bg-white/15" />
-          <span className="size-2.5 rounded-full bg-white/15" />
-          <span className="size-2.5 rounded-full bg-white/15" />
+          <span className="size-2.5 rounded-full bg-line-strong" />
+          <span className="size-2.5 rounded-full bg-line-strong" />
+          <span className="size-2.5 rounded-full bg-line-strong" />
           <p className="ml-3 truncate text-xs text-muted">
             Podcast ep. 42 — 1:12:40 · <span className="text-ink-soft">4 clips ready</span>
           </p>
@@ -133,7 +133,7 @@ export function ProductPreview() {
 
         <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[1fr_1.55fr]">
           {/* source */}
-          <div>
+          <div className="min-w-0">
             <p className="mb-3 text-xs font-medium tracking-wide text-muted uppercase">Source</p>
             <div className="video-tone-2 relative aspect-video overflow-hidden rounded-xl ring-1 ring-white/10">
               <div aria-hidden className="absolute inset-x-0 bottom-0 flex justify-around px-[12%]">
@@ -158,7 +158,7 @@ export function ProductPreview() {
               {MOMENTS.map((m) => (
                 <span
                   key={m.left}
-                  className="absolute inset-y-1 rounded-md bg-violet/70 ring-1 ring-violet-bright"
+                  className="absolute inset-y-1 rounded-md bg-blue ring-2 ring-lime"
                   style={{ left: `${m.left}%`, width: `${m.width}%` }}
                 />
               ))}
@@ -176,7 +176,7 @@ export function ProductPreview() {
           </div>
 
           {/* clips */}
-          <div>
+          <div className="min-w-0">
             <p className="mb-3 text-xs font-medium tracking-wide text-muted uppercase">Shorts</p>
             <div className="flex snap-x gap-3 overflow-x-auto pb-1 [scrollbar-width:none] sm:grid sm:grid-cols-4 sm:overflow-visible">
               {CLIPS.map((clip, i) => (
