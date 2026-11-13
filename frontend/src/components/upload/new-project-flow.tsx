@@ -1,149 +1,62 @@
 "use client";
 
-/**
- * New Project flow: choose a file → (optional) tweak settings → upload with real byte progress
- * → server-side verification → open the project page.
- */
-import { Film, X } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+/** New Project: "Paste link" or "Upload file" tabs. Opens the tab matching any hand-off. */
+import { Link2, UploadCloud } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { DEFAULT_SETTINGS, SettingsBar } from "@/components/upload/settings-bar";
-import { VideoDropZone } from "@/components/upload/video-drop-zone";
-import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { formatBytes } from "@/lib/format";
-import { takePendingUpload } from "@/lib/pending-upload";
-import { ApiError } from "@/services/api-client";
-import type { ProjectSettings } from "@/services/api-types";
-import { uploadNewProject, type UploadProgress } from "@/services/upload";
+import { LinkFlow } from "@/components/upload/link-flow";
+import { UploadFlow } from "@/components/upload/upload-flow";
+import { hasPendingUpload, takePendingLink } from "@/lib/pending-upload";
 
-const PHASE_LABEL: Record<UploadProgress["phase"], string> = {
-  creating: "Creating project…",
-  uploading: "Uploading",
-  verifying: "Checking your video…",
-  done: "Done",
-};
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  if (error instanceof DOMException && error.name === "AbortError") return "Upload cancelled.";
-  return "Something went wrong. Please try again.";
-}
+type Tab = "link" | "upload";
 
 export function NewProjectFlow() {
-  const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
-  const [settings, setSettings] = useState<Required<ProjectSettings>>(DEFAULT_SETTINGS);
-  const [progress, setProgress] = useState<UploadProgress | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const [tab, setTab] = useState<Tab>("link");
+  const [initialUrl, setInitialUrl] = useState<string | null>(null);
 
-  // A file dropped on the landing page before signing in continues here.
+  // Hand-offs from the landing page (a pasted link, or a dropped file) pick the tab.
   useEffect(() => {
-    const pending = takePendingUpload();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time handoff from module state
-    if (pending) setFile(pending);
+    const link = takePendingLink();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time handoff from storage
+    setInitialUrl(link ?? "");
+    if (hasPendingUpload()) setTab("upload");
   }, []);
 
-  // Warn before leaving mid-upload; the upload would be lost.
-  useEffect(() => {
-    if (!progress || progress.phase === "done") return undefined;
-    const handler = (e: BeforeUnloadEvent): void => e.preventDefault();
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [progress]);
-
-  const busy = progress !== null && progress.phase !== "done";
-
-  const start = async (): Promise<void> => {
-    if (!file) return;
-    setError(null);
-    const controller = new AbortController();
-    abortRef.current = controller;
-    try {
-      const project = await uploadNewProject(file, settings, setProgress, controller.signal);
-      router.push(`/projects/${project.id}`);
-    } catch (err) {
-      setError(errorMessage(err));
-      setProgress(null);
-    } finally {
-      abortRef.current = null;
-    }
-  };
-
-  const percent =
-    progress && progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
+  const tabClass = (t: Tab): string =>
+    `inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition-colors ${
+      tab === t ? "bg-ink text-white" : "text-muted hover:text-ink"
+    }`;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
-      {!file ? (
-        <VideoDropZone onFile={(f) => (setError(null), setFile(f))} onReject={setError} />
-      ) : (
-        <div className="rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)]">
-          <div className="flex items-center gap-4">
-            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-sunken">
-              <Film className="size-5" aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{file.name}</p>
-              <p className="text-sm text-muted">{formatBytes(file.size)}</p>
-            </div>
-            {busy ? (
-              <Button variant="ghost" size="sm" onClick={() => abortRef.current?.abort()}>
-                Cancel
-              </Button>
-            ) : (
-              <button
-                type="button"
-                aria-label="Remove file"
-                className="grid size-8 place-items-center rounded-full text-muted hover:bg-sunken hover:text-ink"
-                onClick={() => setFile(null)}
-              >
-                <X className="size-4" />
-              </button>
-            )}
-          </div>
-
-          {progress ? (
-            <div className="mt-5" aria-live="polite">
-              <div className="mb-2 flex justify-between text-sm">
-                <span className="font-medium">{PHASE_LABEL[progress.phase]}</span>
-                {progress.phase === "uploading" ? (
-                  <span className="tabular-nums text-muted">
-                    {formatBytes(progress.loaded)} of {formatBytes(progress.total)} · {percent}%
-                  </span>
-                ) : null}
-              </div>
-              <div
-                className="h-2 overflow-hidden rounded-full bg-sunken"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={progress.phase === "uploading" ? percent : undefined}
-              >
-                <div
-                  className={`h-full rounded-full bg-blue transition-[width] duration-300 ${
-                    progress.phase === "uploading" ? "" : "w-full animate-pulse"
-                  }`}
-                  style={progress.phase === "uploading" ? { width: `${percent}%` } : undefined}
-                />
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      <SettingsBar value={settings} onChange={setSettings} disabled={busy} />
-
-      {error ? <Alert tone="error">{error}</Alert> : null}
-
-      {file ? (
-        <div className="flex justify-center">
-          <Button size="lg" onClick={() => void start()} loading={busy} disabled={busy}>
-            {busy ? "Uploading…" : "Upload video"}
-          </Button>
-        </div>
+    <div className="flex flex-col gap-8">
+      <div
+        role="tablist"
+        aria-label="Video source"
+        className="mx-auto inline-flex rounded-full bg-surface p-1 ring-1 ring-line"
+      >
+        <button
+          role="tab"
+          type="button"
+          aria-selected={tab === "link"}
+          className={tabClass("link")}
+          onClick={() => setTab("link")}
+        >
+          <Link2 className="size-4" aria-hidden /> Paste link
+        </button>
+        <button
+          role="tab"
+          type="button"
+          aria-selected={tab === "upload"}
+          className={tabClass("upload")}
+          onClick={() => setTab("upload")}
+        >
+          <UploadCloud className="size-4" aria-hidden /> Upload file
+        </button>
+      </div>
+      {tab === "upload" ? (
+        <UploadFlow />
+      ) : initialUrl !== null ? (
+        <LinkFlow key={initialUrl} initialUrl={initialUrl} />
       ) : null}
     </div>
   );

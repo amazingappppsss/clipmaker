@@ -36,7 +36,8 @@ try {
   await page.getByText("podcast-episode.mp4").waitFor();
   await page.getByRole("button", { name: "Upload video" }).click();
   await page.waitForURL("**/projects/**", { timeout: 60_000 });
-  await page.getByText("Video uploaded and verified").waitFor();
+  await page.getByText("Ready to find your best moments").waitFor();
+  await page.getByRole("button", { name: "Find my clips" }).waitFor();
   await page.getByText("1280×720").waitFor();
   await shot("project");
   if (errors.length) throw new Error(`Browser errors: ${errors.join(" | ")}`);

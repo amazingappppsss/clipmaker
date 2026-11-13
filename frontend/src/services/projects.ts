@@ -2,6 +2,7 @@
 import { apiRequest } from "@/services/api-client";
 import type {
   Clip,
+  ImportRequest,
   JobStatus,
   Project,
   ProjectCreate,
@@ -52,4 +53,9 @@ export function getStatus(id: string, signal?: AbortSignal): Promise<JobStatus> 
 
 export function getClips(id: string, signal?: AbortSignal): Promise<Clip[]> {
   return apiRequest<Clip[]>(`/projects/${encodeURIComponent(id)}/clips`, { signal });
+}
+
+/** Create a project from a video link (e.g. YouTube); the download runs in the background. */
+export function importFromUrl(body: ImportRequest): Promise<Project> {
+  return apiRequest<Project>("/projects/import", { method: "POST", body });
 }

@@ -5,16 +5,13 @@
  * squiggles, a spinning CTA badge and the product's single input.
  * Dropping a file here hands it to /new (via sign-in when needed) — no re-picking.
  */
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { SiteHeader } from "@/components/landing/site-header";
 import { SpinBadge } from "@/components/landing/spin-badge";
 import { Squiggle } from "@/components/landing/squiggle";
-import { VideoDropZone } from "@/components/upload/video-drop-zone";
+import { LinkBar } from "@/components/upload/link-bar";
 import { Alert } from "@/components/ui/alert";
-import { useAuth } from "@/lib/auth/auth-provider";
-import { setPendingUpload } from "@/lib/pending-upload";
 
 /** Small frosted card showing a vertical clip (illustration). */
 function GlassClip({
@@ -52,14 +49,7 @@ function GlassClip({
 }
 
 export function Hero() {
-  const router = useRouter();
-  const { status } = useAuth();
   const [error, setError] = useState<string | null>(null);
-
-  const handleFile = (file: File): void => {
-    setPendingUpload(file);
-    router.push(status === "signed_in" ? "/new" : "/login?next=/new");
-  };
 
   return (
     <section className="blue-grid relative mx-2 mt-2 overflow-hidden rounded-[2rem] pb-32 sm:mx-4 sm:mt-4 sm:rounded-[2.75rem] sm:pb-40">
@@ -98,11 +88,11 @@ export function Hero() {
         <SpinBadge className="absolute right-[2%] bottom-[-3.5rem] hidden sm:grid lg:right-[6%]" />
 
         <p className="animate-pop mx-auto mt-10 max-w-xl text-base font-medium text-white/90 [animation-delay:120ms] sm:text-lg">
-          Upload a podcast or long video. ClipMaker finds the best moments and edits them into
-          ready-to-post vertical clips — captions, hooks and framing included.
+          Paste a YouTube link or upload a video. ClipMaker finds the best moments and edits them
+          into ready-to-post vertical clips — captions, hooks and framing included.
         </p>
         <div className="animate-pop mx-auto mt-8 max-w-xl text-left [animation-delay:200ms]">
-          <VideoDropZone variant="bar" onFile={handleFile} onReject={setError} />
+          <LinkBar onError={setError} />
           {error ? (
             <div className="mt-4">
               <Alert tone="error">{error}</Alert>

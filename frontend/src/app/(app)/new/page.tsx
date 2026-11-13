@@ -11,7 +11,7 @@ export default function NewProjectPage() {
         New <span className="text-blue">project</span>
       </h1>
       <p className="mt-2 mb-10 text-center text-muted">
-        Upload a video. Everything else is automatic.
+        Paste a YouTube link or upload a video. Everything else is automatic.
       </p>
       <NewProjectFlow />
     </div>
