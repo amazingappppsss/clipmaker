@@ -81,6 +81,9 @@ def test_rate_limit(client: TestClient, auth: dict[str, str], counter: object) -
 def test_health(client: TestClient) -> None:
     body = client.get("/health").json()
     assert body["database"] is True
+    # Readiness flags are booleans only; key values never appear in the response.
+    assert {"transcription_ready", "llm_ready", "link_import_ready"} <= body.keys()
+    assert all(isinstance(body[k], bool) for k in ("transcription_ready", "llm_ready"))
 
 
 def test_public_plans(client: TestClient) -> None:

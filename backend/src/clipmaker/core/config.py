@@ -9,7 +9,7 @@ from __future__ import annotations
 from enum import StrEnum
 from functools import lru_cache
 
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -78,7 +78,10 @@ class Settings(BaseSettings):
 
     # --- AI providers (PRD §7: swappable through configuration) --------------------------
     llm_provider: str = "anthropic"
-    anthropic_api_key: SecretStr | None = None
+    anthropic_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("ANTHROPIC_API_KEY", "CLAUDE_API_KEY", "ANTHROPIC_KEY"),
+    )
     # "smart" = full-video understanding + clip selection (the quality-critical step).
     llm_smart_model: str = "claude-opus-5-5"
     llm_smart_effort: str = "high"
@@ -89,7 +92,12 @@ class Settings(BaseSettings):
     llm_refusal_fallback: bool = True
 
     transcription_provider: str = "assemblyai"
-    assemblyai_api_key: SecretStr | None = None
+    assemblyai_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "ASSEMBLYAI_API_KEY", "ASSEMBLY_AI_API_KEY", "ASSEMBLYAI_KEY", "ASSEMBLY_API_KEY"
+        ),
+    )
     assemblyai_base_url: str = "https://api.assemblyai.com"
     # Estimated list price used for cost tracking; verify against the provider's pricing page.
     assemblyai_usd_per_hour: float = 0.15
@@ -120,6 +128,15 @@ class Settings(BaseSettings):
         ' "emotional_engagement": 0.15, "information_value": 0.10, "natural_ending": 0.10}'
     )
     work_dir: str = "./.data/work"
+
+    @field_validator("anthropic_api_key", "assemblyai_api_key", "apify_token", mode="before")
+    @classmethod
+    def _clean_key(cls, value: object) -> object:
+        """Keys pasted into dashboards often carry spaces, newlines or quotes; drop them."""
+        if isinstance(value, str):
+            value = value.strip().strip("'\"").strip()
+            return value or None
+        return value
 
     @field_validator("database_url")
     @classmethod

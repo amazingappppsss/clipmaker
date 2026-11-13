@@ -85,8 +85,8 @@ def main() -> int:
         print(
             f"{WARN} SUPABASE_URL is not set: sign-ins with Supabase signing keys will be refused"
         )
-    if settings.app_env.value == "production" and not settings.api_public_url:
-        print(f"{OK} API_PUBLIC_URL not set: upload links will use the address the browser calls")
+    if settings.app_env.value == "production":
+        print(f"{OK} Upload links use the address the browser calls")
 
     if problems:
         print(f"{problems} blocking problem(s). Fix them and redeploy.")

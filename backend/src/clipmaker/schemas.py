@@ -218,6 +218,11 @@ class HealthOut(BaseModel):
     database: bool
     redis: bool
     version: str
+    # Which deploy is running, and whether processing has what it needs (never key values).
+    commit: str | None = None
+    transcription_ready: bool = False
+    llm_ready: bool = False
+    link_import_ready: bool = False
 
 
 class DevTokenRequest(BaseModel):

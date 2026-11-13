@@ -383,6 +383,23 @@ export interface components {
             redis: boolean;
             /** Version */
             version: string;
+            /** Commit */
+            commit?: string | null;
+            /**
+             * Transcription Ready
+             * @default false
+             */
+            transcription_ready: boolean;
+            /**
+             * Llm Ready
+             * @default false
+             */
+            llm_ready: boolean;
+            /**
+             * Link Import Ready
+             * @default false
+             */
+            link_import_ready: boolean;
         };
         /**
          * ImportRequest

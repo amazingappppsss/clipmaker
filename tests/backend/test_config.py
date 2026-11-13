@@ -50,3 +50,13 @@ def test_unsafe_production_config_refused(override: dict[str, object], message: 
 def test_cors_origins_tolerate_spaces_and_trailing_slash() -> None:
     settings = Settings(cors_origins=" https://a.app/ , https://b.app")
     assert settings.cors_origin_list == ["https://a.app", "https://b.app"]
+
+
+def test_api_keys_accept_variant_names_and_strip_quotes(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("ASSEMBLYAI_API_KEY", raising=False)
+    monkeypatch.setenv("ASSEMBLY_AI_API_KEY", '  "abc123"\n')
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "   ")
+    s = Settings()
+    assert s.assemblyai_api_key is not None
+    assert s.assemblyai_api_key.get_secret_value() == "abc123"
+    assert s.anthropic_api_key is None

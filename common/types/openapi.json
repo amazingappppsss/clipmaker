@@ -1179,6 +1179,32 @@
           "version": {
             "type": "string",
             "title": "Version"
+          },
+          "commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commit"
+          },
+          "transcription_ready": {
+            "type": "boolean",
+            "title": "Transcription Ready",
+            "default": false
+          },
+          "llm_ready": {
+            "type": "boolean",
+            "title": "Llm Ready",
+            "default": false
+          },
+          "link_import_ready": {
+            "type": "boolean",
+            "title": "Link Import Ready",
+            "default": false
           }
         },
         "type": "object",
