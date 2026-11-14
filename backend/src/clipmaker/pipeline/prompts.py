@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = "v5-hooks"  # <= 20 chars (video_analyses.version)
+PROMPT_VERSION = "v6-short"  # <= 20 chars (video_analyses.version)
 
 # The Clip2Easy framework (docs/CLIP_FRAMEWORK.md): every short must win three moments —
 # STOP the scroll, make them STAY, make them SHARE / want more. Distilled from the YouTube
@@ -126,8 +126,11 @@ CANDIDATES_INSTRUCTION = """Using the transcript and this analysis of the whole 
 
 Propose {count} candidate clips — more than will be used, so only the best survive.
 Rules for every candidate:
-- A contiguous range of whole segments (start_segment..end_segment), roughly \
-{min_s:.0f}-{max_s:.0f} seconds long (ideal 30-60s). Use the timestamps to check length.
+- A contiguous range of whole segments (start_segment..end_segment), {min_s:.0f}-{max_s:.0f} \
+seconds long. SHORTER WINS: aim for 15-35 seconds. Breakout Shorts are mostly under 45 s. Go \
+past 40 s only if every single sentence is essential. Use the timestamps to check length.
+- Cut ruthlessly: start on the hook line itself, end on the payoff line itself. Drop \
+background, repetition, tangents and "you know what I mean" wrap-ups. One idea per clip.
 - Choose the START so the first sentence is the strongest possible headline (STOP). Starting \
 a little later to land on a sharper first line is better than including warm-up.
 - Choose the END on the payoff (SHARE): the reveal, punchline or insight — and stop there.

@@ -123,6 +123,14 @@ def parse_weights(raw: str) -> dict[str, float]:
     return {k: v / total for k, v in weights.items()}
 
 
+LENGTH_PENALTY_PER_SECOND = 0.6  # points lost per second beyond the ideal maximum
+
+
+def length_penalty(duration: float, ideal_max: float) -> float:
+    """Points subtracted for running long (0 within the ideal length, ~15 at 60 s)."""
+    return round(max(0.0, duration - ideal_max) * LENGTH_PENALTY_PER_SECOND, 2)
+
+
 def weighted_score(scores: dict[str, float], weights: dict[str, float]) -> float:
     """0-100 score from per-signal 0-10 ratings (missing signals count as 0)."""
     total = sum(weights[s] * min(max(float(scores.get(s, 0.0)), 0.0), 10.0) for s in SIGNALS)
@@ -215,6 +223,7 @@ def select_clips(
     min_s: float,
     max_s: float,
     min_score: float,
+    ideal_max: float | None = None,
 ) -> list[ScoredCandidate]:
     """Score, validate, dedupe and pick. Returns *all* candidates (selected flag set) so
     decisions are auditable in the `candidates` table."""
@@ -236,7 +245,11 @@ def select_clips(
                 end_segment=e,
                 start_seconds=t0,
                 end_seconds=t1,
-                total_score=weighted_score(p.scores, weights),
+                total_score=max(
+                    0.0,
+                    weighted_score(p.scores, weights)
+                    - (length_penalty(t1 - t0, ideal_max) if ideal_max else 0.0),
+                ),
                 adjusted=adjusted,
                 rejected_reason=reason,
             )

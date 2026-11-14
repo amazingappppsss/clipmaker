@@ -161,6 +161,7 @@ def run(ctx: StageContext) -> StageOutput:
         s.min_clip_seconds,
         s.max_clip_seconds,
         s.min_clip_score,
+        ideal_max=s.ideal_max_clip_seconds,
     )
     chosen = sorted((c for c in scored if c.selected), key=lambda c: c.total_score, reverse=True)
     if not chosen:

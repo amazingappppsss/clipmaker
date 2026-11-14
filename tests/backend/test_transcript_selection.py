@@ -189,3 +189,19 @@ def test_teaser_must_be_inside_short_and_not_the_payoff() -> None:
     assert pick_teaser(segs, 0, 4, 4) is None  # never spoil the payoff
     assert pick_teaser(segs, 0, 4, 3) is None  # 10 s is too long for a hook
     assert pick_teaser(segs, 0, 4, -1) is None  # model chose no teaser
+
+
+def test_long_clips_must_earn_their_length() -> None:
+    from clipmaker.pipeline.selection import length_penalty
+
+    assert length_penalty(30, 35) == 0
+    assert length_penalty(45, 35) == 6
+    segs = _segments([10] * 40)
+    weights = parse_weights('{"standalone": 1}')
+    # Same quality, different lengths: the tight clip must win.
+    short, long_ = _p(0, 2, 8), _p(10, 15, 8)
+    result = select_clips(
+        [long_, short], segs, weights, 1, min_s=12, max_s=60, min_score=55, ideal_max=35
+    )
+    chosen = [c for c in result if c.selected]
+    assert chosen[0].proposal is short

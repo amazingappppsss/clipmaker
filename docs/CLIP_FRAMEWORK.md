@@ -109,7 +109,7 @@ outliers) and read the openings of the top 7:
 - **Zero warm-up.** Every one of them starts mid-conversation.
 - The first sentence is a **question or a claim**.
 - Most contain a **famous name** or a **specific number**.
-- They're **short**: 13–97 s, and many are under 45 s.
+- They're **short**: 13–97 s, and many are under 45 s. Clip2Easy now aims for 15–35 s (max 60 s); every second past 35 costs 0.6 points.
 - They **split opinions**, which is what drives the comments.
 
 The AI tags every clip with the opener it uses: `question`, `hypothetical`, `bold_claim`,
