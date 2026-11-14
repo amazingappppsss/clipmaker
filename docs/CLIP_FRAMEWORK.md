@@ -109,7 +109,7 @@ outliers) and read the openings of the top 7:
 - **Zero warm-up.** Every one of them starts mid-conversation.
 - The first sentence is a **question or a claim**.
 - Most contain a **famous name** or a **specific number**.
-- They're **short**: 13–97 s, and many are under 45 s. Clip2Easy now aims for 15–35 s (max 60 s); every second past 35 costs 0.6 points.
+- They're **short**: 13–97 s, and many are under 45 s. (See §7 for the larger sample, which set our final length rules.)
 - They **split opinions**, which is what drives the comments.
 
 The AI tags every clip with the opener it uses: `question`, `hypothetical`, `bold_claim`,
@@ -130,6 +130,44 @@ The rules:
 - **Show it's a flash-forward.** The rewind transition is visible, so we never misrepresent
   the order of what was said.
 - **Skip it when the opening is already the strongest hook.**
+
+## 7. What human editors see that AI clippers miss
+
+**The larger sample.** We pulled 84 viral clip Shorts (200K–11M views, last 3 months) across
+podcast, interview and business/money niches with vidIQ. We also reviewed what clip editors and
+agencies say AI tools get wrong.
+
+**Length.** The median is 45 s, and the middle half run 27–70 s; only half are under 45 s.
+→ Clip2Easy allows 12–75 s and aims for 20–45 s. Every second past 45 costs 0.6 points.
+
+**What wins:**
+
+1. **Reactions beat monologues.** The top clips are exchanges: a claim met by disbelief, a
+   roast and the laugh, a pushback ("Rogan Was Stunned 😭", "Theo Von Didn't Believe Him 😂",
+   "He called me a lineman 😭😂", 11M views). The other person's reaction is often the payoff.
+   → New hook type `reaction`. Clips are automatically extended to include the other
+   speaker's quick reaction (≤ 3.5 s), so we never cut before the laugh lands.
+2. **Comedy and conflict dominate** over calm advice: banter, roasts, awkward moments, heated
+   disagreement, celebrity drama and shocking money numbers. A calm explanation needs a
+   shocking claim or a specific number to compete.
+3. **Titles are spectator captions, not essays.** 3–7 words, a name plus a reaction, one
+   CAPITALIZED word, and one emoji when it fits: "The WORST Advice Paris Jackson Ever
+   Received", "How Much Debt Does Stradman Have?". Never "Why Architects Should Bear Risk".
+4. **Smartest, not loudest.** AI tools pick the loudest moment, cut mid-sentence, end before
+   the punchline resolves, and miss inside jokes and emotional context. Editors protect the
+   setup and the resolution.
+5. **The strongest moment goes first.** That's our flash-forward teaser (§6).
+
+**The editing rules editors use (these become Milestone 3, so no manual editing is needed):**
+
+- **Visual change every 3–8 s.** Cut between speakers, or "punch in" (a 110–120% zoom) at a
+  cut to hide it.
+- **Jump cuts:** remove filler, false starts and long pauses (4–8 cuts per minute is typical),
+  but keep the speaker's natural cadence and the hourglass pause before a reveal.
+- **Captions:** big, centred low, 1–2 highlighted words per line (numbers, names, the
+  emotional word), and never just mirroring every syllable in one style.
+- **Emphasis:** a slight zoom on key words, and a subtle sound on cuts.
+- **Framing:** 9:16 crop that follows whoever is talking, and both faces during reactions.
 
 ---
 

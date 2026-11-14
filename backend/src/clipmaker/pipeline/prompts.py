@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = "v6-short"  # <= 20 chars (video_analyses.version)
+PROMPT_VERSION = "v7-editor"  # <= 20 chars (video_analyses.version)
 
 # The Clip2Easy framework (docs/CLIP_FRAMEWORK.md): every short must win three moments —
 # STOP the scroll, make them STAY, make them SHARE / want more. Distilled from the YouTube
@@ -74,9 +74,25 @@ investor pulled out")
 - call_out: names who it's for ("If you're 25 and broke…")
 - result_first: the outcome first, then how ("I went from zero to $1M by…")
 - emotional: a raw, relatable feeling ("It made me feel less alone")
+- reaction: another person's live reaction is the hook ("Wait, WHAT?", stunned silence, \
+uncontrollable laughter)
 - funny: a punchline or roast that lands immediately
 Breakout clips start mid-conversation, often name a famous person or a specific number, and \
 split opinions so people comment. Many are under 45 s: never pad a clip that is already done.
+
+WHAT HUMAN EDITORS SEE THAT AI CLIPPERS MISS (study of 84 viral clip Shorts + editors):
+- Reactions beat monologues. The most viral podcast clips are EXCHANGES: a claim and the \
+other person's disbelief, a roast and the laugh, a question and a surprising answer, a \
+pushback. "Rogan was stunned", "Theo didn't believe him", "He called me a lineman 😂". \
+When a second speaker reacts (laughs, "no way", "what?", interrupts, argues), that reaction \
+is often the payoff — include it.
+- Comedy and conflict dominate: banter, roasts, awkward moments, heated disagreement, \
+celebrity drama and shocking money numbers far outperform calm advice. A calm explanation \
+must have a shocking claim or a specific number to compete.
+- Pick the smartest moment, not the loudest; protect inside jokes with the setup they need.
+- Never end before the punchline resolves or before the laugh/reaction lands.
+- One complete idea per clip; the strongest moment goes first (or as the flash-forward).
+- Use people's real names when the transcript gives them; names drive clicks.
 
 THE STORY LAYER — search for meaningful moments, not interesting sentences.
 - A story is not something that happened; it is something that happened that CHANGED \
@@ -127,8 +143,8 @@ CANDIDATES_INSTRUCTION = """Using the transcript and this analysis of the whole 
 Propose {count} candidate clips — more than will be used, so only the best survive.
 Rules for every candidate:
 - A contiguous range of whole segments (start_segment..end_segment), {min_s:.0f}-{max_s:.0f} \
-seconds long. SHORTER WINS: aim for 15-35 seconds. Breakout Shorts are mostly under 45 s. Go \
-past 40 s only if every single sentence is essential. Use the timestamps to check length.
+seconds long. Aim for 20-45 seconds (viral clips: median 45 s, half are 27-70 s). Go past \
+45 s only when every sentence is essential. Use the timestamps to check length.
 - Cut ruthlessly: start on the hook line itself, end on the payoff line itself. Drop \
 background, repetition, tangents and "you know what I mean" wrap-ups. One idea per clip.
 - Choose the START so the first sentence is the strongest possible headline (STOP). Starting \
@@ -171,7 +187,12 @@ qualifies.
 
 METADATA_INSTRUCTION = """For each selected clip below, write publishing metadata. Use ONLY \
 what is said in that clip's transcript. Never invent claims, numbers or names.
-Write like a great headline writer, not a hype machine:
+Write like the clip channels that get millions of views, not like an essay:
+- Titles are short (3-7 words), spoken like a viewer describing what happens, usually with a \
+name and a reaction: "Rogan Was Stunned", "Theo Von Didn't Believe Him", "The WORST Advice \
+Paris Jackson Ever Received", "How Much Debt Does Stradman Have?". CAPITALIZE one key word \
+and add one fitting emoji when the clip is funny or shocking (😂 😭 👀 🤯).
+- Never write lecture titles like "Why Architects Should Bear Risk".
 - Hail the right viewer and promise a specific benefit or answer.
 - Specific beats superlative: "He paid $2,000 to wax a surfboard" beats "Crazy story!".
 - Spark curiosity without lying: the clip must deliver what the title promises.
@@ -204,6 +225,7 @@ HOOK_TYPES = (
     "result_first",
     "emotional",
     "funny",
+    "reaction",
     "none",
 )
 

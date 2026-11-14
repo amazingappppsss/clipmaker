@@ -197,6 +197,29 @@ def normalise_range(
     return start, end, adjusted, None
 
 
+REACTION_MAX_SECONDS = 3.5
+
+
+def include_reaction(segments: list[Segment], start: int, end: int, max_s: float) -> int:
+    """Extend the clip by the next line when it is another speaker's quick reaction.
+
+    Editors never cut before the laugh or the "no way!" lands — that reaction is often the
+    payoff. Only a short line (<= 3.5 s) from a different speaker qualifies, and only if the
+    clip stays within the maximum length.
+    """
+    nxt = end + 1
+    if nxt >= len(segments):
+        return end
+    reaction, last = segments[nxt], segments[end]
+    if reaction.speaker is None or reaction.speaker == last.speaker:
+        return end
+    if reaction.end - reaction.start > REACTION_MAX_SECONDS:
+        return end
+    if reaction.end - segments[start].start > max_s:
+        return end
+    return nxt
+
+
 def clip_times(segments: list[Segment], start: int, end: int) -> tuple[float, float]:
     """Cut points with a little breathing room, never bleeding into neighbouring speech."""
     begin = segments[start].start - LEAD_IN_SECONDS
@@ -234,6 +257,8 @@ def select_clips(
         )
         if reason is None:
             reason = gate_failure(p.scores)
+        if reason is None:
+            e = include_reaction(segments, s, e, max_s)
         if reason is None:
             t0, t1 = clip_times(segments, s, e)
         else:

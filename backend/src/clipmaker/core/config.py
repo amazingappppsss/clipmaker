@@ -122,11 +122,11 @@ class Settings(BaseSettings):
     # --- Pipeline -------------------------------------------------------------------------
     stage_max_attempts: int = Field(default=3, ge=1, le=10)
     job_lease_seconds: int = Field(default=900, ge=60)
-    # Breakout Shorts are mostly 13-45 s (docs/CLIP_FRAMEWORK.md §5): short and tight wins.
+    # 84 viral clip Shorts (docs/CLIP_FRAMEWORK.md §7): median 45 s, middle half 27-70 s.
     min_clip_seconds: float = 12.0
-    max_clip_seconds: float = 60.0
+    max_clip_seconds: float = 75.0
     # Clips longer than this lose points per extra second; they must earn their length.
-    ideal_max_clip_seconds: float = 35.0
+    ideal_max_clip_seconds: float = 45.0
     # Minimum weighted score (0-100) a candidate needs to become a clip. Fewer, better clips
     # beat padding the result with weak ones.
     min_clip_score: float = 55.0

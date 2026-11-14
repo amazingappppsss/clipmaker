@@ -205,3 +205,19 @@ def test_long_clips_must_earn_their_length() -> None:
     )
     chosen = [c for c in result if c.selected]
     assert chosen[0].proposal is short
+
+
+def test_clip_keeps_the_other_persons_quick_reaction() -> None:
+    from dataclasses import replace
+
+    from clipmaker.pipeline.selection import include_reaction
+
+    segs = _segments([10, 10, 2, 10])
+    segs[2] = replace(segs[2], speaker="B")  # "No way!" from the other speaker
+    assert include_reaction(segs, 0, 1, max_s=60) == 2
+    assert include_reaction(segs, 0, 1, max_s=21) == 1  # would exceed the max length
+    same = _segments([10, 10, 2, 10])  # same speaker continuing: not a reaction
+    assert include_reaction(same, 0, 1, max_s=60) == 1
+    long_reply = _segments([10, 10, 8, 10])
+    long_reply[2] = replace(long_reply[2], speaker="B")  # a new turn, not a reaction
+    assert include_reaction(long_reply, 0, 1, max_s=60) == 1
