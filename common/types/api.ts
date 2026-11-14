@@ -192,6 +192,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{project_id}/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Share Project
+         * @description Create (or return) a read-only link to this project's picked moments.
+         */
+        post: operations["share_project_projects__project_id__share_post"];
+        /**
+         * Unshare Project
+         * @description Turn the read-only link off.
+         */
+        delete: operations["unshare_project_projects__project_id__share_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/share/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Shared
+         * @description Public, read-only: the moments behind a share link.
+         */
+        get: operations["get_shared_share__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/usage": {
         parameters: {
             query?: never;
@@ -565,6 +609,29 @@ export interface components {
          * @enum {string}
          */
         ProjectState: "CREATED" | "UPLOADED" | "INGESTING" | "TRANSCRIBING" | "UNDERSTANDING" | "SELECTING" | "EDITING" | "RENDERING" | "QUALITY_CHECK" | "COMPLETED" | "NEEDS_REVIEW" | "FAILED" | "CANCELLED";
+        /**
+         * ShareLinkOut
+         * @description POST /projects/{id}/share — the read-only results link.
+         */
+        ShareLinkOut: {
+            /** Token */
+            token: string;
+        };
+        /**
+         * SharedResultsOut
+         * @description GET /share/{token} — a project's picked moments, read-only (no video files).
+         */
+        SharedResultsOut: {
+            /** Title */
+            title: string;
+            state: components["schemas"]["ProjectState"];
+            /** Source Url */
+            source_url: string | null;
+            /** Duration Seconds */
+            duration_seconds: number | null;
+            /** Clips */
+            clips: components["schemas"]["ClipOut"][];
+        };
         /**
          * SourceVideoOut
          * @description Public view of the source video (uploaded or imported from a link).
@@ -1035,6 +1102,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClipOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    share_project_projects__project_id__share_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareLinkOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unshare_project_projects__project_id__share_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_shared_share__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedResultsOut"];
                 };
             };
             /** @description Validation Error */

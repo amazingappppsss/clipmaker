@@ -255,3 +255,19 @@ class DevTokenOut(BaseModel):
 
     access_token: str
     user_id: uuid.UUID
+
+
+class ShareLinkOut(BaseModel):
+    """POST /projects/{id}/share — the read-only results link."""
+
+    token: str
+
+
+class SharedResultsOut(BaseModel):
+    """GET /share/{token} — a project's picked moments, read-only (no video files)."""
+
+    title: str
+    state: ProjectState
+    source_url: str | None
+    duration_seconds: float | None
+    clips: list[ClipOut]

@@ -95,6 +95,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(projects.router)
+    app.include_router(projects.shared_router)
     app.include_router(account.router)
     app.include_router(plans.router)
     if settings.storage_backend == StorageBackend.LOCAL:

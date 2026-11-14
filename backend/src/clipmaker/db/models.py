@@ -110,6 +110,8 @@ class Project(TimestampMixin, Base):
     settings: Mapped[JsonDict] = mapped_column(default=dict, nullable=False)
     error_message: Mapped[str | None] = mapped_column(Text)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Unguessable token for a read-only results link (None = not shared). Revocable.
+    share_token: Mapped[str | None] = mapped_column(String(64), unique=True)
 
     user: Mapped[User] = relationship(back_populates="projects")
     source_video: Mapped[SourceVideo | None] = relationship(

@@ -1,4 +1,5 @@
 /** Project endpoints (backend/src/clipmaker/api/projects.py). */
+import { env } from "@/lib/env";
 import { apiRequest } from "@/services/api-client";
 import type {
   Clip,
@@ -58,4 +59,13 @@ export function getClips(id: string, signal?: AbortSignal): Promise<Clip[]> {
 /** Create a project from a video link (e.g. YouTube); the download runs in the background. */
 export function importFromUrl(body: ImportRequest): Promise<Project> {
   return apiRequest<Project>("/projects/import", { method: "POST", body });
+}
+
+/** Read-only link to this project's picked moments (JSON, no video files). */
+export async function shareProject(id: string): Promise<string> {
+  const { token } = await apiRequest<{ token: string }>(
+    `/projects/${encodeURIComponent(id)}/share`,
+    { method: "POST" },
+  );
+  return `${env.apiUrl}/share/${encodeURIComponent(token)}`;
 }

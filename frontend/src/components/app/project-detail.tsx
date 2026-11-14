@@ -7,7 +7,7 @@
  *   FAILED       → reason + "Try again" (resumes from the failed stage; credits were refunded)
  *   NEEDS_REVIEW / COMPLETED → the picked moments
  */
-import { ArrowLeft, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, Link2, Sparkles, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -29,6 +29,7 @@ import {
   getClips,
   getProject,
   getStatus,
+  shareProject,
   startProcessing,
 } from "@/services/projects";
 
@@ -56,7 +57,8 @@ export function ProjectDetail() {
   const [clips, setClips] = useState<Clip[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"start" | "delete" | null>(null);
+  const [busy, setBusy] = useState<"start" | "delete" | "share" | null>(null);
+  const [shared, setShared] = useState(false);
 
   const refresh = useCallback(
     async (signal?: AbortSignal, quiet = false): Promise<void> => {
@@ -100,6 +102,19 @@ export function ProjectDetail() {
       await refresh();
     } catch (err) {
       setError(errorText(err, "Couldn't start processing."));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onShare = async (): Promise<void> => {
+    setBusy("share");
+    try {
+      await navigator.clipboard.writeText(await shareProject(id));
+      setShared(true);
+      window.setTimeout(() => setShared(false), 2500);
+    } catch (err) {
+      setError(errorText(err, "Couldn't create a results link."));
     } finally {
       setBusy(null);
     }
@@ -163,16 +178,29 @@ export function ProjectDetail() {
             <span>Created {formatDate(project.created_at)}</span>
           </div>
         </div>
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => void onDelete()}
-          loading={busy === "delete"}
-          disabled={processing}
-          title={processing ? "Wait for processing to finish" : undefined}
-        >
-          <Trash2 className="size-4" aria-hidden /> Delete
-        </Button>
+        <div className="flex gap-2">
+          {clips.length ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void onShare()}
+              loading={busy === "share"}
+            >
+              <Link2 className="size-4" aria-hidden />{" "}
+              {shared ? "Link copied" : "Copy results link"}
+            </Button>
+          ) : null}
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => void onDelete()}
+            loading={busy === "delete"}
+            disabled={processing}
+            title={processing ? "Wait for processing to finish" : undefined}
+          >
+            <Trash2 className="size-4" aria-hidden /> Delete
+          </Button>
+        </div>
       </div>
 
       {error ? (

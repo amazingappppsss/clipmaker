@@ -286,3 +286,29 @@ def test_restart_resumes_interrupted_jobs_immediately(started: tuple[str, uuid.U
 
     with get_session_factory()() as db:  # finished jobs are left alone
         assert recover_interrupted_jobs(db, lambda _: None) == []
+
+
+def test_share_link_shows_moments_read_only_and_can_be_revoked(
+    started: tuple[str, uuid.UUID], client: TestClient, auth: dict[str, str]
+) -> None:
+    pid, job_id = started
+    make_runner(job_id, FakeLLM(), FakeTranscriber()).run()
+
+    token = client.post(f"/projects/{pid}/share", headers=auth).json()["token"]
+    assert client.post(f"/projects/{pid}/share", headers=auth).json()["token"] == token
+
+    shared = client.get(f"/share/{token}")  # no auth needed
+    assert shared.status_code == 200
+    body = shared.json()
+    assert body["clips"] and body["clips"][0]["why"]
+    assert "source_video_url" not in body  # video files are never exposed by a link
+
+    client.delete(f"/projects/{pid}/share", headers=auth)
+    assert client.get(f"/share/{token}").status_code == 404
+
+
+def test_only_the_owner_can_share(
+    started: tuple[str, uuid.UUID], client: TestClient, other_auth: dict[str, str]
+) -> None:
+    pid, _ = started
+    assert client.post(f"/projects/{pid}/share", headers=other_auth).status_code == 404

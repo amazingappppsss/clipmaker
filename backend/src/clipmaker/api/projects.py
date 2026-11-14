@@ -14,12 +14,15 @@ from clipmaker.schemas import (
     ProjectCreate,
     ProjectList,
     ProjectOut,
+    SharedResultsOut,
+    ShareLinkOut,
     UploadRequest,
     UploadTicket,
 )
 from clipmaker.services import imports as import_service
 from clipmaker.services import processing as processing_service
 from clipmaker.services import projects as project_service
+from clipmaker.services import sharing
 from clipmaker.services import uploads as upload_service
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -136,3 +139,30 @@ def get_clips(project_id: uuid.UUID, user: CurrentUser, db: DbSession) -> list[C
     """Selected clips for the project, best first."""
     project = project_service.get_owned_project(db, user, project_id)
     return processing_service.list_clips(db, project)
+
+
+@router.post("/{project_id}/share")
+def share_project(project_id: uuid.UUID, user: CurrentUser, db: DbSession) -> ShareLinkOut:
+    """Create (or return) a read-only link to this project's picked moments."""
+    project = project_service.get_owned_project(db, user, project_id)
+    return ShareLinkOut(token=sharing.enable_sharing(db, project))
+
+
+@router.delete(
+    "/{project_id}/share",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    response_model=None,
+)
+def unshare_project(project_id: uuid.UUID, user: CurrentUser, db: DbSession) -> None:
+    """Turn the read-only link off."""
+    sharing.disable_sharing(db, project_service.get_owned_project(db, user, project_id))
+
+
+shared_router = APIRouter(prefix="/share", tags=["sharing"])
+
+
+@shared_router.get("/{token}")
+def get_shared(token: str, db: DbSession) -> SharedResultsOut:
+    """Public, read-only: the moments behind a share link."""
+    return sharing.shared_results(db, token)
