@@ -1,4 +1,4 @@
-# ClipMaker — Architecture
+# Clip2Easy — Architecture
 
 > Source of truth for structure and conventions. Read before adding code; update it when
 > structure changes. Product requirements live in the PRD; this document says **where things go**.

@@ -38,7 +38,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
     app = FastAPI(
-        title="ClipMaker API",
+        title="Clip2Easy API",
         version=__version__,
         docs_url=None if settings.app_env == AppEnv.PRODUCTION else "/docs",
     )

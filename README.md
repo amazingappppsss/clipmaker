@@ -1,4 +1,4 @@
-# ClipMaker
+# Clip2Easy
 
 **Paste a video. Get finished shorts.** An autonomous AI editor that turns long-form videos and
 podcasts into ready-to-post vertical clips — with speaker-aware framing, captions, hooks and

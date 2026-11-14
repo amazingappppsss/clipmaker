@@ -22,7 +22,7 @@ export function SiteFooter() {
       </div>
       <div className="mx-auto mt-8 flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted sm:flex-row">
         <Logo />
-        <p>© ClipMaker. Only upload videos you have the rights to.</p>
+        <p>© Clip2Easy. Only upload videos you have the rights to.</p>
       </div>
     </footer>
   );

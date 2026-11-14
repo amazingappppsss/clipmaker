@@ -14,7 +14,7 @@ OK, WARN, FAIL = "  [OK]  ", "  [WARN]", "  [FAIL]"
 
 
 def main() -> int:
-    print("ClipMaker startup check")
+    print("Clip2Easy startup check")
     problems = 0
 
     try:

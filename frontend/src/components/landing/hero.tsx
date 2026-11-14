@@ -88,7 +88,7 @@ export function Hero() {
         <SpinBadge className="absolute right-[2%] bottom-[-3.5rem] hidden sm:grid lg:right-[6%]" />
 
         <p className="animate-pop mx-auto mt-10 max-w-xl text-base font-medium text-white/90 [animation-delay:120ms] sm:text-lg">
-          Paste a YouTube link or upload a video. ClipMaker finds the best moments and edits them
+          Paste a YouTube link or upload a video. Clip2Easy finds the best moments and edits them
           into ready-to-post vertical clips — captions, hooks and framing included.
         </p>
         <div className="animate-pop mx-auto mt-8 max-w-xl text-left [animation-delay:200ms]">

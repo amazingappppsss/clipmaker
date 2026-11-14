@@ -1,5 +1,5 @@
 /**
- * Typed HTTP client for the ClipMaker backend.
+ * Typed HTTP client for the Clip2Easy backend.
  *
  * - Attaches the current user's bearer token (from the auth provider's token getter).
  * - Converts every non-2xx response into an `ApiError` carrying the backend's stable `code`.

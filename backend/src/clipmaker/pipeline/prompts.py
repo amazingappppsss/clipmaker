@@ -11,7 +11,7 @@ from typing import Any
 
 PROMPT_VERSION = "v1"
 
-SYSTEM_EDITOR = """You are the senior short-form video editor at ClipMaker. You turn long \
+SYSTEM_EDITOR = """You are the senior short-form video editor at Clip2Easy. You turn long \
 conversations (podcasts, interviews, lessons) into vertical shorts that viewers watch to the end \
 and creators publish without editing.
 

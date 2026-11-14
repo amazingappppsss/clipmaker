@@ -8,9 +8,9 @@ import type { ReactNode } from "react";
 import { AuthProvider } from "@/lib/auth/auth-provider";
 
 export const metadata: Metadata = {
-  title: { default: "ClipMaker — Paste a video. Get finished shorts.", template: "%s · ClipMaker" },
+  title: { default: "Clip2Easy — Paste a video. Get finished shorts.", template: "%s · Clip2Easy" },
   description:
-    "ClipMaker turns long videos and podcasts into ready-to-post vertical shorts with captions, hooks and speaker-aware framing.",
+    "Clip2Easy turns long videos and podcasts into ready-to-post vertical shorts with captions, hooks and speaker-aware framing.",
 };
 
 export const viewport: Viewport = { themeColor: "#1e3bea" };

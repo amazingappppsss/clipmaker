@@ -15,7 +15,7 @@ const HIGHLIGHT: PlanInfo["plan"] = "starter";
 function features(plan: PlanInfo): string[] {
   return [
     `${plan.monthly_credits} minutes of video / month`,
-    plan.watermark ? "ClipMaker watermark" : "No watermark",
+    plan.watermark ? "Clip2Easy watermark" : "No watermark",
     "Captions, titles & hashtags",
     "Automatic quality checks",
   ];
