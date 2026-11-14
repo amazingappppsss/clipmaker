@@ -1597,6 +1597,21 @@
             "title": "Disk",
             "default": {}
           },
+          "limits": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Limits",
+            "default": {}
+          },
           "recent_render_errors": {
             "items": {
               "type": "string"

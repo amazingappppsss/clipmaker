@@ -515,6 +515,13 @@ export interface components {
                 [key: string]: number;
             };
             /**
+             * Limits
+             * @default {}
+             */
+            limits: {
+                [key: string]: number | null;
+            };
+            /**
              * Recent Render Errors
              * @default []
              */

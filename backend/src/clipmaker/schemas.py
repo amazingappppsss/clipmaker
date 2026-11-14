@@ -251,6 +251,8 @@ class HealthOut(BaseModel):
     recent_failures: list[dict[str, str | int]] = []
     # Free/total space (GB) where videos are stored, and in the scratch work folder.
     disk: dict[str, float] = {}
+    # Container limits this server sizes itself to (MB, CPUs, encoder threads).
+    limits: dict[str, int | None] = {}
     # Why recent clip renders failed (sanitized: no paths, no user data).
     recent_render_errors: list[str] = []
 

@@ -14,6 +14,7 @@ from sqlalchemy import select, text
 
 from clipmaker import __version__
 from clipmaker.api.deps import AppSettings, DbSession
+from clipmaker.core.resources import cpu_count, encoder_threads, memory_limit_mb, memory_used_mb
 from clipmaker.db.models import Clip, ProcessingJob
 from clipmaker.schemas import HealthOut
 from clipmaker.storage.factory import get_storage
@@ -51,6 +52,12 @@ def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOu
         recent_stage_seconds=_recent_timings(db) if db_ok else [],
         recent_failures=_recent_failures(db) if db_ok else [],
         disk=_disk(settings),
+        limits={
+            "memory_limit_mb": memory_limit_mb(),
+            "memory_used_mb": memory_used_mb(),
+            "cpus": cpu_count(),
+            "encoder_threads": encoder_threads(),
+        },
         recent_render_errors=_render_errors(db) if db_ok else [],
     )
 
