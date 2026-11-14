@@ -188,6 +188,8 @@ class JobStatusOut(BaseModel):
     # Live clip counts, so the page can show "3 of 6 ready" while rendering continues.
     clips_total: int = 0
     clips_ready: int = 0
+    # Roughly how many seconds of work are left (None when nothing is running).
+    eta_seconds: int | None = None
     started_at: datetime | None
     completed_at: datetime | None
 

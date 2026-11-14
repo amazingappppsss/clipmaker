@@ -34,6 +34,7 @@ from clipmaker.services.billing import (
     project_net_charge,
     refund_credits,
 )
+from clipmaker.services.estimates import remaining_seconds
 from clipmaker.storage.base import ObjectStorage
 
 logger = logging.getLogger(__name__)
@@ -158,7 +159,15 @@ def job_status(db: Session, project: Project) -> JobStatusOut:
             .group_by(Clip.status)
         ).all()
     )
+    source = project.source_video
     return JobStatusOut(
+        eta_seconds=(
+            remaining_seconds(
+                job.stages or {}, source.duration_seconds if source else None, sum(counts.values())
+            )
+            if job and project.state not in TERMINAL_STATES
+            else None
+        ),
         clips_total=sum(counts.values()),
         clips_ready=counts.get(ClipStatus.READY, 0),
         project_state=project.state,

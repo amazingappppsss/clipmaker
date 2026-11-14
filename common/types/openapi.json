@@ -1716,6 +1716,17 @@
             "title": "Clips Ready",
             "default": 0
           },
+          "eta_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eta Seconds"
+          },
           "started_at": {
             "anyOf": [
               {

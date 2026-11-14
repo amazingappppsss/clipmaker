@@ -80,6 +80,14 @@ export function currentLiveStep(statuses: StepStatus[]): number {
   return firstPending;
 }
 
+/** Friendly countdown: "about 2 min left", "under a minute", "" when unknown. */
+export function etaLabel(seconds: number | null | undefined): string {
+  if (seconds == null || seconds <= 0) return "";
+  if (seconds < 60) return "under a minute left";
+  const minutes = Math.round(seconds / 60);
+  return `about ${minutes} min left`;
+}
+
 /** "m:ss" (or "h:mm:ss") between an ISO start time and now; "" when not started. */
 export function elapsedLabel(startedAt: string | null | undefined, now: number): string {
   if (!startedAt) return "";

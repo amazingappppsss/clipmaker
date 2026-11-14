@@ -14,6 +14,7 @@ from clipmaker.core.enums import ClipStatus
 from clipmaker.db.models import Candidate, Clip, SourceVideo
 from clipmaker.editing.cuts import Interval, keep_intervals, map_words, total_duration
 from clipmaker.editing.framing import analyze_faces, plan_shots
+from clipmaker.editing.render import output_size
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError
 from clipmaker.pipeline.stages.common import load_segments, local_source
@@ -49,6 +50,8 @@ def plan_clip(
     plan: dict[str, Any],
     moment: str | None,
     source: str,
+    src_w: int = 1920,
+    src_h: int = 1080,
 ) -> dict[str, Any]:
     """The render plan for one clip (face analysis is the only I/O)."""
     s_seg, e_seg = int(plan["start_segment"]), int(plan["end_segment"])
@@ -73,8 +76,10 @@ def plan_clip(
     ]
     offset = total_duration(teaser)
     out_words = map_words(teaser_words, teaser) + map_words(words, main, offset=offset)
+    out_w, out_h = output_size(src_h)
     return {
         "version": PLAN_VERSION,
+        "size": [out_w, out_h],
         "pieces": pieces,
         "words": [[w.text, w.start, w.end] for w in out_words],
         "duration": round(offset + total_duration(main), 3),
@@ -89,6 +94,7 @@ def run(ctx: StageContext) -> StageOutput:
         if src is None:
             raise PermanentStageError("no_source", "This project has no video.")
         source_key = src.storage_key
+        src_w, src_h = int(src.width or 1920), int(src.height or 1080)
         todo = [
             (c.id, dict(c.edit_plan or {}), c.candidate_id)
             for c in db.query(Clip).filter_by(project_id=ctx.project_id).order_by(Clip.rank)
@@ -106,7 +112,7 @@ def run(ctx: StageContext) -> StageOutput:
     segments = load_segments(ctx)
     planned = 0
     for clip_id, plan, cand_id in todo:
-        render_plan = plan_clip(segments, plan, moments.get(cand_id), source)
+        render_plan = plan_clip(segments, plan, moments.get(cand_id), source, src_w, src_h)
         with ctx.sessions() as db:
             clip = db.get(Clip, clip_id)
             if clip is None:

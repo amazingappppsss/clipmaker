@@ -46,6 +46,12 @@ def pieces_for(plan: dict[str, Any], src_w: int, src_h: int) -> list[Piece]:
     return out
 
 
+def _size_of(plan: dict[str, Any]) -> tuple[int, int] | None:
+    """The render size the edit plan chose (None for older plans: render picks one)."""
+    value = plan.get("size")
+    return (int(value[0]), int(value[1])) if isinstance(value, list) and len(value) == 2 else None
+
+
 def _captions_for(words: list[Word], title: str | None, font: str) -> CaptionsFor:
     """Captions for one rendered piece, so each piece is encoded with its own text burned in."""
 
@@ -101,6 +107,7 @@ def run(ctx: StageContext) -> StageOutput:
                 None,
                 preset=ctx.settings.render_preset,
                 crf=ctx.settings.render_crf,
+                size=_size_of(plan),
                 captions=_captions_for(words, title, ctx.settings.caption_font),
             )
             make_thumbnail(str(out), thumb, at_seconds=min(1.0, float(plan.get("duration", 2)) / 2))
@@ -126,7 +133,7 @@ def run(ctx: StageContext) -> StageOutput:
             raise RetryableStageError("storage_error", "Saving a rendered clip failed.") from exc
         # Check it straight away so the clip can be watched and downloaded while the rest of
         # the video is still rendering, instead of everyone waiting for the whole batch.
-        problems = verify(ctx, video_key, float(plan.get("duration", 0)))
+        problems = verify(ctx, video_key, float(plan.get("duration", 0)), _size_of(plan))
         with ctx.sessions() as db:
             clip = db.get(Clip, clip_id)
             if clip is None:

@@ -245,6 +245,7 @@ export function ProjectDetail() {
             startedAt={status?.started_at}
             clipsReady={status?.clips_ready ?? 0}
             clipsTotal={status?.clips_total ?? 0}
+            etaSeconds={status?.eta_seconds}
           />
         </div>
       ) : null}

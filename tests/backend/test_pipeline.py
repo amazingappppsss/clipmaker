@@ -392,7 +392,8 @@ def test_full_pipeline_renders_finished_vertical_shorts(
         ).first()
         assert asset is not None
         meta = probe_media(storage_factory().media_source(asset.storage_key))
-    assert (meta.width, meta.height) == (1080, 1920) and meta.has_audio
+    assert (meta.width, meta.height) == (720, 1280) and meta.has_audio  # matches the source
+    assert meta.width * 16 == meta.height * 9  # vertical 9:16
     # The long source and its audio are freed once finished clips exist (storage stays small).
     assert project["source_video_url"] is None
     with get_session_factory()() as db:

@@ -5,9 +5,24 @@ from __future__ import annotations
 from pathlib import Path
 
 from clipmaker.editing.captions import build_ass
-from clipmaker.editing.render import OUT_H, OUT_W, Piece, loudness_filter, piece_filter, render
+from clipmaker.editing.render import (
+    OUT_H,
+    OUT_W,
+    Piece,
+    loudness_filter,
+    output_size,
+    piece_filter,
+    render,
+)
 from clipmaker.media.probe import probe_media
 from clipmaker.providers.transcription.base import Word
+
+
+def test_output_size_matches_the_source() -> None:
+    assert output_size(1080) == (OUT_W, OUT_H)  # full-HD source keeps full-HD output
+    assert output_size(2160) == (OUT_W, OUT_H)
+    assert output_size(720) == (720, 1280)  # a 720p source is never blown up
+    assert output_size(360) == (720, 1280)
 
 
 def test_piece_filter_crops_scales_and_flashes() -> None:
@@ -40,7 +55,8 @@ def test_renders_a_vertical_short(sample_video: Path, tmp_path: Path) -> None:
         captions=lambda a, b: build_ass(words, title="Test Clip", window=(a, b)),
     )
     meta = probe_media(str(out))
-    assert (meta.width, meta.height) == (OUT_W, OUT_H)
+    # The 720p sample is never blown up to 1080x1920: that costs time and adds no detail.
+    assert (meta.width, meta.height) == (720, 1280)
     assert meta.has_audio
     assert abs(meta.duration_seconds - 5.5) < 0.4
 

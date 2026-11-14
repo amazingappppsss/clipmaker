@@ -11,7 +11,7 @@ from typing import Any
 
 from clipmaker.core.enums import AssetKind, ClipStatus
 from clipmaker.db.models import Clip, SourceVideo
-from clipmaker.editing.render import OUT_H, OUT_W
+from clipmaker.editing.render import SIZES
 from clipmaker.media.probe import ProbeError, probe_media
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError
@@ -28,13 +28,15 @@ class Verdict:
     duration: float
 
 
-def verify(ctx: StageContext, storage_key: str, expected: float) -> Verdict:
+def verify(
+    ctx: StageContext, storage_key: str, expected: float, size: tuple[int, int] | None = None
+) -> Verdict:
     """Probe a rendered clip in storage and judge it (used per clip and as a final sweep)."""
     try:
         meta = probe_media(ctx.storage.media_source(storage_key))
     except ProbeError as exc:
         return Verdict(["unreadable file"], {"problems": [str(exc)]}, 0.0)
-    problems = check(meta, expected)
+    problems = check(meta, expected, size)
     return Verdict(
         problems,
         {
@@ -48,11 +50,13 @@ def verify(ctx: StageContext, storage_key: str, expected: float) -> Verdict:
     )
 
 
-def check(meta: Any, expected: float) -> list[str]:
+def check(meta: Any, expected: float, size: tuple[int, int] | None = None) -> list[str]:
     """Problems with a rendered file (pure). Empty list = passed."""
     problems = []
-    if (meta.width, meta.height) != (OUT_W, OUT_H):
-        problems.append(f"resolution {meta.width}x{meta.height}, expected {OUT_W}x{OUT_H}")
+    if size is not None and (meta.width, meta.height) != size:
+        problems.append(f"resolution {meta.width}x{meta.height}, expected {size[0]}x{size[1]}")
+    elif size is None and (meta.width, meta.height) not in SIZES:
+        problems.append(f"resolution {meta.width}x{meta.height} is not a supported vertical size")
     if not meta.has_audio:
         problems.append("no audio track")
     if expected and abs(meta.duration_seconds - expected) > DURATION_TOLERANCE:

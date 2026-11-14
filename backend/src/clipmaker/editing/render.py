@@ -20,6 +20,17 @@ from clipmaker.core.resources import encoder_threads
 from clipmaker.media.audio import MediaError
 
 OUT_W, OUT_H, OUT_FPS = 1080, 1920, 30
+# Vertical sizes we render at. Full HD only when the source actually has that detail:
+# blowing a 720p video up to 1080x1920 invents no detail and costs ~2.5x the encoding time.
+SIZES = ((1080, 1920), (720, 1280))
+FULL_HD_SOURCE_HEIGHT = 1080
+
+
+def output_size(source_height: int) -> tuple[int, int]:
+    """Render size for a source video this tall (pure, unit-tested)."""
+    return SIZES[0] if source_height >= FULL_HD_SOURCE_HEIGHT else SIZES[1]
+
+
 FLASH_SECONDS = 0.2
 FONTS_DIR = Path(__file__).resolve().parent / "fonts"
 PART_CRF = 18  # intermediate quality; the visible loss after the final pass is negligible
@@ -46,11 +57,12 @@ class Piece:
         return self.end - self.start
 
 
-def piece_filter(piece: Piece) -> str:
+def piece_filter(piece: Piece, size: tuple[int, int] = (OUT_W, OUT_H)) -> str:
     """Video filter chain for one piece (pure, unit-tested)."""
     x, y, w, h = piece.crop
+    out_w, out_h = size
     chain = (
-        f"crop={w}:{h}:{x}:{y},scale={OUT_W}:{OUT_H}:flags=lanczos,"
+        f"crop={w}:{h}:{x}:{y},scale={out_w}:{out_h}:flags=lanczos,"
         f"setsar=1,fps={OUT_FPS},format=yuv420p"
     )
     if piece.flash_out:
@@ -99,6 +111,7 @@ def render(
     preset: str = "veryfast",
     crf: int = 21,
     captions: CaptionsFor | None = None,
+    size: tuple[int, int] | None = None,
 ) -> Path:
     """Render the edit to `out_path`. Raises MediaError on failure.
 
@@ -109,13 +122,14 @@ def render(
     if not pieces:
         raise MediaError("Nothing to render")
     work_dir.mkdir(parents=True, exist_ok=True)
+    out_size = size or output_size(max(p.crop[3] for p in pieces))
 
     # 1) Each piece on its own: seek, crop, scale, burn its captions, encode.
     parts: list[Path] = []
     elapsed = 0.0
     for i, piece in enumerate(pieces):
         part = work_dir / f"part{i:03d}.mp4"
-        chain = piece_filter(piece)
+        chain = piece_filter(piece, out_size)
         if captions is not None:
             text = captions(elapsed, elapsed + piece.duration)
             if text.strip():

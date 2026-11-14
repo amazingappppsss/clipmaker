@@ -12,6 +12,7 @@ import {
   LIVE_STEPS,
   currentLiveStep,
   elapsedLabel,
+  etaLabel,
   stepCopy,
   type StepStatus,
 } from "@/lib/project-state";
@@ -33,12 +34,14 @@ export function ProcessingHero({
   startedAt,
   clipsReady = 0,
   clipsTotal = 0,
+  etaSeconds,
 }: {
   project: Project;
   steps: StepStatus[];
   startedAt: string | null | undefined;
   clipsReady?: number;
   clipsTotal?: number;
+  etaSeconds?: number | null;
 }) {
   const now = useNow(1000);
   const src = project.source_video;
@@ -48,6 +51,7 @@ export function ProcessingHero({
   const active = index >= 0 ? LIVE_STEPS[index] : undefined;
   const copy = stepCopy(active?.state ?? project.state, fromLink);
   const elapsed = elapsedLabel(startedAt, now);
+  const eta = etaLabel(etaSeconds); // shown in whole minutes, so polling is enough
 
   return (
     <section
@@ -76,6 +80,7 @@ export function ProcessingHero({
           <p className="text-xs font-bold tracking-widest text-lime uppercase">
             {index >= 0 ? `Step ${index + 1} of ${LIVE_STEPS.length}` : "Starting"}
             {elapsed ? <span className="text-white/70"> · {elapsed} elapsed</span> : null}
+            {eta ? <span className="text-white"> · {eta}</span> : null}
           </p>
           <h2 className="display-heavy mt-2 text-3xl leading-tight sm:text-4xl">{copy.title}</h2>
           <p className="mt-2 max-w-xl text-white/80">{copy.detail}</p>

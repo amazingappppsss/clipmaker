@@ -564,6 +564,8 @@ export interface components {
              * @default 0
              */
             clips_ready: number;
+            /** Eta Seconds */
+            eta_seconds?: number | null;
             /** Started At */
             started_at: string | null;
             /** Completed At */

@@ -5,6 +5,7 @@ import {
   PIPELINE_STEPS,
   currentLiveStep,
   elapsedLabel,
+  etaLabel,
   stepCopy,
   isProcessing,
   stateTone,
@@ -104,5 +105,14 @@ describe("live processing helpers", () => {
   it("describes link downloads differently from uploads", () => {
     expect(stepCopy("INGESTING", true).title).toBe("Fetching your video");
     expect(stepCopy("INGESTING", false).title).toBe("Preparing your video");
+  });
+});
+
+describe("etaLabel", () => {
+  it("says how long is left in plain words", () => {
+    expect(etaLabel(30)).toBe("under a minute left");
+    expect(etaLabel(125)).toBe("about 2 min left");
+    expect(etaLabel(0)).toBe("");
+    expect(etaLabel(null)).toBe("");
   });
 });
