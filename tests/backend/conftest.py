@@ -31,6 +31,7 @@ os.environ.update(
         "STORAGE_BACKEND": "local",
         "LOCAL_STORAGE_DIR": str(_STORAGE_DIR),
         "API_PUBLIC_URL": "http://testserver",
+        "RENDER_PRESET": "ultrafast",
         "MIN_VIDEO_DURATION_SECONDS": "5",
         "WORK_DIR": "/tmp/clipmaker-test-work",
         "ANTHROPIC_API_KEY": "",
@@ -164,6 +165,20 @@ def sample_video(media_dir: Path) -> Path:
             str(out),
         ]
     )
+    return out
+
+
+@pytest.fixture(scope="session")
+def podcast_video(media_dir: Path) -> Path:
+    """A 9.5-minute low-res video with audio: long enough for the fake transcript's clips."""
+    out = media_dir / "podcast.mp4"
+    _ffmpeg(
+        [
+            "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=15:duration=570",
+            "-f", "lavfi", "-i", "sine=frequency=220:duration=570",
+            "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", "-shortest", str(out),
+        ]
+    )  # fmt: skip
     return out
 
 

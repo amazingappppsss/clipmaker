@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "clipmaker"
 version = "0.1.0"
-description = "ClipMaker backend: API + autonomous video-clipping pipeline workers"
+description = "Clip2Easy backend: API + autonomous video-clipping pipeline workers"
 requires-python = ">=3.12"
 # Why each dependency exists (keep this list honest — no unexplained packages):
 dependencies = [
@@ -24,6 +24,7 @@ dependencies = [
   "anthropic==2.3.*",          # Claude API (full-video understanding, clip selection)
   "httpx>=0.28",               # AssemblyAI REST client
   "yt-dlp[default,deno]==2026.10.21",  # link import (YouTube); deno = JS runtime YouTube needs
+  "opencv-python-headless==5.0.0.93",  # face detection (YuNet) for speaker-following 9:16 crops
 ]
 
 [project.optional-dependencies]
@@ -36,6 +37,10 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# Bundled non-Python files: the face-detection model (MIT) and the caption font (SIL OFL).
+[tool.setuptools.package-data]
+clipmaker = ["media/models/*", "editing/fonts/*"]
 
 [tool.ruff]
 line-length = 100

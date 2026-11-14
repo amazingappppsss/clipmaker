@@ -650,7 +650,7 @@
           "projects"
         ],
         "summary": "Get Clips",
-        "description": "Selected clips for the project, best first.",
+        "description": "Selected clips for the project, best first, with links to the finished videos.",
         "operationId": "get_clips_projects__project_id__clips_get",
         "parameters": [
           {
@@ -1354,6 +1354,50 @@
               }
             ],
             "title": "Teaser End Seconds"
+          },
+          "video_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Url"
+          },
+          "download_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Download Url"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
           }
         },
         "type": "object",

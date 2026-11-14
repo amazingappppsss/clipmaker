@@ -171,6 +171,7 @@ export function ProjectDetail() {
   const uploadFailed = src?.upload_status === "failed";
   const credits = src?.duration_seconds ? Math.max(1, Math.ceil(src.duration_seconds / 60)) : null;
   const processing = isProcessing(project.state);
+  const readyCount = clips.filter((c) => c.status === "ready").length;
   const rawSteps = status ? stepStatusesFromJob(status.stages) : stepStatuses(project.state);
   const steps =
     status?.error_code === "insufficient_credits"
@@ -307,8 +308,15 @@ export function ProjectDetail() {
           ) : (
             <div>
               <h2 className="display-heavy text-2xl">
-                {clips.length} best moment{clips.length === 1 ? "" : "s"} found
+                {readyCount
+                  ? `${readyCount} short${readyCount === 1 ? "" : "s"} ready to post`
+                  : `${clips.length} best moment${clips.length === 1 ? "" : "s"} found`}
               </h2>
+              {readyCount ? (
+                <p className="mt-2 text-muted">
+                  Vertical, captioned and cut tight. Download them below or copy the post text.
+                </p>
+              ) : null}
               {project.error_message ? (
                 <div className="mt-3">
                   <Alert tone="info">{project.error_message}</Alert>

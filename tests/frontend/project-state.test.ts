@@ -82,6 +82,9 @@ describe("live processing helpers", () => {
       "TRANSCRIBING",
       "UNDERSTANDING",
       "SELECTING",
+      "EDITING",
+      "RENDERING",
+      "QUALITY_CHECK",
     ]);
   });
 

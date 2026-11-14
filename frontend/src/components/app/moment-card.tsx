@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * One AI-picked moment: plays exactly that range of the source video (media fragment +
- * a guard that pauses at the end), with title, hook, transcript and copy-ready post text.
- * Rendered vertical clips replace the source preview once editing ships (Milestone 3).
+ * One clip. When it's finished, the real vertical short plays here with a Download button;
+ * until then (or if rendering failed) the picked range of the source video previews instead,
+ * teaser first. Title, hook, why-it-works and copy-ready post text below.
  */
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Download } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { initialPlayback, nextPlayback, type Phase } from "@/lib/teaser";
@@ -54,7 +54,16 @@ export function MomentCard({ clip, sourceUrl }: { clip: Clip; sourceUrl: string 
   return (
     <article className="overflow-hidden rounded-[1.75rem] bg-surface ring-1 ring-line">
       <div className="relative bg-ink">
-        {sourceUrl ? (
+        {clip.video_url ? (
+          <video
+            src={clip.video_url}
+            poster={clip.thumbnail_url ?? undefined}
+            controls
+            playsInline
+            preload="metadata"
+            className="mx-auto aspect-[9/16] max-h-[34rem] w-full bg-black object-contain"
+          />
+        ) : sourceUrl ? (
           <video
             ref={videoRef}
             src={`${sourceUrl}#t=${first.at.toFixed(2)}`}
@@ -187,7 +196,19 @@ export function MomentCard({ clip, sourceUrl }: { clip: Clip; sourceUrl: string 
             {clip.alt_titles.join(" · ")}
           </p>
         ) : null}
+        {clip.status === "failed" && clip.error_message ? (
+          <p className="rounded-2xl bg-danger-soft p-3 text-sm text-danger">{clip.error_message}</p>
+        ) : null}
         <div className="flex flex-wrap gap-2 pt-1">
+          {clip.download_url ? (
+            <a
+              href={clip.download_url}
+              download
+              className="inline-flex items-center gap-1.5 rounded-full bg-blue px-4 py-1.5 text-sm font-bold text-white hover:bg-blue-deep"
+            >
+              <Download className="size-4" aria-hidden /> Download MP4
+            </a>
+          ) : null}
           {post ? <CopyButton text={post} label="Copy post text" /> : null}
           {clip.title ? <CopyButton text={clip.title} label="Copy title" /> : null}
         </div>

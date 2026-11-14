@@ -16,23 +16,34 @@ from sqlalchemy import select
 
 from clipmaker.core.config import get_settings
 from clipmaker.core.enums import ClipStatus, ProjectState
-from clipmaker.db.models import Candidate, Clip, ProcessingJob, Transcript, User, VideoAnalysis
+from clipmaker.db.models import (
+    Candidate,
+    Clip,
+    ClipAsset,
+    ProcessingJob,
+    Transcript,
+    User,
+    VideoAnalysis,
+)
 from clipmaker.db.session import get_session_factory
 from clipmaker.pipeline import runner as runner_module
 from clipmaker.pipeline.runner import NOT_YET_AVAILABLE_MESSAGE, JobRunner, Outcome
 from clipmaker.providers.llm.base import LLMError
 from clipmaker.storage.factory import get_storage
 from conftest import upload_project
-from pipeline_fakes import FakeLLM, FakeTranscriber
+from pipeline_fakes import FakeLLM, FakeTranscriber, analysis_only_handlers
 
 
-def make_runner(job_id: uuid.UUID, llm: Any, tx: Any, worker: str = "w1") -> JobRunner:
+def make_runner(
+    job_id: uuid.UUID, llm: Any, tx: Any, worker: str = "w1", *, render: bool = False
+) -> JobRunner:
     return JobRunner(
         job_id,
         worker,
         get_settings(),
         get_storage(),
         get_session_factory(),
+        handlers=None if render else analysis_only_handlers(),
         llm_factory=lambda s: llm,
         transcriber_factory=lambda s: tx,
     )
@@ -348,3 +359,39 @@ def test_cancel_mid_stage_stops_at_next_checkpoint(started: tuple[str, uuid.UUID
         db.commit()
     with pytest.raises(JobCancelledError):
         runner.heartbeat()
+
+
+def test_full_pipeline_renders_finished_vertical_shorts(
+    client: TestClient,
+    auth: dict[str, str],
+    podcast_video: Path,
+    queued: list[uuid.UUID],
+) -> None:
+    """End to end: pick → edit → render → QA. Clips come out as real 1080x1920 MP4s."""
+    from clipmaker.media.probe import probe_media
+    from clipmaker.storage.factory import get_storage as storage_factory
+
+    pid = upload_project(client, auth, podcast_video)
+    assert client.post(f"/projects/{pid}/process", headers=auth).status_code == 202
+    outcome, _ = make_runner(queued[-1], FakeLLM(), FakeTranscriber(), render=True).run()
+    assert outcome == Outcome.COMPLETED
+
+    project = client.get(f"/projects/{pid}", headers=auth).json()
+    assert project["state"] == "COMPLETED" and not project["error_message"]
+    clips = client.get(f"/projects/{pid}/clips", headers=auth).json()
+    assert clips and all(c["status"] == "ready" for c in clips)
+
+    first = clips[0]
+    assert first["video_url"] and first["thumbnail_url"]
+    assert "filename=" in first["download_url"]
+    with get_session_factory()() as db:
+        asset = db.scalars(
+            select(ClipAsset).where(ClipAsset.kind == "video", ClipAsset.is_final.is_(True))
+        ).first()
+        assert asset is not None
+        meta = probe_media(storage_factory().media_source(asset.storage_key))
+    assert (meta.width, meta.height) == (1080, 1920) and meta.has_audio
+    # Smart cuts removed dead air: the finished clip is shorter than the raw moment.
+    assert meta.duration_seconds < first["end_seconds"] - first["start_seconds"] + (
+        (first["teaser_end_seconds"] or 0) - (first["teaser_start_seconds"] or 0)
+    )

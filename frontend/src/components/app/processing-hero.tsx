@@ -76,7 +76,7 @@ export function ProcessingHero({
           <h2 className="display-heavy mt-2 text-3xl leading-tight sm:text-4xl">{copy.title}</h2>
           <p className="mt-2 max-w-xl text-white/80">{copy.detail}</p>
 
-          <ol className="mt-6 grid grid-cols-4 gap-2" aria-label="Progress">
+          <ol className="mt-6 grid grid-cols-7 gap-1.5" aria-label="Progress">
             {LIVE_STEPS.map((step, i) => {
               const status = steps[i] ?? "pending";
               return (
@@ -95,7 +95,7 @@ export function ProcessingHero({
                     />
                   </div>
                   <p
-                    className={`mt-1.5 truncate text-xs ${status === "pending" ? "text-white/60" : "font-semibold"}`}
+                    className={`mt-1.5 hidden truncate text-[0.65rem] sm:block ${status === "pending" ? "text-white/60" : "font-semibold"}`}
                   >
                     {step.label}
                   </p>

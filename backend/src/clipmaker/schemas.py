@@ -158,6 +158,11 @@ class ClipOut(ApiModel):
     teaser_text: str | None = None
     teaser_start_seconds: float | None = None
     teaser_end_seconds: float | None = None
+    # The finished vertical short (signed links; set only once it passed quality checks).
+    video_url: str | None = None
+    download_url: str | None = None
+    thumbnail_url: str | None = None
+    error_message: str | None = None
 
 
 StageRunStatus = Literal["pending", "running", "done", "failed"]

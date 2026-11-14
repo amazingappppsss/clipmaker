@@ -157,7 +157,7 @@ def _run(job_id: uuid.UUID, importer: FakeImporter) -> object:
     from clipmaker.db.session import get_session_factory
     from clipmaker.pipeline.runner import JobRunner
     from clipmaker.storage.factory import get_storage
-    from pipeline_fakes import FakeLLM, FakeTranscriber
+    from pipeline_fakes import FakeLLM, FakeTranscriber, analysis_only_handlers
 
     runner = JobRunner(
         job_id,
@@ -165,6 +165,7 @@ def _run(job_id: uuid.UUID, importer: FakeImporter) -> object:
         get_settings(),
         get_storage(),
         get_session_factory(),
+        handlers=analysis_only_handlers(),
         llm_factory=lambda s: FakeLLM(),
         transcriber_factory=lambda s: FakeTranscriber(),
         importer_factory=lambda s: importer,

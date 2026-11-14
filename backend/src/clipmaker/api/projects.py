@@ -145,10 +145,12 @@ def get_status(project_id: uuid.UUID, user: CurrentUser, db: DbSession) -> JobSt
 
 
 @router.get("/{project_id}/clips")
-def get_clips(project_id: uuid.UUID, user: CurrentUser, db: DbSession) -> list[ClipOut]:
-    """Selected clips for the project, best first."""
+def get_clips(
+    project_id: uuid.UUID, user: CurrentUser, db: DbSession, storage: Storage
+) -> list[ClipOut]:
+    """Selected clips for the project, best first, with links to the finished videos."""
     project = project_service.get_owned_project(db, user, project_id)
-    return processing_service.list_clips(db, project)
+    return processing_service.list_clips(db, project, storage)
 
 
 @router.post("/{project_id}/share")

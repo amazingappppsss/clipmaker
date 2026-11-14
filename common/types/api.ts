@@ -201,7 +201,7 @@ export interface paths {
         };
         /**
          * Get Clips
-         * @description Selected clips for the project, best first.
+         * @description Selected clips for the project, best first, with links to the finished videos.
          */
         get: operations["get_clips_projects__project_id__clips_get"];
         put?: never;
@@ -409,6 +409,14 @@ export interface components {
             teaser_start_seconds?: number | null;
             /** Teaser End Seconds */
             teaser_end_seconds?: number | null;
+            /** Video Url */
+            video_url?: string | null;
+            /** Download Url */
+            download_url?: string | null;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+            /** Error Message */
+            error_message?: string | null;
         };
         /**
          * ClipStatus

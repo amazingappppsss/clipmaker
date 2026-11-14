@@ -227,3 +227,15 @@ class FakeLLM:
                 for i in range(count)
             ]
         }
+
+
+def analysis_only_handlers() -> dict:
+    """Pipeline without the (slow) render stages: the job pauses at NEEDS_REVIEW after picking.
+
+    Most pipeline tests are about picking, retries and leases; rendering has its own tests.
+    """
+    from clipmaker.core.enums import ProjectState
+    from clipmaker.pipeline.runner import STAGE_HANDLERS
+
+    render_stages = {ProjectState.EDITING, ProjectState.RENDERING, ProjectState.QUALITY_CHECK}
+    return {k: v for k, v in STAGE_HANDLERS.items() if k not in render_stages}

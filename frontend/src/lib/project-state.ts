@@ -12,10 +12,9 @@ export const PIPELINE_STEPS: ReadonlyArray<{ state: ProjectState; label: string;
   { state: "TRANSCRIBING", label: "Transcribing" },
   { state: "UNDERSTANDING", label: "Understanding video" },
   { state: "SELECTING", label: "Finding moments" },
-  // Not built yet (Milestone 3+): shown so users see what's coming, never as running.
-  { state: "EDITING", label: "Editing", soon: true },
-  { state: "RENDERING", label: "Rendering", soon: true },
-  { state: "QUALITY_CHECK", label: "Quality checking", soon: true },
+  { state: "EDITING", label: "Editing" },
+  { state: "RENDERING", label: "Rendering" },
+  { state: "QUALITY_CHECK", label: "Quality checking" },
 ];
 
 /** The stages that actually run today. */
@@ -51,6 +50,21 @@ export function stepCopy(
       return {
         title: "Picking the best moments",
         detail: "Scoring every candidate on hook, payoff, emotion and whether it stands alone.",
+      };
+    case "EDITING":
+      return {
+        title: "Editing like a pro",
+        detail: "Cutting dead air, adding the flash-forward hook and framing whoever is talking.",
+      };
+    case "RENDERING":
+      return {
+        title: "Rendering your shorts",
+        detail: "Vertical 1080×1920 with animated captions, punch-in zooms and studio-level audio.",
+      };
+    case "QUALITY_CHECK":
+      return {
+        title: "Final quality check",
+        detail: "Every clip is checked before you can download it. Nearly there.",
       };
     default:
       return { title: "Working on it", detail: "Your video is being processed." };

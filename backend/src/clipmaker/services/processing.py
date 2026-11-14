@@ -8,6 +8,7 @@ failed stage onward runs again.
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -16,7 +17,13 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from clipmaker.core.enums import PIPELINE_STAGES, TERMINAL_STATES, ProjectState
+from clipmaker.core.enums import (
+    PIPELINE_STAGES,
+    TERMINAL_STATES,
+    AssetKind,
+    ClipStatus,
+    ProjectState,
+)
 from clipmaker.core.errors import ConflictError
 from clipmaker.db.models import Candidate, Clip, ProcessingJob, Project, User
 from clipmaker.pipeline.selection import strengths
@@ -27,6 +34,7 @@ from clipmaker.services.billing import (
     project_net_charge,
     refund_credits,
 )
+from clipmaker.storage.base import ObjectStorage
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +155,31 @@ def job_status(db: Session, project: Project) -> JobStatusOut:
     )
 
 
-def list_clips(db: Session, project: Project) -> list[ClipOut]:
+def _final_urls(
+    clip: Clip, storage: ObjectStorage | None, rank: int, title: str | None
+) -> dict[str, str | None]:
+    """Signed links to a clip's QA-passed video and thumbnail (none until it's ready)."""
+    urls: dict[str, str | None] = {"video_url": None, "download_url": None, "thumbnail_url": None}
+    if storage is None or clip.status != ClipStatus.READY:
+        return urls
+    for a in clip.assets:
+        if not a.is_final:
+            continue
+        if a.kind == AssetKind.VIDEO:
+            name = re.sub(r"[^A-Za-z0-9 _-]", "", title or "clip").strip()[:60] or "clip"
+            urls["video_url"] = storage.presign_download(a.storage_key)
+            urls["download_url"] = storage.presign_download(
+                a.storage_key, filename=f"{rank:02d} - {name}.mp4"
+            )
+        elif a.kind == AssetKind.THUMBNAIL:
+            urls["thumbnail_url"] = storage.presign_download(a.storage_key)
+    return urls
+
+
+def list_clips(
+    db: Session, project: Project, storage: ObjectStorage | None = None
+) -> list[ClipOut]:
+    """Clips best-first. With `storage`, ready clips include signed video/download links."""
     clips = db.scalars(select(Clip).where(Clip.project_id == project.id).order_by(Clip.rank)).all()
     out = []
     for c in clips:
@@ -183,6 +215,8 @@ def list_clips(db: Session, project: Project) -> list[ClipOut]:
                 teaser_text=teaser.get("text") if teaser else None,
                 teaser_start_seconds=teaser.get("start") if teaser else None,
                 teaser_end_seconds=teaser.get("end") if teaser else None,
+                error_message=c.error_message,
+                **_final_urls(c, storage, c.rank, c.title),
             )
         )
     return out

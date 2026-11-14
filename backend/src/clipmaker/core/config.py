@@ -127,6 +127,11 @@ class Settings(BaseSettings):
     max_clip_seconds: float = 75.0
     # Clips longer than this lose points per extra second; they must earn their length.
     ideal_max_clip_seconds: float = 45.0
+
+    # --- Rendering (Milestone 3) ------------------------------------------------------------
+    caption_font: str = "Montserrat Black"  # bundled in editing/fonts (SIL OFL)
+    render_preset: str = "veryfast"  # x264 speed/size trade-off; "ultrafast" in tests
+    render_crf: int = Field(default=21, ge=14, le=32)
     # Minimum weighted score (0-100) a candidate needs to become a clip. Fewer, better clips
     # beat padding the result with weak ones.
     min_clip_score: float = 55.0

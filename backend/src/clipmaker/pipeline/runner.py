@@ -33,7 +33,8 @@ from clipmaker.db.models import ProcessingJob, Project, User
 from clipmaker.media.url_import import build_url_importer
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import JobCancelledError, StageError
-from clipmaker.pipeline.stages import ingest, transcribe, understand
+from clipmaker.pipeline.stages import edit, ingest, qa, transcribe, understand
+from clipmaker.pipeline.stages import render as render_stage
 from clipmaker.pipeline.stages import select as select_stage
 from clipmaker.providers.llm.factory import build_llm_provider
 from clipmaker.providers.transcription.factory import build_transcription_provider
@@ -44,12 +45,15 @@ logger = logging.getLogger(__name__)
 
 StageFn = Callable[[StageContext], StageOutput]
 
-# Stages implemented so far. Later milestones register EDITING, RENDERING and QUALITY_CHECK.
+# Every stage of the pipeline (PRD §8). A missing handler pauses the job at NEEDS_REVIEW.
 STAGE_HANDLERS: dict[ProjectState, StageFn] = {
     ProjectState.INGESTING: ingest.run,
     ProjectState.TRANSCRIBING: transcribe.run,
     ProjectState.UNDERSTANDING: understand.run,
     ProjectState.SELECTING: select_stage.run,
+    ProjectState.EDITING: edit.run,
+    ProjectState.RENDERING: render_stage.run,
+    ProjectState.QUALITY_CHECK: qa.run,
 }
 
 NOT_YET_AVAILABLE_MESSAGE = (
