@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import itertools
+
 import pytest
 
 from clipmaker.pipeline.selection import (
@@ -221,3 +223,38 @@ def test_clip_keeps_the_other_persons_quick_reaction() -> None:
     long_reply = _segments([10, 10, 8, 10])
     long_reply[2] = replace(long_reply[2], speaker="B")  # a new turn, not a reaction
     assert include_reaction(long_reply, 0, 1, max_s=60) == 1
+
+
+# --- parallel AI ---------------------------------------------------------------------------
+def test_transcript_is_split_into_parts_that_can_run_at_once() -> None:
+    from clipmaker.pipeline.stages.common import (
+        MAX_PARALLEL_PARTS,
+        MIN_PARALLEL_CHARS,
+        split_for_parallel,
+    )
+
+    segs = _segments([10] * 120)
+    short = [10] * 120  # a tiny transcript isn't worth splitting
+    assert split_for_parallel(segs, short) == [(0, 119)]
+
+    long = [MIN_PARALLEL_CHARS // 10] * 120
+    parts = split_for_parallel(segs, long)
+    assert 2 <= len(parts) <= MAX_PARALLEL_PARTS
+    assert parts[0][0] == 0 and parts[-1][1] == 119  # the whole transcript is covered
+    for before, after in itertools.pairwise(parts):
+        assert after[0] <= before[1] + 1  # no gap between parts
+        assert after[0] < before[1]  # overlapping, so a moment on a seam is seen whole
+
+
+def test_parallel_runner_keeps_order_and_raises() -> None:
+    import pytest as _pytest
+
+    from clipmaker.pipeline.stages.common import run_parallel
+
+    assert run_parallel([lambda: 1, lambda: 2, lambda: 3]) == [1, 2, 3]
+
+    def boom() -> int:
+        raise ValueError("nope")
+
+    with _pytest.raises(ValueError, match="nope"):
+        run_parallel([lambda: 1, boom])

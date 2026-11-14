@@ -7,6 +7,7 @@ window and merged, preserving segment indexes so every moment keeps its timestam
 from __future__ import annotations
 
 from decimal import Decimal
+from functools import partial
 from typing import Any
 
 from clipmaker.db.models import VideoAnalysis
@@ -18,7 +19,7 @@ from clipmaker.pipeline.prompts import (
     PROMPT_VERSION,
     SYSTEM_EDITOR,
 )
-from clipmaker.pipeline.stages.common import load_segments, windows
+from clipmaker.pipeline.stages.common import load_segments, run_parallel, windows
 from clipmaker.pipeline.transcript import render_for_llm
 from clipmaker.providers.llm.base import LLMError, LLMRequest
 
@@ -57,14 +58,15 @@ def run(ctx: StageContext) -> StageOutput:
 
     segments = load_segments(ctx)
     lengths = [len(render_for_llm([s])) + 1 for s in segments]
-    parts: list[dict[str, Any]] = []
-    cost = Decimal(0)
-    model = ""
-    for start, end in windows(segments, lengths):
+
+    def analyse(span: tuple[int, int]) -> Any:
+        start, end = span
         try:
-            result = ctx.llm().complete_json(
+            return ctx.llm().complete_json(
                 LLMRequest(
-                    tier="smart",
+                    # Summarising a transcript is work the fast model does well, and it keeps
+                    # this stage off the critical path before clip hunting starts.
+                    tier="fast",
                     system=SYSTEM_EDITOR,
                     context=render_for_llm(segments[start : end + 1]),
                     instruction=ANALYSIS_INSTRUCTION,
@@ -74,10 +76,12 @@ def run(ctx: StageContext) -> StageOutput:
         except LLMError as exc:
             error = RetryableStageError if exc.retryable else PermanentStageError
             raise error("analysis_failed", str(exc)) from exc
-        parts.append(result.data)
-        cost += result.cost_usd
-        model = result.model
-        ctx.heartbeat()
+
+    results = run_parallel([partial(analyse, span) for span in windows(segments, lengths)])
+    parts: list[dict[str, Any]] = [r.data for r in results]
+    cost = sum((r.cost_usd for r in results), Decimal(0))
+    model = results[-1].model if results else ""
+    ctx.heartbeat()
 
     analysis = merge_analyses(parts)
     with ctx.sessions() as db:

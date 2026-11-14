@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from decimal import Decimal
+from functools import partial
 from typing import Any
 
 from clipmaker.core.enums import ClipStatus, VideoStyle
@@ -30,7 +31,7 @@ from clipmaker.pipeline.selection import (
     pick_teaser,
     select_clips,
 )
-from clipmaker.pipeline.stages.common import load_segments, windows
+from clipmaker.pipeline.stages.common import load_segments, run_parallel, split_for_parallel
 from clipmaker.pipeline.transcript import Segment, render_for_llm
 from clipmaker.providers.llm.base import LLMError, LLMRequest
 
@@ -126,12 +127,12 @@ def run(ctx: StageContext) -> StageOutput:
 
     # 1) Candidate proposals from the smart model, per window (same cached transcript prefix).
     lengths = [len(render_for_llm([seg])) + 1 for seg in segments]
-    spans = windows(segments, lengths)
-    per_window = min(MAX_PROPOSALS_PER_CALL, max(4, (target * 2 + 2) // len(spans) + 1))
-    proposals: list[Proposal] = []
-    cost = Decimal(0)
-    for start, end in spans:
-        data, c = _llm_call(
+    spans = split_for_parallel(segments, lengths)
+    per_part = min(MAX_PROPOSALS_PER_CALL, max(3, (target * 2 + 2) // len(spans) + 1))
+
+    def hunt(span: tuple[int, int]) -> tuple[dict[str, Any], Decimal]:
+        start, end = span
+        return _llm_call(
             ctx,
             LLMRequest(
                 tier="smart",
@@ -139,7 +140,7 @@ def run(ctx: StageContext) -> StageOutput:
                 context=render_for_llm(segments[start : end + 1]),
                 instruction=CANDIDATES_INSTRUCTION.format(
                     analysis=analysis_json,
-                    count=per_window,
+                    count=per_part,
                     min_s=s.min_clip_seconds,
                     max_s=s.max_clip_seconds,
                 ),
@@ -147,6 +148,12 @@ def run(ctx: StageContext) -> StageOutput:
             ),
             "selection_failed",
         )
+
+    # The parts are hunted at the same time: one call over a whole transcript was by far the
+    # slowest step in the pipeline, and each part is judged with the same whole-video analysis.
+    proposals: list[Proposal] = []
+    cost = Decimal(0)
+    for data, c in run_parallel([partial(hunt, span) for span in spans]):
         proposals.extend(parse_proposals(data, len(segments)))
         cost += c
     if not proposals:

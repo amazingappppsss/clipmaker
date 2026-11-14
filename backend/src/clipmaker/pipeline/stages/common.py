@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from clipmaker.db.models import Transcript
@@ -43,6 +45,41 @@ def load_segments(ctx: StageContext) -> list[Segment]:
             )
             for s in transcript.segments
         ]
+
+
+# Candidate hunting is split into parts that run at the same time: one long call over a whole
+# transcript is the slowest thing in the pipeline, and the model judges each moment locally
+# anyway (the whole-video analysis it also gets supplies the context).
+PARALLEL_TARGET_CHARS = 9_000  # ~3 minutes of talk per part
+MIN_PARALLEL_CHARS = 7_000  # below this, one call is already quick
+MAX_PARALLEL_PARTS = 4
+PART_OVERLAP_SEGMENTS = 6
+
+
+def split_for_parallel(
+    segments: list[Segment], rendered_lengths: list[int], max_parts: int = MAX_PARALLEL_PARTS
+) -> list[tuple[int, int]]:
+    """Overlapping [start, end] parts to hunt for candidates in at the same time (pure)."""
+    total = sum(rendered_lengths)
+    if total < MIN_PARALLEL_CHARS or len(segments) < 2 * max_parts:
+        return [(0, len(segments) - 1)]
+    parts = max(2, min(max_parts, -(-total // PARALLEL_TARGET_CHARS)))
+    size = len(segments) / parts
+    spans: list[tuple[int, int]] = []
+    for i in range(parts):
+        start = max(0, int(i * size) - (PART_OVERLAP_SEGMENTS if i else 0))
+        end = len(segments) - 1 if i == parts - 1 else int((i + 1) * size) - 1
+        if end > start:
+            spans.append((start, end))
+    return spans or [(0, len(segments) - 1)]
+
+
+def run_parallel[T](tasks: list[Callable[[], T]], workers: int = MAX_PARALLEL_PARTS) -> list[T]:
+    """Run independent LLM calls at the same time, keeping their order. Errors propagate."""
+    if len(tasks) == 1:
+        return [tasks[0]()]
+    with ThreadPoolExecutor(max_workers=min(workers, len(tasks))) as pool:
+        return [f.result() for f in [pool.submit(t) for t in tasks]]
 
 
 def windows(segments: list[Segment], rendered_lengths: list[int]) -> list[tuple[int, int]]:
