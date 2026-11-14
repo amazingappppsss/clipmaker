@@ -5,20 +5,23 @@ from __future__ import annotations
 from pathlib import Path
 
 from clipmaker.editing.captions import build_ass
-from clipmaker.editing.render import OUT_H, OUT_W, Piece, build_filtergraph, render
+from clipmaker.editing.render import OUT_H, OUT_W, Piece, final_filter, piece_filter, render
 from clipmaker.media.probe import probe_media
 from clipmaker.providers.transcription.base import Word
 
 
-def test_filtergraph_has_flash_crops_and_loudness() -> None:
-    pieces = [
-        Piece(8.0, 9.5, (100, 0, 404, 720), flash_out=True),
-        Piece(2.0, 5.0, (300, 0, 404, 720), flash_in=True),
-    ]
-    graph = build_filtergraph(pieces, offset=1.0, ass_name="captions.ass")
-    assert "trim=start=7.0:end=8.5" in graph  # source times shifted by the seek offset
-    assert "color=white" in graph and graph.count("fade=") == 2
-    assert "concat=n=2" in graph and "loudnorm=I=-14" in graph and "ass=captions.ass" in graph
+def test_piece_filter_crops_scales_and_flashes() -> None:
+    teaser = Piece(8.0, 9.5, (100, 0, 404, 720), flash_out=True)
+    assert "crop=404:720:100:0" in piece_filter(teaser)
+    assert f"scale={OUT_W}:{OUT_H}" in piece_filter(teaser)
+    assert "fade=t=out:st=1.3" in piece_filter(teaser) and "color=white" in piece_filter(teaser)
+    assert "fade=t=in:st=0" in piece_filter(Piece(2.0, 5.0, (0, 0, 2, 2), flash_in=True))
+    assert "fade=" not in piece_filter(Piece(2.0, 5.0, (0, 0, 2, 2)))
+
+
+def test_final_pass_burns_captions_and_normalises_loudness() -> None:
+    assert "ass=captions.ass" in final_filter("captions.ass")
+    assert "loudnorm=I=-14" in final_filter(None) and "ass=" not in final_filter(None)
 
 
 def test_renders_a_vertical_short(sample_video: Path, tmp_path: Path) -> None:

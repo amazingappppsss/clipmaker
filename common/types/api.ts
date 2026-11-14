@@ -514,6 +514,11 @@ export interface components {
             disk: {
                 [key: string]: number;
             };
+            /**
+             * Recent Render Errors
+             * @default []
+             */
+            recent_render_errors: string[];
         };
         /**
          * ImportRequest

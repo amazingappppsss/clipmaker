@@ -1596,6 +1596,14 @@
             "type": "object",
             "title": "Disk",
             "default": {}
+          },
+          "recent_render_errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recent Render Errors",
+            "default": []
           }
         },
         "type": "object",

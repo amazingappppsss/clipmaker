@@ -251,6 +251,8 @@ class HealthOut(BaseModel):
     recent_failures: list[dict[str, str | int]] = []
     # Free/total space (GB) where videos are stored, and in the scratch work folder.
     disk: dict[str, float] = {}
+    # Why recent clip renders failed (sanitized: no paths, no user data).
+    recent_render_errors: list[str] = []
 
 
 class DevTokenRequest(BaseModel):

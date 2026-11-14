@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 from datetime import datetime
 
@@ -13,7 +14,7 @@ from sqlalchemy import select, text
 
 from clipmaker import __version__
 from clipmaker.api.deps import AppSettings, DbSession
-from clipmaker.db.models import ProcessingJob
+from clipmaker.db.models import Clip, ProcessingJob
 from clipmaker.schemas import HealthOut
 from clipmaker.storage.factory import get_storage
 from clipmaker.storage.local import LocalStorage
@@ -50,6 +51,7 @@ def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOu
         recent_stage_seconds=_recent_timings(db) if db_ok else [],
         recent_failures=_recent_failures(db) if db_ok else [],
         disk=_disk(settings),
+        recent_render_errors=_render_errors(db) if db_ok else [],
     )
 
 
@@ -121,4 +123,21 @@ def _disk(settings: AppSettings) -> dict[str, float]:
             continue
         out[f"{name}_free_gb"] = round(usage.free / 1e9, 2)
         out[f"{name}_total_gb"] = round(usage.total / 1e9, 2)
+    return out
+
+
+_PATHS = re.compile(r"(/\S*/)|([A-Za-z0-9_-]{16,})")
+
+
+def _render_errors(db: DbSession, limit: int = 3) -> list[str]:
+    """Why the latest clip renders failed, with paths and ids stripped out."""
+    clips = db.scalars(select(Clip).order_by(Clip.updated_at.desc()).limit(20)).all()
+    out: list[str] = []
+    for clip in clips:
+        raw = str((clip.qa_report or {}).get("render_error") or "")
+        if not raw:
+            continue
+        out.append(_PATHS.sub("…", raw)[-300:])
+        if len(out) >= limit:
+            break
     return out
