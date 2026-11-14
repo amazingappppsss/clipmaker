@@ -78,6 +78,13 @@ def start_processing(db: Session, user: User, project: Project, enqueue: Enqueue
         credits = credits_for_duration(src.duration_seconds)
         debit_credits(db, user, credits, project.id, f"Processing: {project.title[:120]}")
 
+    if project.state in _RESUMABLE:
+        # A person asking again deserves a clean slate: clips that gave up earlier (often for a
+        # reason since fixed, like a killed encoder) get their attempts back.
+        for clip in db.scalars(select(Clip).where(Clip.project_id == project.id)):
+            if clip.status == ClipStatus.FAILED:
+                clip.status, clip.attempts, clip.error_message = ClipStatus.PLANNED, 0, None
+
     job = latest_job(db, project.id) if project.state in _RESUMABLE else None
     if job is None:
         job = ProcessingJob(project_id=project.id, state=ProjectState.INGESTING, stages={})

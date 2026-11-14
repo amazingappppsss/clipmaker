@@ -22,6 +22,7 @@ from clipmaker.db.models import (
     Clip,
     ClipAsset,
     ProcessingJob,
+    Project,
     Transcript,
     User,
     VideoAnalysis,
@@ -441,3 +442,26 @@ def test_retry_rerenders_clips_that_failed_before(tmp_path: Path) -> None:
     ]
     todo = [c.id for c in clips if "render" in c.edit_plan and c.attempts < MAX_CLIP_ATTEMPTS]
     assert todo == [1]  # retried once more; the exhausted and unplanned clips are left alone
+
+
+def test_try_again_gives_failed_clips_a_fresh_start(
+    started: tuple[str, uuid.UUID], client: TestClient, auth: dict[str, str]
+) -> None:
+    """Clips that gave up (e.g. a killed encoder) are retried when the user asks again."""
+    from clipmaker.core.enums import ClipStatus, ProjectState
+
+    pid, job_id = started
+    make_runner(job_id, FakeLLM(), FakeTranscriber()).run()
+    with get_session_factory()() as db:
+        for clip in db.scalars(select(Clip)):
+            clip.status, clip.attempts, clip.error_message = ClipStatus.FAILED, 3, "boom"
+        project = db.get(Project, uuid.UUID(pid))
+        assert project is not None
+        project.state = ProjectState.FAILED
+        db.commit()
+
+    assert client.post(f"/projects/{pid}/process", headers=auth).status_code == 202
+    with get_session_factory()() as db:
+        clips = list(db.scalars(select(Clip)))
+        assert clips and all(c.status == ClipStatus.PLANNED and c.attempts == 0 for c in clips)
+        assert all(c.error_message is None for c in clips)
