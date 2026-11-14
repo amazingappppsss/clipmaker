@@ -413,3 +413,5 @@ def test_not_enough_credits_after_measuring(
     assert _run(queued[-1], importer) == Outcome.FAILED
     message = client.get(f"/projects/{pid}", headers=auth).json()["error_message"]
     assert "credits" in message and "refunded" not in message
+    status = client.get(f"/projects/{pid}/status", headers=auth).json()
+    assert status["error_code"] == "insufficient_credits"

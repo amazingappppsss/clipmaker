@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { FailurePanel } from "@/components/app/failure-panel";
 import { MomentCard } from "@/components/app/moment-card";
 import { MomentPlaceholders, ProcessingHero } from "@/components/app/processing-hero";
 import { StageTimeline } from "@/components/app/stage-timeline";
@@ -137,7 +138,11 @@ export function ProjectDetail() {
   const uploadFailed = src?.upload_status === "failed";
   const credits = src?.duration_seconds ? Math.max(1, Math.ceil(src.duration_seconds / 60)) : null;
   const processing = isProcessing(project.state);
-  const steps = status ? stepStatusesFromJob(status.stages) : stepStatuses(project.state);
+  const rawSteps = status ? stepStatusesFromJob(status.stages) : stepStatuses(project.state);
+  const steps =
+    status?.error_code === "insufficient_credits"
+      ? rawSteps.map((s) => (s === "failed" ? "pending" : s))
+      : rawSteps;
 
   return (
     <div>
@@ -223,16 +228,12 @@ export function ProjectDetail() {
               </p>
             </div>
           ) : project.state === "FAILED" ? (
-            <div className="flex flex-col items-start gap-4">
-              <Alert tone="error">{project.error_message ?? "Processing failed."}</Alert>
-              <Button
-                onClick={() => void onStart()}
-                loading={busy === "start"}
-                className="uppercase"
-              >
-                Try again
-              </Button>
-            </div>
+            <FailurePanel
+              code={status?.error_code}
+              message={project.error_message}
+              onRetry={() => void onStart()}
+              retrying={busy === "start"}
+            />
           ) : (
             <div>
               <h2 className="display-heavy text-2xl">

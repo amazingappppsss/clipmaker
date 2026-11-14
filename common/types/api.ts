@@ -430,6 +430,8 @@ export interface components {
             stages: components["schemas"]["StageStatusOut"][];
             /** Message */
             message: string | null;
+            /** Error Code */
+            error_code?: string | null;
             /** Started At */
             started_at: string | null;
             /** Completed At */

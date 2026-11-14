@@ -167,6 +167,8 @@ class JobStatusOut(BaseModel):
     progress: float
     stages: list[StageStatusOut]
     message: str | None
+    # Machine-readable reason for a failure (e.g. "insufficient_credits"), for tailored help.
+    error_code: str | None = None
     started_at: datetime | None
     completed_at: datetime | None
 

@@ -1303,6 +1303,17 @@
             ],
             "title": "Message"
           },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
           "started_at": {
             "anyOf": [
               {

@@ -101,6 +101,7 @@ def job_status(db: Session, project: Project) -> JobStatusOut:
         progress=job.progress if job else 0.0,
         stages=stages,
         message=project.error_message,
+        error_code=job.error_code if job and project.state == ProjectState.FAILED else None,
         started_at=job.started_at if job else None,
         completed_at=job.completed_at if job else None,
     )
