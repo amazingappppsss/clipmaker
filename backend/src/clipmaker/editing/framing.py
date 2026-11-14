@@ -35,8 +35,6 @@ MIN_SHOT_SECONDS = 1.2  # don't switch speakers faster than this
 # few seconds for no reason: both read as "machine made". These are the broadcast-style
 # minimums that keep the camera calm.
 MIN_TURN_SECONDS = 2.0  # a speaker must hold the floor this long to earn a cut
-PUNCH_IN_EVERY = 9.0  # split long shots so the picture changes at least this often
-PUNCH_IN_ZOOM = 1.08  # gentle: a big jump reads as a glitch
 FACE_FROM_TOP = 0.42  # face centre sits below the middle, so the eyes land near the top third
 HEAD_MARGIN = 1.05  # keep this much of the face height above the eyes (hair, hats, headphones)
 
@@ -211,22 +209,9 @@ def plan_shots(
                     blocks.append([t, t1, place[0], place[1], place[2]])
                 t = t1
         for b0, b1, cx, cy, fh in blocks:
-            start, end = float(b0), float(b1)
-            span = end - start
-            pieces = max(1, int(span // PUNCH_IN_EVERY) + 1) if span > PUNCH_IN_EVERY else 1
-            step = span / pieces
-            for k in range(pieces):
-                zoom = PUNCH_IN_ZOOM if (len(shots) % 2 == 1) else 1.0
-                shots.append(
-                    Shot(
-                        start + k * step,
-                        start + (k + 1) * step,
-                        float(cx),
-                        float(cy),
-                        zoom,
-                        float(fh),
-                    )
-                )
+            # One framing per speaker turn. The cut between people is the visual change; a
+            # zoom every few seconds on top of it is what made clips feel machine-made.
+            shots.append(Shot(float(b0), float(b1), float(cx), float(cy), 1.0, float(fh)))
     return shots
 
 

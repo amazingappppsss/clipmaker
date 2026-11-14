@@ -33,9 +33,9 @@ def pieces_for(plan: dict[str, Any], src_w: int, src_h: int) -> list[Piece]:
     last_teaser = max((i for i, p in enumerate(raw) if p.get("part") == "teaser"), default=-1)
     out = []
     for i, p in enumerate(raw):
-        shot = Shot(
-            p["start"], p["end"], p["cx"], p["cy"], p.get("zoom", 1.0), p.get("face_h", 0.0)
-        )
+        # One crop size for the whole clip: the window moves between speakers, it never
+        # resizes, so the clip renders in a single pass instead of one run per shot.
+        shot = Shot(p["start"], p["end"], p["cx"], p["cy"], 1.0, p.get("face_h", 0.0))
         out.append(
             Piece(
                 start=shot.start,
@@ -159,6 +159,10 @@ def run(ctx: StageContext) -> StageOutput:
             clip.attempts += 1
             clip.qa_report = problems.report
             if problems.problems:
+                logger.warning(
+                    "clip_failed_quality_check",
+                    extra={"clip_id": str(clip_id), "problems": problems.problems},
+                )
                 clip.status = ClipStatus.FAILED
                 clip.error_message = "This clip failed the quality check."
             else:

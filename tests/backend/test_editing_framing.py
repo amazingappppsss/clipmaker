@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from clipmaker.editing.cuts import Interval
 from clipmaker.editing.framing import (
-    PUNCH_IN_ZOOM,
     Face,
     Sample,
     Shot,
@@ -40,12 +39,11 @@ def test_frame_follows_whoever_is_talking_without_a_transcript() -> None:
     assert abs(shots[-1].cx - 0.7) < 0.05
 
 
-def test_long_shots_get_punch_ins() -> None:
+def test_one_framing_per_turn_with_no_restless_zooming() -> None:
     samples = [Sample(t / 4, [Face(0.5, 0.4, 0.1, motion=5)]) for t in range(0, 4 * 20)]
     shots = plan_shots(samples, [Interval(0, 20)])
-    assert len(shots) >= 3
-    assert {s.zoom for s in shots} == {1.0, PUNCH_IN_ZOOM}
-    assert all(s.end - s.start <= 7 for s in shots)
+    assert {s.zoom for s in shots} == {1.0}  # the crop never resizes mid-clip
+    assert len(shots) == 1  # one speaker, one steady framing
 
 
 def test_no_faces_means_steady_centre() -> None:
@@ -56,8 +54,8 @@ def test_no_faces_means_steady_centre() -> None:
 def test_crop_is_9_16_and_inside_the_frame() -> None:
     x, y, w, h = crop_box(1920, 1080, Shot(0, 1, cx=0.98, cy=0.5))
     assert (w, h) == (606, 1080) and x + w <= 1920 and x >= 0
-    x, y, w, h = crop_box(1920, 1080, Shot(0, 1, cx=0.5, cy=0.4, zoom=PUNCH_IN_ZOOM))
-    assert h < 1080 and abs(w / h - 9 / 16) < 0.01 and y >= 0 and y + h <= 1080
+    x, y, w, h = crop_box(1920, 1080, Shot(0, 1, cx=0.5, cy=0.4))
+    assert abs(w / h - 9 / 16) < 0.01 and y >= 0 and y + h <= 1080
     assert crop_box(1080, 1920, Shot(0, 1, 0.5, 0.5)) == (0, 0, 1080, 1920)  # already vertical
 
 
@@ -115,7 +113,7 @@ def test_framing_holds_steady_when_speakers_cannot_be_told_apart() -> None:
 
 
 def test_head_is_never_cut_off() -> None:
-    tall = Shot(0, 1, cx=0.5, cy=0.22, zoom=PUNCH_IN_ZOOM, face_h=0.2)
+    tall = Shot(0, 1, cx=0.5, cy=0.22, zoom=1.0, face_h=0.2)
     _, y, _, _unused = crop_box(1920, 1080, tall)
     head_top = (tall.cy - tall.face_h * 1.05) * 1080
     assert y <= head_top  # the crop starts above the top of the head

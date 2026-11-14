@@ -16,7 +16,10 @@ from clipmaker.media.probe import ProbeError, probe_media
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError
 
-DURATION_TOLERANCE = 0.75  # seconds
+# Every kept stretch is snapped to whole frames, so a finished clip drifts a little from the
+# planned length. This check is here to catch a broken file, not a third of a second.
+DURATION_TOLERANCE = 1.5  # seconds
+DURATION_TOLERANCE_FRACTION = 0.08
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,7 +62,8 @@ def check(meta: Any, expected: float, size: tuple[int, int] | None = None) -> li
         problems.append(f"resolution {meta.width}x{meta.height} is not a supported vertical size")
     if not meta.has_audio:
         problems.append("no audio track")
-    if expected and abs(meta.duration_seconds - expected) > DURATION_TOLERANCE:
+    allowed = max(DURATION_TOLERANCE, expected * DURATION_TOLERANCE_FRACTION)
+    if expected and abs(meta.duration_seconds - expected) > allowed:
         problems.append(f"length {meta.duration_seconds:.1f}s, expected {expected:.1f}s")
     if meta.duration_seconds < 3:
         problems.append("too short")

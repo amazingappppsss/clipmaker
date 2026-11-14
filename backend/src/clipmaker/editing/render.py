@@ -57,25 +57,84 @@ class Piece:
         return self.end - self.start
 
 
-def piece_filter(piece: Piece, size: tuple[int, int] = (OUT_W, OUT_H)) -> str:
-    """Video filter chain for one piece (pure, unit-tested)."""
-    x, y, w, h = piece.crop
-    out_w, out_h = size
-    chain = (
-        f"crop={w}:{h}:{x}:{y},scale={out_w}:{out_h}:flags=lanczos,"
-        f"setsar=1,fps={OUT_FPS},format=yuv420p"
-    )
-    if piece.flash_out:
-        st = max(0.0, round(piece.duration - FLASH_SECONDS, 3))
-        chain += f",fade=t=out:st={st}:d={FLASH_SECONDS}:color=white"
-    if piece.flash_in:
-        chain += f",fade=t=in:st=0:d={FLASH_SECONDS + 0.05}:color=white"
-    return chain
-
-
 def loudness_filter() -> str:
-    """Audio levelled to the -14 LUFS social platforms target (applied without touching video)."""
+    """Audio levelled to the -14 LUFS social platforms target."""
     return "loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000"
+
+
+def split_runs(pieces: list[Piece]) -> list[list[Piece]]:
+    """Group pieces into runs that move forward through the source (pure, unit-tested).
+
+    One FFmpeg pass can keep stretches of the source, but only once each and always in source
+    order. The flash-forward hook replays a line from the middle of the clip, so it needs a run
+    of its own; an ordinary clip is a single run and renders in one pass.
+    """
+    runs: list[list[Piece]] = []
+    for piece in pieces:
+        if runs and piece.start >= runs[-1][-1].end:
+            runs[-1].append(piece)
+        else:
+            runs.append([piece])
+    return runs
+
+
+def _timeline(pieces: list[Piece]) -> list[tuple[float, float, Piece]]:
+    """Each piece's span on the finished timeline (pure)."""
+    out, at = [], 0.0
+    for piece in pieces:
+        out.append((at, at + piece.duration, piece))
+        at += piece.duration
+    return out
+
+
+def _steps(values: list[tuple[float, int]]) -> str:
+    """A piecewise FFmpeg expression over output time: value v until time t, then the next."""
+    expr = str(values[-1][1])
+    for until, value in reversed(values[:-1]):
+        expr = f"if(lt(t,{until:.3f}),{value},{expr})"
+    return expr
+
+
+def build_filters(
+    pieces: list[Piece], offset: float, size: tuple[int, int], ass_name: str | None
+) -> tuple[str, str]:
+    """The video and audio filter chains for one clip, in a single pass (pure, unit-tested).
+
+    Everything happens in one decode: `select` keeps only the stretches we want (dead air
+    dropped), the crop window *moves* over time to follow the speaker, captions are burned on
+    and the audio is levelled. Cutting the clip into one FFmpeg run per shot instead costs a
+    process start and a seek each time — the bulk of the old render time.
+    """
+    out_w, out_h = size
+    spans = _timeline(pieces)
+    keep = "+".join(f"between(t,{p.start - offset:.3f},{p.end - offset:.3f})" for _, _, p in spans)
+    crop_w, crop_h = pieces[0].crop[2], pieces[0].crop[3]
+    xs = [(end, p.crop[0]) for _, end, p in spans]
+    ys = [(end, p.crop[1]) for _, end, p in spans]
+    video = (
+        f"select='{keep}',setpts=N/FRAME_RATE/TB,"
+        f"crop={crop_w}:{crop_h}:x='{_steps(xs)}':y='{_steps(ys)}',"
+        f"scale={out_w}:{out_h}:flags=lanczos,setsar=1,fps={OUT_FPS},format=yuv420p"
+    )
+    # `enable` confines each fade to its own instant: a fade placed mid-timeline without it
+    # whites out every frame before (or after) it.
+    for start, end, piece in spans:
+        if piece.flash_out:
+            at = max(0.0, end - FLASH_SECONDS)
+            video += (
+                f",fade=t=out:st={at:.3f}:d={FLASH_SECONDS}:color=white"
+                f":enable='between(t,{at:.3f},{end:.3f})'"
+            )
+        if piece.flash_in:
+            span = FLASH_SECONDS + 0.05
+            video += (
+                f",fade=t=in:st={start:.3f}:d={span:.3f}:color=white"
+                f":enable='between(t,{start:.3f},{start + span:.3f})'"
+            )
+    if ass_name:
+        video += f",ass={ass_name}:fontsdir={FONTS_DIR}"
+    audio = f"aselect='{keep}',asetpts=N/SR/TB,{loudness_filter()}"
+    return video, audio
 
 
 def _be_nice() -> None:
@@ -113,32 +172,32 @@ def render(
     captions: CaptionsFor | None = None,
     size: tuple[int, int] | None = None,
 ) -> Path:
-    """Render the edit to `out_path`. Raises MediaError on failure.
-
-    The video is encoded exactly once: each piece is seeked, cropped, scaled and captioned in
-    one pass, the parts are joined by copying, and only the audio is re-encoded for loudness.
-    Re-encoding the joined video instead needs ~5x the memory and dies on small containers.
-    """
+    """Render the edit to `out_path` in a single FFmpeg pass. Raises MediaError on failure."""
     if not pieces:
         raise MediaError("Nothing to render")
     work_dir.mkdir(parents=True, exist_ok=True)
     out_size = size or output_size(max(p.crop[3] for p in pieces))
-
-    # 1) Each piece on its own: seek, crop, scale, burn its captions, encode.
+    runs = split_runs(pieces)
     parts: list[Path] = []
-    elapsed = 0.0
-    for i, piece in enumerate(pieces):
-        part = work_dir / f"part{i:03d}.mp4"
-        chain = piece_filter(piece, out_size)
-        if captions is not None:
-            text = captions(elapsed, elapsed + piece.duration)
-            if text.strip():
-                name = f"captions{i:03d}.ass"
-                (work_dir / name).write_text(text, encoding="utf-8")
-                chain += f",ass={name}:fontsdir={FONTS_DIR}"
-        elif ass_text and i == 0:  # legacy: whole-clip captions on the first piece only
-            (work_dir / "captions.ass").write_text(ass_text, encoding="utf-8")
-            chain += f",ass=captions.ass:fontsdir={FONTS_DIR}"
+    at = 0.0
+    for i, run in enumerate(runs):
+        offset = max(0.0, min(p.start for p in run) - 0.5)
+        until = max(p.end for p in run) + 0.5
+        span = sum(p.duration for p in run)
+        name = f"run{i:02d}"
+        ass_name = None
+        text = (
+            ass_text
+            if (ass_text and len(runs) == 1)
+            else (captions(at, at + span) if captions else None)
+        )
+        if text and text.strip():
+            ass_name = f"{name}.ass"
+            (work_dir / ass_name).write_text(text, encoding="utf-8")
+        video, audio = build_filters(run, offset, out_size, ass_name)
+        script = work_dir / f"{name}.txt"
+        script.write_text(video, encoding="utf-8")
+        part = out_path if len(runs) == 1 else work_dir / f"{name}.mp4"
         _run(
             [
                 "ffmpeg",
@@ -147,13 +206,15 @@ def render(
                 "error",
                 "-y",
                 "-ss",
-                f"{piece.start:.3f}",
-                "-t",
-                f"{piece.duration:.3f}",
+                f"{offset:.3f}",
+                "-to",
+                f"{until:.3f}",
                 "-i",
                 source,
-                "-vf",
-                chain,
+                "-filter_script:v",
+                str(script),
+                "-af",
+                audio,
                 "-c:v",
                 "libx264",
                 "-preset",
@@ -178,67 +239,44 @@ def render(
                 "2",
                 "-video_track_timescale",
                 "90000",
+                "-movflags",
+                "+faststart",
                 str(part),
             ],
             work_dir,
-            f"Rendering part {i + 1}",
+            f"Rendering {name}",
         )
-        if not part.is_file() or part.stat().st_size == 0:
-            raise MediaError(f"Part {i + 1} produced no output")
         parts.append(part)
-        elapsed += piece.duration
+        at += span
 
-    # 2) Join by copying (no video decode), then level the audio only.
-    listing = work_dir / "parts.txt"
-    listing.write_text("".join(f"file '{p.name}'\n" for p in parts), encoding="utf-8")
-    joined = work_dir / "joined.mp4"
-    _run(
-        [
-            "ffmpeg",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            str(listing),
-            "-c",
-            "copy",
-            str(joined),
-        ],
-        work_dir,
-        "Joining parts",
-    )
-    for part in parts:
-        part.unlink(missing_ok=True)
-    _run(
-        [
-            "ffmpeg",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-i",
-            str(joined),
-            "-c:v",
-            "copy",
-            "-af",
-            loudness_filter(),
-            "-c:a",
-            "aac",
-            "-b:a",
-            "160k",
-            "-movflags",
-            "+faststart",
-            str(out_path),
-        ],
-        work_dir,
-        "Levelling audio",
-    )
-    joined.unlink(missing_ok=True)
+    if len(parts) > 1:  # only the flash-forward hook needs joining
+        listing = work_dir / "parts.txt"
+        listing.write_text("".join(f"file '{p.name}'\n" for p in parts), encoding="utf-8")
+        _run(
+            [
+                "ffmpeg",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                str(listing),
+                "-c",
+                "copy",
+                "-movflags",
+                "+faststart",
+                str(out_path),
+            ],
+            work_dir,
+            "Joining the hook",
+        )
+        for part in parts:
+            part.unlink(missing_ok=True)
+
     if not out_path.is_file() or out_path.stat().st_size == 0:
         raise MediaError("Rendering produced no output")
     return out_path
