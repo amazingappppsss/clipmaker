@@ -69,3 +69,8 @@ export async function shareProject(id: string): Promise<string> {
   );
   return `${env.apiUrl}/share/${encodeURIComponent(token)}`;
 }
+
+/** Stop processing; credits for the run are refunded. */
+export function cancelProcessing(id: string): Promise<Project> {
+  return apiRequest<Project>(`/projects/${encodeURIComponent(id)}/cancel`, { method: "POST" });
+}

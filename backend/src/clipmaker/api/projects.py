@@ -127,6 +127,16 @@ def start_processing(
     return project_service.to_project_out(db, storage, project)
 
 
+@router.post("/{project_id}/cancel")
+def cancel_processing(
+    project_id: uuid.UUID, user: CurrentUser, db: DbSession, storage: Storage
+) -> ProjectOut:
+    """Stop processing and refund its credits. Completed steps are kept for a later retry."""
+    project = project_service.get_owned_project(db, user, project_id)
+    processing_service.cancel_processing(db, project)
+    return project_service.to_project_out(db, storage, project)
+
+
 @router.get("/{project_id}/status")
 def get_status(project_id: uuid.UUID, user: CurrentUser, db: DbSession) -> JobStatusOut:
     """Per-stage processing status."""

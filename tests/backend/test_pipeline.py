@@ -312,3 +312,39 @@ def test_only_the_owner_can_share(
 ) -> None:
     pid, _ = started
     assert client.post(f"/projects/{pid}/share", headers=other_auth).status_code == 404
+
+
+def test_cancel_stops_paid_work_and_refunds(
+    started: tuple[str, uuid.UUID], client: TestClient, auth: dict[str, str]
+) -> None:
+    pid, job_id = started
+    before = client.get("/account/usage", headers=auth).json()["credits_balance"]
+    res = client.post(f"/projects/{pid}/cancel", headers=auth)
+    assert res.status_code == 200 and res.json()["state"] == "CANCELLED"
+    assert client.get("/account/usage", headers=auth).json()["credits_balance"] > before
+
+    llm = FakeLLM()
+    assert make_runner(job_id, llm, FakeTranscriber()).run()[0] in (
+        Outcome.SKIPPED,
+        Outcome.CANCELLED,
+    )
+    assert llm.requests == []  # no AI calls after cancelling
+    assert client.post(f"/projects/{pid}/cancel", headers=auth).status_code == 409
+
+    # Cancelled projects can be started again (credits charged again, completed steps kept).
+    assert client.post(f"/projects/{pid}/process", headers=auth).status_code == 202
+
+
+def test_cancel_mid_stage_stops_at_next_checkpoint(started: tuple[str, uuid.UUID]) -> None:
+    _, job_id = started
+    from clipmaker.pipeline.errors import JobCancelledError
+
+    runner = make_runner(job_id, FakeLLM(), FakeTranscriber())
+    assert runner._acquire_lease()
+    with get_session_factory()() as db:
+        job = db.get(ProcessingJob, job_id)
+        assert job is not None
+        job.state = ProjectState.CANCELLED
+        db.commit()
+    with pytest.raises(JobCancelledError):
+        runner.heartbeat()

@@ -128,7 +128,8 @@ class JobRunner:
             return result is not None
 
     def heartbeat(self) -> None:
-        """Extend the lease. Raises JobCancelledError if another worker took over."""
+        """Extend the lease. Raises JobCancelledError if another worker took over or the user
+        cancelled — stages call this often, so paid work stops promptly."""
         with self.sessions() as db:
             row = db.execute(
                 update(ProcessingJob)
@@ -141,6 +142,10 @@ class JobRunner:
             db.commit()
         if row is None:
             raise JobCancelledError("lease lost")
+        with self.sessions() as db:
+            job = db.get(ProcessingJob, self.job_id)
+            if job is None or job.state == ProjectState.CANCELLED:
+                raise JobCancelledError("cancelled by user")
 
     def _release_lease(self, db: Session, job: ProcessingJob) -> None:
         if job.lease_owner == self.worker_id:

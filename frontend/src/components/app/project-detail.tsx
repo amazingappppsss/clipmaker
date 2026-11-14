@@ -7,7 +7,7 @@
  *   FAILED       → reason + "Try again" (resumes from the failed stage; credits were refunded)
  *   NEEDS_REVIEW / COMPLETED → the picked moments
  */
-import { ArrowLeft, Link2, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, Link2, Sparkles, Square, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -25,6 +25,7 @@ import { isProcessing, stepStatuses, stepStatusesFromJob } from "@/lib/project-s
 import { ApiError } from "@/services/api-client";
 import type { Clip, JobStatus, Project } from "@/services/api-types";
 import {
+  cancelProcessing,
   deleteProject,
   getClips,
   getProject,
@@ -57,7 +58,7 @@ export function ProjectDetail() {
   const [clips, setClips] = useState<Clip[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"start" | "delete" | "share" | null>(null);
+  const [busy, setBusy] = useState<"start" | "delete" | "share" | "cancel" | null>(null);
   const [shared, setShared] = useState(false);
 
   const refresh = useCallback(
@@ -102,6 +103,20 @@ export function ProjectDetail() {
       await refresh();
     } catch (err) {
       setError(errorText(err, "Couldn't start processing."));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onCancel = async (): Promise<void> => {
+    if (!window.confirm("Stop processing this video? Your credits for it will be refunded."))
+      return;
+    setBusy("cancel");
+    try {
+      setProject(await cancelProcessing(id));
+      await refresh();
+    } catch (err) {
+      setError(errorText(err, "Couldn't cancel."));
     } finally {
       setBusy(null);
     }
@@ -179,6 +194,16 @@ export function ProjectDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          {processing ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void onCancel()}
+              loading={busy === "cancel"}
+            >
+              <Square className="size-4" aria-hidden /> Cancel
+            </Button>
+          ) : null}
           {clips.length ? (
             <Button
               variant="secondary"
@@ -257,6 +282,20 @@ export function ProjectDetail() {
                   ? "Details from the file we're working on."
                   : "Details appear once we've fetched the video."}
               </p>
+            </div>
+          ) : project.state === "CANCELLED" ? (
+            <div className="flex flex-col items-start gap-4">
+              <h2 className="display-heavy text-3xl">Stopped</h2>
+              <p className="text-ink-soft">
+                {project.error_message ?? "Processing was cancelled."}
+              </p>
+              <Button
+                onClick={() => void onStart()}
+                loading={busy === "start"}
+                className="uppercase"
+              >
+                Start again
+              </Button>
             </div>
           ) : project.state === "FAILED" ? (
             <FailurePanel

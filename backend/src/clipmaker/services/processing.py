@@ -21,13 +21,20 @@ from clipmaker.core.errors import ConflictError
 from clipmaker.db.models import Candidate, Clip, ProcessingJob, Project, User
 from clipmaker.pipeline.selection import strengths
 from clipmaker.schemas import ClipOut, JobStatusOut, StageStatusOut
-from clipmaker.services.billing import credits_for_duration, debit_credits
+from clipmaker.services.billing import (
+    credits_for_duration,
+    debit_credits,
+    project_net_charge,
+    refund_credits,
+)
 
 logger = logging.getLogger(__name__)
 
 Enqueue = Callable[[uuid.UUID], None]
 
-_STARTABLE = {ProjectState.UPLOADED, ProjectState.FAILED}
+_STARTABLE = {ProjectState.UPLOADED, ProjectState.FAILED, ProjectState.CANCELLED}
+_RESUMABLE = {ProjectState.FAILED, ProjectState.CANCELLED}
+CANCELLED_MESSAGE = "Cancelled. Nothing more will be charged."
 
 
 def latest_job(db: Session, project_id: uuid.UUID) -> ProcessingJob | None:
@@ -63,7 +70,7 @@ def start_processing(db: Session, user: User, project: Project, enqueue: Enqueue
         credits = credits_for_duration(src.duration_seconds)
         debit_credits(db, user, credits, project.id, f"Processing: {project.title[:120]}")
 
-    job = latest_job(db, project.id) if project.state == ProjectState.FAILED else None
+    job = latest_job(db, project.id) if project.state in _RESUMABLE else None
     if job is None:
         job = ProcessingJob(project_id=project.id, state=ProjectState.INGESTING, stages={})
         db.add(job)
@@ -83,6 +90,37 @@ def start_processing(db: Session, user: User, project: Project, enqueue: Enqueue
         extra={"project_id": str(project.id), "job_id": str(job.id), "credits": credits},
     )
     return job
+
+
+def cancel_processing(db: Session, project: Project) -> None:
+    """Stop a running job and refund what it was charged.
+
+    The worker notices at its next checkpoint (between stages, between AI calls, while waiting
+    on transcription or a download) and stops without doing further paid work. Completed stages
+    are kept, so "Try again" later resumes instead of starting over.
+
+    Raises:
+        ConflictError: nothing is running.
+    """
+    if project.state in TERMINAL_STATES or project.state in (
+        ProjectState.CREATED,
+        ProjectState.UPLOADED,
+    ):
+        raise ConflictError("This project isn't processing.")
+    job = latest_job(db, project.id)
+    project.state = ProjectState.CANCELLED
+    if job is not None:
+        job.state = ProjectState.CANCELLED
+        job.completed_at = datetime.now(UTC)
+    charged = project_net_charge(db, project.id)
+    user = db.get(User, project.user_id)
+    if charged > 0 and user is not None:
+        refund_credits(db, user, charged, project.id, "Refund: processing cancelled")
+        project.error_message = "Cancelled. Your credits have been refunded."
+    else:
+        project.error_message = CANCELLED_MESSAGE
+    db.commit()
+    logger.info("processing_cancelled", extra={"project_id": str(project.id), "refunded": charged})
 
 
 def job_status(db: Session, project: Project) -> JobStatusOut:
