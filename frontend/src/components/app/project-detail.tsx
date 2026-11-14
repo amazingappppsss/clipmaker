@@ -59,16 +59,19 @@ export function ProjectDetail() {
   const [busy, setBusy] = useState<"start" | "delete" | null>(null);
 
   const refresh = useCallback(
-    async (signal?: AbortSignal): Promise<void> => {
+    async (signal?: AbortSignal, quiet = false): Promise<void> => {
       try {
         const [p, s] = await Promise.all([getProject(id, signal), getStatus(id, signal)]);
         setProject(p);
         setStatus(s);
+        if (quiet) setError(null);
         if (RESULT_STATES.has(p.state)) setClips(await getClips(id, signal));
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (err instanceof ApiError && err.code === "not_found") setNotFound(true);
-        else setError(errorText(err, "Couldn't load this project."));
+        // A missed background poll (e.g. the server restarting) isn't worth alarming anyone:
+        // the next poll catches up, and the work itself continues on the server.
+        else if (!quiet) setError(errorText(err, "Couldn't load this project."));
       }
     },
     [id],
@@ -85,7 +88,7 @@ export function ProjectDetail() {
   // Poll only while the backend is actively working.
   useEffect(() => {
     if (!project || !isProcessing(project.state)) return undefined;
-    const timer = window.setInterval(() => void refresh(), POLL_MS);
+    const timer = window.setInterval(() => void refresh(undefined, true), POLL_MS);
     return () => window.clearInterval(timer);
   }, [project, refresh]);
 

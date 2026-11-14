@@ -229,6 +229,8 @@ class HealthOut(BaseModel):
     storage_base_url: str | None = None
     # True when stored videos live on a persistent volume (survive redeploys).
     storage_persistent: bool | None = None
+    # Seconds each stage took in the most recent runs (newest first) — speed diagnostics only.
+    recent_stage_seconds: list[dict[str, float]] = []
 
 
 class DevTokenRequest(BaseModel):

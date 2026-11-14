@@ -404,6 +404,13 @@ export interface components {
             storage_base_url?: string | null;
             /** Storage Persistent */
             storage_persistent?: boolean | null;
+            /**
+             * Recent Stage Seconds
+             * @default []
+             */
+            recent_stage_seconds: {
+                [key: string]: number;
+            }[];
         };
         /**
          * ImportRequest

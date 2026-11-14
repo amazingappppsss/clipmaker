@@ -1227,6 +1227,17 @@
               }
             ],
             "title": "Storage Persistent"
+          },
+          "recent_stage_seconds": {
+            "items": {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Recent Stage Seconds",
+            "default": []
           }
         },
         "type": "object",

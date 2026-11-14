@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime
 
 import redis
 from fastapi import APIRouter, Response, status
 from pydantic import SecretStr
-from sqlalchemy import text
+from sqlalchemy import select, text
 
 from clipmaker import __version__
 from clipmaker.api.deps import AppSettings, DbSession
+from clipmaker.db.models import ProcessingJob
 from clipmaker.schemas import HealthOut
 from clipmaker.storage.factory import get_storage
 from clipmaker.storage.local import LocalStorage
@@ -44,6 +46,7 @@ def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOu
         link_import_ready=settings.enable_url_import and _has(settings.apify_token),
         storage_base_url=storage_base_url(),
         storage_persistent=_persistent(settings),
+        recent_stage_seconds=_recent_timings(db) if db_ok else [],
     )
 
 
@@ -65,3 +68,23 @@ def _persistent(settings: AppSettings) -> bool | None:
     if not mount:
         return None
     return os.path.abspath(settings.local_storage_dir).startswith(os.path.abspath(mount))
+
+
+def _recent_timings(db: DbSession, limit: int = 5) -> list[dict[str, float]]:
+    """Per-stage durations of the latest runs (no user data, just seconds)."""
+    jobs = db.scalars(
+        select(ProcessingJob).order_by(ProcessingJob.created_at.desc()).limit(limit)
+    ).all()
+    out: list[dict[str, float]] = []
+    for job in jobs:
+        row: dict[str, float] = {}
+        for stage, rec in (job.stages or {}).items():
+            try:
+                start = datetime.fromisoformat(rec["started_at"])
+                end = datetime.fromisoformat(rec["finished_at"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            row[stage] = round((end - start).total_seconds(), 1)
+        if row:
+            out.append(row)
+    return out
