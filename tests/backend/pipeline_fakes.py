@@ -174,15 +174,24 @@ class FakeLLM:
                     "category": "story",
                     "rationale": "habit turning point",
                     "hook_line": "I stopped checking my phone first thing in the morning.",
+                    "five_second_moment": "That's when I realized the phone was running my day.",
+                    "before_state": "anxious",
+                    "after_state": "in control",
+                    "missing_context": "",
                     "scores": {
                         s: strength
                         for s in (
-                            "standalone_context",
-                            "strong_opening",
-                            "story_payoff",
-                            "emotional_engagement",
-                            "information_value",
-                            "natural_ending",
+                            "hook",
+                            "curiosity_gap",
+                            "stakes",
+                            "specificity",
+                            "momentum",
+                            "emotion",
+                            "transformation",
+                            "causality",
+                            "payoff",
+                            "share_trigger",
+                            "standalone",
                         )
                     },
                 }

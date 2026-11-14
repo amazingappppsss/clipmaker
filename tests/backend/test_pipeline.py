@@ -76,8 +76,13 @@ def test_full_run_selects_clips(
     assert job.lease_owner is None
 
     clips = client.get(f"/projects/{pid}/clips", headers=auth).json()
-    assert 1 <= len(clips) <= 3  # 8-minute video → auto target 3
+    # Auto is a ceiling (about one per 90 s of transcript), not a quota; the fake transcript
+    # holds six strong, non-overlapping stories, so all six clear the bar.
+    assert 1 <= len(clips) <= 12
     for clip in clips:
+        # Every pick explains itself: score, why it works, strengths, the five-second moment.
+        assert clip["score"] and clip["why"] and isinstance(clip["strengths"], list)
+        assert clip["five_second_moment"]
         assert 20 <= clip["end_seconds"] - clip["start_seconds"] <= 90
         assert clip["title"] and clip["hook"] and len(clip["hashtags"]) == 3
         assert clip["status"] == ClipStatus.PLANNED.value

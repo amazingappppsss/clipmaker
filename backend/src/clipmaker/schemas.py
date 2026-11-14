@@ -146,7 +146,12 @@ class ClipOut(ApiModel):
     start_seconds: float | None = None
     end_seconds: float | None = None
     transcript: str | None = None
+    # STOP · STAY · SHARE score (0-100) and why the clip was picked, in plain words.
     score: float | None = None
+    why: str | None = None
+    strengths: list[str] = []
+    # The instant something changes (Storyworthy's "five-second moment"), when it's a story.
+    five_second_moment: str | None = None
 
 
 StageRunStatus = Literal["pending", "running", "done", "failed"]

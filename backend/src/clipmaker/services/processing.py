@@ -11,13 +11,15 @@ import logging
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from clipmaker.core.enums import PIPELINE_STAGES, TERMINAL_STATES, ProjectState
 from clipmaker.core.errors import ConflictError
-from clipmaker.db.models import Clip, ProcessingJob, Project, User
+from clipmaker.db.models import Candidate, Clip, ProcessingJob, Project, User
+from clipmaker.pipeline.selection import strengths
 from clipmaker.schemas import ClipOut, JobStatusOut, StageStatusOut
 from clipmaker.services.billing import credits_for_duration, debit_credits
 
@@ -112,6 +114,10 @@ def list_clips(db: Session, project: Project) -> list[ClipOut]:
     out = []
     for c in clips:
         plan = c.edit_plan or {}
+        cand = db.get(Candidate, c.candidate_id) if c.candidate_id else None
+        scores: dict[str, Any] = dict(cand.scores or {}) if cand else {}
+        story = scores.get("story") if isinstance(scores.get("story"), dict) else {}
+        numeric = {k: float(v) for k, v in scores.items() if isinstance(v, int | float)}
         out.append(
             ClipOut(
                 id=c.id,
@@ -126,7 +132,10 @@ def list_clips(db: Session, project: Project) -> list[ClipOut]:
                 start_seconds=plan.get("start"),
                 end_seconds=plan.get("end"),
                 transcript=plan.get("transcript"),
-                score=None,
+                score=round(float(cand.total_score)) if cand and cand.total_score else None,
+                why=(cand.rationale or None) if cand else None,
+                strengths=strengths(numeric),
+                five_second_moment=(story or {}).get("five_second_moment") or None,
             )
         )
     return out

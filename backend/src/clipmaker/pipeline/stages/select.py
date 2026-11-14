@@ -46,6 +46,9 @@ def _llm_call(ctx: StageContext, request: LLMRequest, code: str) -> tuple[dict[s
     return result.data, result.cost_usd
 
 
+STORY_FIELDS = ("five_second_moment", "before_state", "after_state", "missing_context")
+
+
 def parse_proposals(data: dict[str, Any], segment_count: int) -> list[Proposal]:
     """Validate model output defensively (pure). Bad entries are skipped, not trusted."""
     proposals = []
@@ -65,6 +68,15 @@ def parse_proposals(data: dict[str, Any], segment_count: int) -> list[Proposal]:
                 rationale=str(c.get("rationale", "")),
                 hook_line=str(c.get("hook_line", "")),
                 scores=scores,
+                story={
+                    k: str(c.get(k) or "")[:500]
+                    for k in (
+                        "five_second_moment",
+                        "before_state",
+                        "after_state",
+                        "missing_context",
+                    )
+                },
             )
         )
     return proposals
@@ -173,6 +185,7 @@ def run(ctx: StageContext) -> StageOutput:
                     "start_segment": cand.start_segment,
                     "end_segment": cand.end_segment,
                     "adjusted": cand.adjusted,
+                    "story": cand.proposal.story,
                 },
                 total_score=cand.total_score,
                 selected=cand.selected,

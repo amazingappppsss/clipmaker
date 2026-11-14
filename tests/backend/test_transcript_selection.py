@@ -5,13 +5,16 @@ from __future__ import annotations
 import pytest
 
 from clipmaker.pipeline.selection import (
+    SIGNALS,
     Proposal,
     auto_clip_count,
     clip_times,
+    gate_failure,
     normalise_range,
     overlap_fraction,
     parse_weights,
     select_clips,
+    strengths,
     weighted_score,
 )
 from clipmaker.pipeline.transcript import Segment, build_segments, render_for_llm
@@ -62,21 +65,21 @@ def test_render_is_deterministic_and_indexed() -> None:
 
 # --- scoring ----------------------------------------------------------------------------
 def test_weights_normalise_and_reject_unknown() -> None:
-    w = parse_weights('{"standalone_context": 2, "strong_opening": 2}')
-    assert w["standalone_context"] == pytest.approx(0.5)
-    assert w["natural_ending"] == 0
+    w = parse_weights('{"standalone": 2, "hook": 2}')
+    assert w["standalone"] == pytest.approx(0.5)
+    assert w["payoff"] == 0
     with pytest.raises(ValueError):
         parse_weights('{"virality": 1}')
 
 
 def test_weighted_score_clamps() -> None:
-    w = parse_weights('{"standalone_context": 1}')
-    assert weighted_score({"standalone_context": 10}, w) == 100
-    assert weighted_score({"standalone_context": 99}, w) == 100
+    w = parse_weights('{"standalone": 1}')
+    assert weighted_score({"standalone": 10}, w) == 100
+    assert weighted_score({"standalone": 99}, w) == 100
     assert weighted_score({}, w) == 0
 
 
-@pytest.mark.parametrize(("minutes", "count"), [(5, 3), (20, 5), (45, 8), (120, 10)])
+@pytest.mark.parametrize(("minutes", "count"), [(2, 3), (5, 3), (10, 7), (15, 10), (120, 12)])
 def test_auto_clip_count(minutes: int, count: int) -> None:
     assert auto_clip_count(minutes * 60) == count
 
@@ -113,34 +116,26 @@ def test_overlap_fraction() -> None:
 
 # --- selection --------------------------------------------------------------------------
 def _p(start: int, end: int, score: float) -> Proposal:
-    signals = (
-        "standalone_context",
-        "strong_opening",
-        "story_payoff",
-        "emotional_engagement",
-        "information_value",
-        "natural_ending",
-    )
-    return Proposal(start, end, "story", "r", "h", {s: score for s in signals})
+    return Proposal(start, end, "story", "r", "h", {s: score for s in SIGNALS})
 
 
 def test_select_dedupes_ranks_and_applies_quality_bar() -> None:
     segs = _segments([10] * 30)
-    weights = parse_weights('{"standalone_context": 1}')
+    weights = parse_weights('{"standalone": 1}')
     proposals = [_p(0, 3, 9), _p(1, 4, 8), _p(10, 13, 7), _p(20, 23, 3)]
     result = select_clips(
         proposals, segs, weights, target_count=5, min_s=20, max_s=90, min_score=55
     )
     chosen = [c for c in result if c.selected]
     assert [c.total_score for c in chosen] == [90, 70]
-    reasons = {c.proposal.scores["standalone_context"]: c.rejected_reason for c in result}
+    reasons = {c.proposal.scores["standalone"]: c.rejected_reason for c in result}
     assert reasons[8] == "overlaps a stronger moment"
-    assert reasons[3] == "below the quality bar"
+    assert reasons[3] == "needs outside context to make sense"
 
 
 def test_select_respects_target_count() -> None:
     segs = _segments([10] * 40)
-    weights = parse_weights('{"standalone_context": 1}')
+    weights = parse_weights('{"standalone": 1}')
     proposals = [_p(i * 5, i * 5 + 3, 9 - i * 0.1) for i in range(8)]
     result = select_clips(
         proposals, segs, weights, target_count=3, min_s=20, max_s=90, min_score=55
@@ -150,8 +145,37 @@ def test_select_respects_target_count() -> None:
 
 def test_best_moment_kept_even_below_bar_but_flagged() -> None:
     segs = _segments([10] * 10)
-    weights = parse_weights('{"standalone_context": 1}')
+    weights = parse_weights('{"standalone": 1}')
     result = select_clips(
         [_p(0, 3, 4)], segs, weights, target_count=3, min_s=20, max_s=90, min_score=55
     )
     assert result[0].selected and result[0].notes
+
+
+def test_gates_reject_clips_without_payoff_or_context() -> None:
+    good = {s: 7.0 for s in SIGNALS}
+    assert gate_failure(good) is None
+    assert gate_failure({**good, "payoff": 2}) == "ends without a payoff"
+    assert gate_failure({**good, "standalone": 3}) == "needs outside context to make sense"
+    assert gate_failure({**good, "hook": 1}) == "opening won't stop the scroll"
+
+
+def test_near_the_bar_fills_up_to_three() -> None:
+    segs = _segments([10] * 40)
+    weights = parse_weights('{"standalone": 1}')
+    proposals = [_p(0, 3, 8), _p(10, 13, 4.5), _p(20, 23, 4.5), _p(30, 33, 4.5)]
+    result = select_clips(
+        proposals, segs, weights, target_count=6, min_s=20, max_s=90, min_score=55
+    )
+    assert sum(c.selected for c in result) == 3  # 1 above the bar + 2 close to it
+
+
+def test_strengths_are_creator_friendly() -> None:
+    scores = {s: 5.0 for s in SIGNALS} | {"hook": 9, "transformation": 8, "payoff": 7.5}
+    assert strengths(scores) == ["Scroll-stopping hook", "Someone changes", "Strong payoff"]
+
+
+def test_prompt_version_fits_its_column() -> None:
+    from clipmaker.pipeline.prompts import PROMPT_VERSION
+
+    assert len(PROMPT_VERSION) <= 20

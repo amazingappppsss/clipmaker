@@ -127,10 +127,12 @@ class Settings(BaseSettings):
     # Minimum weighted score (0-100) a candidate needs to become a clip. Fewer, better clips
     # beat padding the result with weak ones.
     min_clip_score: float = 55.0
-    # Editorial scoring weights (PRD §5.4) — initial heuristics, kept configurable. JSON object.
+    # STOP · STAY · SHARE weights (docs/CLIP_FRAMEWORK.md) — starting heuristics, tuned later
+    # against real retention data. JSON object.
     score_weights_json: str = (
-        '{"standalone_context": 0.25, "strong_opening": 0.20, "story_payoff": 0.20,'
-        ' "emotional_engagement": 0.15, "information_value": 0.10, "natural_ending": 0.10}'
+        '{"hook": 0.15, "curiosity_gap": 0.08, "stakes": 0.08, "specificity": 0.07,'
+        ' "momentum": 0.06, "emotion": 0.10, "transformation": 0.10, "causality": 0.06,'
+        ' "payoff": 0.12, "share_trigger": 0.06, "standalone": 0.12}'
     )
     work_dir: str = "./.data/work"
 

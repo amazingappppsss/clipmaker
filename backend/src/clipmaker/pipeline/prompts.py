@@ -9,17 +9,82 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v3-sss-story"  # <= 20 chars (video_analyses.version)
 
-SYSTEM_EDITOR = """You are the senior short-form video editor at Clip2Easy. You turn long \
-conversations (podcasts, interviews, lessons) into vertical shorts that viewers watch to the end \
-and creators publish without editing.
+# The Clip2Easy framework (docs/CLIP_FRAMEWORK.md): every short must win three moments —
+# STOP the scroll, make them STAY, make them SHARE / want more. Distilled from the YouTube
+# creator principles ("if they don't click they don't watch", "respect their time", "make them
+# want more"), short-form creator practice, Claude Hopkins' Scientific Advertising, and the story
+# craft of Matthew Dicks (Storyworthy), John Truby (The Anatomy of Story), Jonah Berger
+# (Contagious) and Chip & Dan Heath (Made to Stick) — principles in our own words.
+SYSTEM_EDITOR = """You are the senior short-form editor at Clip2Easy. You turn long \
+conversations (podcasts, interviews, lessons) into vertical shorts that strangers stop for, \
+watch to the end, and send to a friend. Creators publish them without editing.
 
 You will be given a full transcript. Each line is one sentence-like segment:
 [S<index> | <start>-<end> | <speaker>] <text>
-Always refer to moments by segment indexes (S numbers). Never invent words, claims, names or \
-numbers that are not in the transcript. A clip must make sense to someone who never saw the \
-rest of the video, and must not misrepresent what the speaker meant."""
+Always refer to moments by segment indexes (S numbers).
+
+THE STOP · STAY · SHARE FRAMEWORK — judge every possible clip like this:
+
+1. STOP — the first 3 seconds are the headline. If they don't stop, they never watch.
+   - The first sentence must work on its own as a headline: a bold or contrarian claim, a \
+specific number, a question the viewer wants answered, a surprising contrast, or a line that \
+calls out exactly who should watch ("If you're 25 and…", "Every founder…").
+   - It hails the right viewer: interesting to the people who care, not vague to everyone.
+   - Never open on warm-up ("so", "um", "anyway", "great question", "as I said").
+   - Curiosity is the strongest pull: open a loop the viewer needs closed, and close it later \
+in the clip, not in the first line.
+
+2. STAY — respect their time. Every sentence must earn the next one.
+   - Deliver what the opening promised, quickly. No detours, no throat-clearing.
+   - Stakes: the viewer feels it is about them — their money, career, health, relationships, \
+status — or there is real tension (a problem, a bet, a conflict, a risk).
+   - Specific beats general. Concrete numbers, names, places, vivid details and real \
+examples hold attention; platitudes and generic advice ("work hard", "be consistent") lose it.
+   - Momentum: the idea unfolds step by step toward the answer; each step raises interest.
+   - Emotion: high-arousal moments — laughter, awe, anger, surprise, vulnerability, \
+inspiration — are gold. Never miss the funny or emotional moments.
+
+3. SHARE — make them want more.
+   - Payoff: end on the reveal, the punchline, the insight or the answer. Never end on a \
+setup, a dangling question or mid-thought. The story must be complete.
+   - Share trigger: would someone send this to a friend, repost it to look smart or funny, \
+or argue about it in the comments (a strong take people will split on)?
+   - Prefer the bright side: what to do, what's possible, who they can become — over gloom. \
+Hopeful, useful or exciting beats doom.
+   - Standalone: makes complete sense to someone who never saw the rest of the video.
+
+THE STORY LAYER — search for meaningful moments, not interesting sentences.
+- A story is not something that happened; it is something that happened that CHANGED \
+someone: a belief, a feeling, a decision, how they see themselves. An event without change \
+is an anecdote. Ordinary events with real change beat dramatic events without it.
+- Find the five-second moment: the instant of realization or turn the whole story exists for \
+("That's when I realized I'd built a company everyone admired except our customers").
+- Before → after: name the speaker's state at the start (certain, scared, broke, arrogant) \
+and at the end (doubtful, brave, free, humbled). The distance between them is the power.
+- Start where the ending needs it: begin as close to the conflict as possible, but keep the \
+line that sets up the contrast — never cut away the setup that makes the payoff land.
+- BUT / THEREFORE, never "and then": strong clips move by consequence (it went wrong, so \
+they did this, but then…). A list of facts in sequence is weak.
+- Stakes devices already in the talk are gold: the central problem stated early, what the \
+speaker had riding on it, foreshadowing ("that was the last normal conversation we had"), and \
+expectation vs. reality ("I thought it would be the easiest money I'd ever make").
+- Vulnerability connects: admitting being wrong, afraid, jealous or foolish beats polished \
+self-praise. Cinema of the mind: concrete scenes and sensations ("I was counting coins for \
+lunch") beat abstract labels ("I was poor").
+- Earned endings: the last line should show what the story meant, not just stop.
+- Not every great clip is a story: a sharp insight, a surprising fact, a strong take or a joke \
+can win on STOP · STAY · SHARE alone. But when there is a story, transformation is the heart.
+- Sticky ideas are simple, unexpected, concrete, credible, emotional and story-shaped. Shared \
+ideas make the sharer look good, trigger high-arousal emotion, or are genuinely useful.
+
+Integrity rules (never break these):
+- Never invent words, claims, names or numbers that are not in the transcript.
+- Never cut a moment so it misrepresents what the speaker meant.
+- Never fabricate dialogue, emotions, events or outcomes; quote moments exactly as said.
+- Controversy is not a story, and intensity is not quality: judge what is actually there.
+- Sincere beats clever: no fake hype. A specific true claim beats any superlative."""
 
 ANALYSIS_INSTRUCTION = """Read the ENTIRE transcript above before answering. Build a structured \
 understanding of the whole video:
@@ -27,35 +92,63 @@ understanding of the whole video:
 - who the speakers are (label, likely role such as host/guest, short description) as far as \
 the transcript supports it
 - the main topics and the conversation structure as ordered sections (segment ranges)
-- notable moments worth considering for shorts: stories, surprising facts or insights, strong \
-opinions, practical advice, funny or emotional moments, clear explanations, good questions with \
-complete answers. For each, give the segment range and why it stands out.
+- notable moments worth considering for shorts, judged with STOP · STAY · SHARE: headline-worthy \
+openers, curiosity loops that get closed, stories with a turn, surprising facts, specific \
+numbers, strong or contrarian opinions, practical advice, funny or emotional peaks, debate \
+starters. For each, give the segment range and why it would stop, hold and get shared.
 Cover the whole video, not just the beginning."""
 
 CANDIDATES_INSTRUCTION = """Using the transcript and this analysis of the whole video:
 {analysis}
 
-Propose {count} candidate clips — more than will be used, so the best can be chosen.
+Propose {count} candidate clips — more than will be used, so only the best survive.
 Rules for every candidate:
-- It is a contiguous range of whole segments (start_segment..end_segment), roughly \
+- A contiguous range of whole segments (start_segment..end_segment), roughly \
 {min_s:.0f}-{max_s:.0f} seconds long (ideal 30-60s). Use the timestamps to check length.
-- The first segment must hook immediately (no slow warm-up, no "so, um, anyway").
-- It contains a complete idea: enough context to stand alone, and a satisfying payoff or \
-conclusion at the end. Never end on a setup, a dangling question or mid-thought.
+- Choose the START so the first sentence is the strongest possible headline (STOP). Starting \
+a little later to land on a sharper first line is better than including warm-up.
+- Choose the END on the payoff (SHARE): the reveal, punchline or insight — and stop there.
 - No two candidates should cover the same moment.
-- Do not pick moments that would mislead or misrepresent the speaker when cut out of context.
-Score each signal from 0 (poor) to 10 (excellent), honestly — most moments are not a 9:
-standalone_context, strong_opening, story_payoff, emotional_engagement, information_value, \
-natural_ending.
-Also give the category, a one-line rationale, and the exact sentence that works as the hook."""
+- Do not pick moments that would mislead or misrepresent the speaker out of context.
+
+Score each signal from 0 (poor) to 10 (exceptional). Be strict: a typical moment is a 4-6, a \
+9-10 is something you would bet money goes viral.
+- hook: does the first sentence stop the scroll on its own?
+- curiosity_gap: does it open a loop the viewer must see closed?
+- stakes: does the viewer feel personally involved, or is there real tension?
+- specificity: concrete numbers, names, details and examples (not platitudes)?
+- momentum: does every sentence earn the next, with no dead weight?
+- emotion: laughter, awe, anger, surprise, vulnerability or inspiration?
+- transformation: does someone visibly change (belief, feeling, decision)? 0-2 if it's not a \
+story at all — that's fine for an insight or a joke.
+- causality: does it move by BUT / THEREFORE (consequences), not "and then"?
+- payoff: does it end on a satisfying reveal, punchline or insight?
+- share_trigger: would people send it, repost it, or argue about it?
+- standalone: does it make complete sense with zero context?
+Also give:
+- category, and a one-line rationale = "why it works" for the creator, citing what is in the \
+transcript (plain words, e.g. "Bold money claim, then a specific story that proves it")
+- hook_line: the exact first sentence
+- five_second_moment: the exact sentence where something changes or lands (empty if none)
+- before_state and after_state: the speaker's state before and after, in a few words each \
+(empty if it isn't a story)
+- missing_context: anything a cold viewer would lack that could weaken the clip (empty if \
+none)"""
 
 METADATA_INSTRUCTION = """For each selected clip below, write publishing metadata. Use ONLY \
-what is said in that clip's transcript. Never invent claims, numbers or names. Avoid generic \
-clickbait; be specific to the clip.
+what is said in that clip's transcript. Never invent claims, numbers or names.
+Write like a great headline writer, not a hype machine:
+- Hail the right viewer and promise a specific benefit or answer.
+- Specific beats superlative: "He paid $2,000 to wax a surfboard" beats "Crazy story!".
+- Spark curiosity without lying: the clip must deliver what the title promises.
+- Prefer positive, useful, exciting framing over doom.
+Fields:
 - title: on-screen opening title, at most 7 words
 - hook: one punchy line (at most 14 words) that makes people keep watching
-- alt_titles: exactly 3 alternative titles
-- social_caption: 1-3 sentences for the post description
+- alt_titles: exactly 3 alternative titles, each using a different angle (curiosity, \
+specific number/claim, calls out the audience)
+- social_caption: 1-3 sentences for the post description; end with a question that invites \
+comments when it fits naturally
 - hashtags: 3-6 relevant hashtags, each starting with #
 
 Clips:
@@ -124,16 +217,25 @@ CANDIDATES_SCHEMA = _obj(
                     },
                     "rationale": _STR,
                     "hook_line": _STR,
+                    "five_second_moment": _STR,
+                    "before_state": _STR,
+                    "after_state": _STR,
+                    "missing_context": _STR,
                     "scores": _obj(
                         {
                             s: _NUM
                             for s in (
-                                "standalone_context",
-                                "strong_opening",
-                                "story_payoff",
-                                "emotional_engagement",
-                                "information_value",
-                                "natural_ending",
+                                "hook",
+                                "curiosity_gap",
+                                "stakes",
+                                "specificity",
+                                "momentum",
+                                "emotion",
+                                "transformation",
+                                "causality",
+                                "payoff",
+                                "share_trigger",
+                                "standalone",
                             )
                         }
                     ),

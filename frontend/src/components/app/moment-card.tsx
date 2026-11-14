@@ -66,9 +66,47 @@ export function MomentCard({ clip, sourceUrl }: { clip: Clip; sourceUrl: string 
       </div>
       <div className="space-y-4 p-6">
         <div>
-          <h3 className="display-heavy text-xl">{clip.title}</h3>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="display-heavy text-xl">{clip.title}</h3>
+            {clip.score ? (
+              <span
+                className="shrink-0 rounded-full bg-ink px-2.5 py-1 font-display text-sm font-black text-lime tabular-nums"
+                title="Stop · Stay · Share score"
+              >
+                {Math.round(clip.score)}
+              </span>
+            ) : null}
+          </div>
           {clip.hook ? <p className="mt-2 font-semibold text-blue">{clip.hook}</p> : null}
         </div>
+        {clip.why || clip.strengths.length ? (
+          <div className="rounded-2xl bg-blue-soft p-4">
+            <p className="text-[0.7rem] font-bold tracking-widest text-blue uppercase">
+              Why it works
+            </p>
+            {clip.why ? <p className="mt-1 text-sm text-ink">{clip.why}</p> : null}
+            {clip.strengths.length ? (
+              <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Strengths">
+                {clip.strengths.map((s) => (
+                  <li
+                    key={s}
+                    className="rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold text-ink"
+                  >
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+        {clip.five_second_moment ? (
+          <blockquote className="border-l-4 border-lime pl-3 text-sm text-ink-soft italic">
+            <span className="mb-0.5 block text-[0.7rem] font-bold tracking-widest text-muted not-italic uppercase">
+              The moment it turns
+            </span>
+            “{clip.five_second_moment}”
+          </blockquote>
+        ) : null}
         {clip.transcript ? (
           <details className="group rounded-2xl bg-sunken p-4 text-sm">
             <summary className="cursor-pointer font-semibold">What&apos;s said</summary>

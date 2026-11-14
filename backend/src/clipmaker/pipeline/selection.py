@@ -16,14 +16,56 @@ from typing import Any
 
 from clipmaker.pipeline.transcript import Segment
 
+# STOP · STAY · SHARE signals (docs/CLIP_FRAMEWORK.md), each rated 0-10 by the model.
 SIGNALS = (
-    "standalone_context",
-    "strong_opening",
-    "story_payoff",
-    "emotional_engagement",
-    "information_value",
-    "natural_ending",
+    "hook",
+    "curiosity_gap",
+    "stakes",
+    "specificity",
+    "momentum",
+    "emotion",
+    "transformation",
+    "causality",
+    "payoff",
+    "share_trigger",
+    "standalone",
 )
+
+# Plain-English labels for the strengths shown to creators ("why it works").
+SIGNAL_LABELS = {
+    "hook": "Scroll-stopping hook",
+    "curiosity_gap": "Curiosity gap",
+    "stakes": "Real stakes",
+    "specificity": "Concrete details",
+    "momentum": "No dead air",
+    "emotion": "Emotional peak",
+    "transformation": "Someone changes",
+    "causality": "But… therefore…",
+    "payoff": "Strong payoff",
+    "share_trigger": "Made to share",
+    "standalone": "Stands alone",
+}
+
+
+def strengths(scores: dict[str, float], limit: int = 3, minimum: float = 7.0) -> list[str]:
+    """The clip's best signals (rated >= minimum), strongest first, as creator-facing labels."""
+    ranked = sorted(
+        (s for s in SIGNALS if float(scores.get(s, 0.0)) >= minimum),
+        key=lambda s: float(scores.get(s, 0.0)),
+        reverse=True,
+    )
+    return [SIGNAL_LABELS[s] for s in ranked[:limit]]
+
+
+# Hard gates: a clip that fails one of these never ships, however well it scores elsewhere.
+GATES: dict[str, tuple[float, str]] = {
+    "standalone": (4.0, "needs outside context to make sense"),
+    "payoff": (4.0, "ends without a payoff"),
+    "hook": (3.0, "opening won't stop the scroll"),
+}
+# When fewer clips clear the quality bar, still show up to this many if they're close to it.
+MIN_SHOWN = 3
+NEAR_BAR_MARGIN = 15.0
 LEAD_IN_SECONDS = 0.15  # breathing room before the first word
 TAIL_SECONDS = 0.35  # let the last word finish
 MAX_OVERLAP_FRACTION = 0.35  # of the shorter clip
@@ -39,6 +81,9 @@ class Proposal:
     rationale: str
     hook_line: str
     scores: dict[str, float]
+    # Story anatomy (Storyworthy): five_second_moment, before_state, after_state,
+    # missing_context — empty strings when the clip isn't a story.
+    story: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -81,15 +126,19 @@ def weighted_score(scores: dict[str, float], weights: dict[str, float]) -> float
 
 
 def auto_clip_count(duration_seconds: float) -> int:
-    """Default number of clips when the user picks "Auto"."""
-    minutes = duration_seconds / 60
-    if minutes < 10:
-        return 3
-    if minutes < 30:
-        return 5
-    if minutes < 75:
-        return 8
-    return 10
+    """Upper bound on clips for "Auto": about one per 90 s of video, between 3 and 12.
+
+    It is a ceiling, not a quota — only moments that clear the quality bar are shown.
+    """
+    return int(min(12, max(3, round(duration_seconds / 90))))
+
+
+def gate_failure(scores: dict[str, float]) -> str | None:
+    """The first hard gate a clip fails, or None."""
+    for signal, (minimum, reason) in GATES.items():
+        if float(scores.get(signal, 0.0)) < minimum:
+            return reason
+    return None
 
 
 def _span(segments: list[Segment], start: int, end: int) -> float:
@@ -171,6 +220,8 @@ def select_clips(
             segments, p.start_segment, p.end_segment, min_s, max_s
         )
         if reason is None:
+            reason = gate_failure(p.scores)
+        if reason is None:
             t0, t1 = clip_times(segments, s, e)
         else:
             t0 = t1 = 0.0
@@ -203,11 +254,12 @@ def select_clips(
         if len(chosen) >= target_count:
             cand.rejected_reason = "not in the top picks"
             continue
-        if cand.total_score < min_score and chosen:
-            cand.rejected_reason = "below the quality bar"
-            continue
         if cand.total_score < min_score:
-            cand.notes.append("best available moment is below the quality bar")
+            near = cand.total_score >= min_score - NEAR_BAR_MARGIN
+            if chosen and not (near and len(chosen) < MIN_SHOWN):
+                cand.rejected_reason = "below the quality bar"
+                continue
+            cand.notes.append("below the quality bar; shown as one of the best available")
         cand.selected = True
         chosen.append(cand)
     return scored

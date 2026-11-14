@@ -328,6 +328,15 @@ export interface components {
             transcript?: string | null;
             /** Score */
             score?: number | null;
+            /** Why */
+            why?: string | null;
+            /**
+             * Strengths
+             * @default []
+             */
+            strengths: string[];
+            /** Five Second Moment */
+            five_second_moment?: string | null;
         };
         /**
          * ClipStatus
