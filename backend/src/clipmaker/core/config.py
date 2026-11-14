@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     jwt_audience: str = "authenticated"
     # Enables POST /dev/token which mints local HS256 tokens. Refused outside development.
     enable_dev_auth: bool = False
+    # Owner/tester accounts (comma-separated emails) kept topped up to OWNER_CREDIT_FLOOR so the
+    # team can test before billing exists. Every top-up is a normal ledger grant.
+    owner_emails: str = ""
+    owner_credit_floor: int = Field(default=600, ge=0, le=100_000)
 
     # --- Storage ------------------------------------------------------------------------
     storage_backend: StorageBackend = StorageBackend.LOCAL
@@ -181,6 +185,10 @@ class Settings(BaseSettings):
         if self.storage_backend == StorageBackend.S3 and not self.s3_bucket:
             raise ValueError("S3_BUCKET is required when STORAGE_BACKEND=s3")
         return self
+
+    @property
+    def owner_email_set(self) -> frozenset[str]:
+        return frozenset(e.strip().lower() for e in self.owner_emails.split(",") if e.strip())
 
     @property
     def cors_origin_list(self) -> list[str]:

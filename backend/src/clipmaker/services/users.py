@@ -10,6 +10,15 @@ from clipmaker.db.models import User
 from clipmaker.services.billing import SIGNUP_TRIAL_CREDITS, grant_credits
 
 
+def top_up_owner(db: Session, user: User, owner_emails: frozenset[str], floor: int) -> None:
+    """Keep owner/tester accounts at `floor` credits (recorded as a normal grant)."""
+    if not user.email or user.email.lower() not in owner_emails:
+        return
+    if user.credits_balance < floor:
+        grant_credits(db, user, floor - user.credits_balance, "Owner test credits")
+        db.commit()
+
+
 def get_or_create_user(db: Session, identity: AuthenticatedUser) -> User:
     """Return the local user, creating it (with trial credits) on first sight.
 

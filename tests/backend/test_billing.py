@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from clipmaker.core.errors import InsufficientCreditsError
@@ -48,3 +49,29 @@ def test_debit_refund_and_insufficient(db: Session) -> None:
     db.commit()
     db.refresh(user)
     assert user.credits_balance == SIGNUP_TRIAL_CREDITS == ledger_balance(db, user.id)
+
+
+def test_owner_accounts_are_topped_up(client: TestClient, auth: dict[str, str]) -> None:
+    from clipmaker.core.config import get_settings
+
+    settings = get_settings()
+    original = settings.owner_emails
+    settings.owner_emails = "Alice@Example.com"
+    try:
+        body = client.get("/account/usage", headers=auth).json()
+        assert body["credits_balance"] == settings.owner_credit_floor
+        again = client.get("/account/usage", headers=auth).json()
+        assert again["credits_balance"] == settings.owner_credit_floor  # no double grant
+    finally:
+        settings.owner_emails = original
+
+
+def test_regular_accounts_are_not_topped_up(client: TestClient, other_auth: dict[str, str]) -> None:
+    from clipmaker.core.config import get_settings
+
+    get_settings().owner_emails = "alice@example.com"
+    try:
+        body = client.get("/account/usage", headers=other_auth).json()
+        assert body["credits_balance"] == SIGNUP_TRIAL_CREDITS
+    finally:
+        get_settings().owner_emails = ""

@@ -16,7 +16,7 @@ from clipmaker.core.security import verify_access_token
 from clipmaker.db.models import User
 from clipmaker.db.session import get_db
 from clipmaker.media.url_import import UrlImporter, build_url_importer
-from clipmaker.services.users import get_or_create_user
+from clipmaker.services.users import get_or_create_user, top_up_owner
 from clipmaker.storage.base import ObjectStorage
 from clipmaker.storage.factory import get_storage
 
@@ -44,7 +44,9 @@ def get_current_user(
     identity = verify_access_token(_bearer_token(authorization), settings)
     if not is_allowed(counter, f"user:{identity.id}", settings.rate_limit_per_minute):
         raise RateLimitedError("Too many requests. Please slow down.")
-    return get_or_create_user(db, identity)
+    user = get_or_create_user(db, identity)
+    top_up_owner(db, user, settings.owner_email_set, settings.owner_credit_floor)
+    return user
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
