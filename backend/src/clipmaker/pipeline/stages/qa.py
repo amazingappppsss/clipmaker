@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from clipmaker.core.enums import AssetKind, ClipStatus
-from clipmaker.db.models import Clip
+from clipmaker.db.models import Clip, SourceVideo
 from clipmaker.editing.render import OUT_H, OUT_W
 from clipmaker.media.probe import ProbeError, probe_media
 from clipmaker.pipeline.context import StageContext, StageOutput
@@ -76,4 +76,18 @@ def run(ctx: StageContext) -> StageOutput:
 
     if passed + ready_before == 0:
         raise PermanentStageError("qa_failed", "None of the rendered clips passed quality checks.")
-    return StageOutput({"passed": passed, "checked": len(todo)}, skipped=not todo)
+    freed = _free_source_files(ctx)
+    return StageOutput({"passed": passed, "checked": len(todo), "freed": freed}, skipped=not todo)
+
+
+def _free_source_files(ctx: StageContext) -> int:
+    """Once finished clips exist, the long source video and its audio aren't needed any more.
+
+    Deleting them keeps storage small (a podcast is hundreds of MB; its clips a few dozen).
+    Transcript, clips and the project thumbnail are kept. Returns files removed.
+    """
+    with ctx.sessions() as db:
+        src = db.query(SourceVideo).filter_by(project_id=ctx.project_id).one_or_none()
+        keys = [src.storage_key] if src is not None else []
+    keys.append(f"{ctx.prefix}work/audio.mp3")
+    return sum(ctx.storage.delete_prefix(k) for k in keys)

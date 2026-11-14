@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from clipmaker.db.models import Transcript
 from clipmaker.pipeline.context import StageContext
 from clipmaker.pipeline.errors import PermanentStageError
@@ -60,3 +62,18 @@ def windows(segments: list[Segment], rendered_lengths: list[int]) -> list[tuple[
             break
         start = max(end - WINDOW_OVERLAP_SEGMENTS + 1, start + 1)
     return result
+
+
+def local_source(ctx: StageContext, key: str) -> str:
+    """A local file path for a stored video, downloading it once per job when storage is remote.
+
+    FFmpeg can stream from a URL, but face tracking (OpenCV) and many seeks are far faster and
+    more reliable on a local file. The copy lives in the job's work dir (deleted afterwards).
+    """
+    source = ctx.storage.media_source(key)
+    if not source.startswith(("http://", "https://")):
+        return source
+    local = ctx.work_dir / ("source" + Path(key).suffix)
+    if not local.is_file():
+        ctx.storage.download_file(key, local)
+    return str(local)

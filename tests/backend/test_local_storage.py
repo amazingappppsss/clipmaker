@@ -69,3 +69,12 @@ def test_request_address_beats_absolute_setting(tmp_path: Path) -> None:
         assert relative.base_url() == "/api"
     finally:
         request_base_url.reset(token)
+
+
+def test_delete_prefix_removes_a_single_file(store: LocalStorage, tmp_path: Path) -> None:
+    src = tmp_path / "f.bin"
+    src.write_bytes(b"x")
+    store.upload_file(src, "u/p/source/original.mp4", "video/mp4")
+    assert store.delete_prefix("u/p/source/original.mp4") == 1
+    assert store.head("u/p/source/original.mp4") is None
+    assert store.delete_prefix("u/p/source/original.mp4") == 0

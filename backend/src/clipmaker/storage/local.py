@@ -118,6 +118,9 @@ class LocalStorage:
         target = self.path_for(prefix.rstrip("/"))
         if not target.exists():
             return 0
+        if target.is_file():  # an exact key (S3 prefix semantics cover single objects too)
+            target.unlink()
+            return 1
         count = sum(1 for p in target.rglob("*") if p.is_file())
         shutil.rmtree(target)
         return count

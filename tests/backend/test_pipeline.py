@@ -391,7 +391,36 @@ def test_full_pipeline_renders_finished_vertical_shorts(
         assert asset is not None
         meta = probe_media(storage_factory().media_source(asset.storage_key))
     assert (meta.width, meta.height) == (1080, 1920) and meta.has_audio
+    # The long source and its audio are freed once finished clips exist (storage stays small).
+    assert project["source_video_url"] is None
+    with get_session_factory()() as db:
+        from clipmaker.db.models import SourceVideo
+
+        src = db.query(SourceVideo).one()
+        assert storage_factory().head(src.storage_key) is None
     # Smart cuts removed dead air: the finished clip is shorter than the raw moment.
     assert meta.duration_seconds < first["end_seconds"] - first["start_seconds"] + (
         (first["teaser_end_seconds"] or 0) - (first["teaser_start_seconds"] or 0)
     )
+
+
+def test_remote_storage_sources_are_downloaded_once(tmp_path: Path) -> None:
+    """With cloud storage (R2/S3) the video is fetched to the job's work dir before editing."""
+    from types import SimpleNamespace
+
+    from clipmaker.pipeline.stages.common import local_source
+
+    calls: list[str] = []
+
+    class Remote:
+        def media_source(self, key: str) -> str:
+            return f"https://r2.example/{key}?sig=1"
+
+        def download_file(self, key: str, local: Path) -> None:
+            calls.append(key)
+            local.write_bytes(b"video")
+
+    ctx = SimpleNamespace(storage=Remote(), work_dir=tmp_path)
+    first = local_source(ctx, "u/p/source/original.mp4")  # type: ignore[arg-type]
+    again = local_source(ctx, "u/p/source/original.mp4")  # type: ignore[arg-type]
+    assert first == again == str(tmp_path / "source.mp4") and calls == ["u/p/source/original.mp4"]

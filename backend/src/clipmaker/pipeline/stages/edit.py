@@ -16,7 +16,7 @@ from clipmaker.editing.cuts import Interval, keep_intervals, map_words, total_du
 from clipmaker.editing.framing import analyze_faces, plan_shots
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError
-from clipmaker.pipeline.stages.common import load_segments
+from clipmaker.pipeline.stages.common import load_segments, local_source
 from clipmaker.pipeline.transcript import Segment
 from clipmaker.providers.transcription.base import Word
 
@@ -65,7 +65,7 @@ def plan_clip(
         teaser = keep_intervals(
             teaser_words, float(teaser_plan["start"]), float(teaser_plan["end"])
         )
-    samples = analyze_faces(Path(source), teaser + main) if not source.startswith("http") else []
+    samples = analyze_faces(Path(source), teaser + main)
     pieces = [
         {"start": s.start, "end": s.end, "cx": s.cx, "cy": s.cy, "zoom": s.zoom, "part": part}
         for part, ivs in (("teaser", teaser), ("main", main))
@@ -88,7 +88,7 @@ def run(ctx: StageContext) -> StageOutput:
         src = db.query(SourceVideo).filter_by(project_id=ctx.project_id).one_or_none()
         if src is None:
             raise PermanentStageError("no_source", "This project has no video.")
-        source = ctx.storage.media_source(src.storage_key)
+        source_key = src.storage_key
         todo = [
             (c.id, dict(c.edit_plan or {}), c.candidate_id)
             for c in db.query(Clip).filter_by(project_id=ctx.project_id).order_by(Clip.rank)
@@ -102,6 +102,7 @@ def run(ctx: StageContext) -> StageOutput:
     if not todo:
         return StageOutput({"planned": 0}, skipped=True)
 
+    source = local_source(ctx, source_key)
     segments = load_segments(ctx)
     planned = 0
     for clip_id, plan, cand_id in todo:

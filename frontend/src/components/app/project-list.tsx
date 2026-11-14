@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { ProjectCard } from "@/components/app/project-card";
+import { deleteProject } from "@/services/projects";
 import { VideoDropZone } from "@/components/upload/video-drop-zone";
 import { Alert } from "@/components/ui/alert";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -20,6 +21,15 @@ export function ProjectList() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const removeProject = async (id: string): Promise<void> => {
+    try {
+      await deleteProject(id);
+      setItems((prev) => (prev ? prev.filter((p) => p.id !== id) : prev));
+    } catch {
+      setError("Couldn't delete that project. Try again.");
+    }
+  };
 
   const load = useCallback(async (after: string | null): Promise<void> => {
     try {
@@ -80,7 +90,7 @@ export function ProjectList() {
         <>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((p) => (
-              <ProjectCard key={p.id} project={p} />
+              <ProjectCard key={p.id} project={p} onDelete={removeProject} />
             ))}
           </div>
           {cursor ? (

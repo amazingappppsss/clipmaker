@@ -17,6 +17,7 @@ from clipmaker.editing.render import Piece, render
 from clipmaker.media.audio import MediaError, make_thumbnail
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError, RetryableStageError
+from clipmaker.pipeline.stages.common import local_source
 from clipmaker.providers.transcription.base import Word
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ def run(ctx: StageContext) -> StageOutput:
         src = db.query(SourceVideo).filter_by(project_id=ctx.project_id).one_or_none()
         if src is None or not src.width or not src.height:
             raise PermanentStageError("no_source", "The source video is missing.")
-        source = ctx.storage.media_source(src.storage_key)
+        source_key = src.storage_key
         src_w, src_h = int(src.width), int(src.height)
         clips = db.query(Clip).filter_by(project_id=ctx.project_id).order_by(Clip.rank).all()
         rendered = {a.clip_id for c in clips for a in c.assets if a.kind == AssetKind.VIDEO}
@@ -62,6 +63,7 @@ def run(ctx: StageContext) -> StageOutput:
             return StageOutput({"rendered": 0, "existing": already}, skipped=True)
         raise PermanentStageError("nothing_to_render", "No clips were ready to render.")
 
+    source = local_source(ctx, source_key)
     done, failed = 0, 0
     for clip_id, title, plan in todo:
         out = ctx.work_dir / f"{clip_id}.mp4"

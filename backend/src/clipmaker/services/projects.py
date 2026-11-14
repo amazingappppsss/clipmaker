@@ -115,7 +115,9 @@ def to_project_out(db: Session, storage: ObjectStorage, project: Project) -> Pro
         ),
         source_video_url=(
             storage.presign_download(src.storage_key)
-            if src and src.upload_status == UploadStatus.VERIFIED
+            if src
+            and src.upload_status == UploadStatus.VERIFIED
+            and storage.head(src.storage_key) is not None  # freed after clips were rendered
             else None
         ),
         clip_count=clip_count,

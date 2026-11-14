@@ -65,7 +65,9 @@ def _fetch_from_link(ctx: StageContext, src: SourceVideo) -> dict[str, Any]:
         # Downloaded MP4s often keep their index at the end, which makes previews spin until
         # the whole file loads. A quick lossless remux fixes that; the original is fine if not.
         try:
-            path = make_streamable(path, path.with_name(f"streamable{path.suffix}"))
+            remuxed = make_streamable(path, path.with_name(f"streamable{path.suffix}"))
+            path.unlink(missing_ok=True)  # don't hold two copies on disk
+            path = remuxed
         except MediaError:
             pass
 
