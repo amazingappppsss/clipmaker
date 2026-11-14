@@ -1,36 +1,36 @@
 /** What the editing engine does (PRD §5). */
-import { Brain, Captions, Crop, Scissors, ShieldCheck, Type } from "lucide-react";
+import { Brain, Captions, Crop, Scissors, ShieldCheck, Zap } from "lucide-react";
 
 const ITEMS = [
   {
     Icon: Brain,
-    title: "Understands the whole video",
-    body: "Reads the full conversation first, so every clip has context — not random sentences.",
+    title: "Reads the whole episode first",
+    body: "Understands the full conversation, so every clip has context, a turn and a payoff. Not random sentences.",
   },
   {
-    Icon: Scissors,
-    title: "Never cuts mid-sentence",
-    body: "Each clip opens strong and lands its point, with dead air trimmed.",
+    Icon: Zap,
+    title: "Flash-forward hooks",
+    body: "The most curious line plays first, then it rewinds to the start, so viewers stay to see how it gets there.",
   },
   {
     Icon: Crop,
-    title: "Speaker-aware framing",
-    body: "Finds faces and keeps the speaker centred in a steady 9:16 frame.",
+    title: "Follows whoever is talking",
+    body: "Finds faces, watches who's speaking, and keeps them centred in 9:16, with punch-in zooms so it never feels static.",
   },
   {
     Icon: Captions,
-    title: "Animated captions",
-    body: "Word-synced captions people actually read, inside every platform's safe zone.",
+    title: "Captions that pop",
+    body: "Big, bold, word by word. The spoken word lights up, and numbers and names stay highlighted.",
   },
   {
-    Icon: Type,
-    title: "Honest hooks & titles",
-    body: "Titles and social captions that match what was actually said.",
+    Icon: Scissors,
+    title: "Cut tight, never rushed",
+    body: "Dead air and filler gone. The pause before a reveal stays, and every clip ends after the laugh lands.",
   },
   {
     Icon: ShieldCheck,
-    title: "Quality-checked",
-    body: "Framing, audio, captions and duplicates are checked before you see a clip.",
+    title: "Tells you why it works",
+    body: "Every clip shows its score, its hook type and why it'll stop the scroll. Each one is quality-checked before download.",
   },
 ];
 

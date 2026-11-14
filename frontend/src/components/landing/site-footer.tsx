@@ -1,7 +1,7 @@
 /** Closing call-to-action panel and footer. */
+import { CtaLinkBar } from "@/components/landing/final-cta";
 import { SpinBadge } from "@/components/landing/spin-badge";
 import { Squiggle } from "@/components/landing/squiggle";
-import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 
 export function SiteFooter() {
@@ -14,11 +14,10 @@ export function SiteFooter() {
           Your next 10 shorts are <span className="text-lime">already recorded</span>
         </h2>
         <p className="mx-auto mt-6 max-w-md text-white/85">
-          They&apos;re hiding in your last long video. Let&apos;s go find them.
+          They&apos;re hiding in your last episode. Paste the link and see them in minutes. Your
+          first 15 minutes are free.
         </p>
-        <ButtonLink href="/login" variant="lime" size="lg" className="mt-10 uppercase">
-          Get clips free
-        </ButtonLink>
+        <CtaLinkBar />
       </div>
       <div className="mx-auto mt-8 flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted sm:flex-row">
         <Logo />

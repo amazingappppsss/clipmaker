@@ -1,52 +1,19 @@
 "use client";
 
 /**
- * Landing hero: cobalt grid panel, giant uppercase headline, floating glass clip cards,
- * squiggles, a spinning CTA badge and the product's single input.
+ * Landing hero: cobalt grid panel, giant uppercase headline, two phones showing the real
+ * output style (animated captions, hook title, score), squiggles, a spinning CTA badge and
+ * the product's single input.
  * Dropping a file here hands it to /new (via sign-in when needed) — no re-picking.
  */
 import { useState } from "react";
 
+import { PhoneClip } from "@/components/landing/phone-clip";
 import { SiteHeader } from "@/components/landing/site-header";
 import { SpinBadge } from "@/components/landing/spin-badge";
 import { Squiggle } from "@/components/landing/squiggle";
 import { LinkBar } from "@/components/upload/link-bar";
 import { Alert } from "@/components/ui/alert";
-
-/** Small frosted card showing a vertical clip (illustration). */
-function GlassClip({
-  tone,
-  word,
-  label,
-  meta,
-  className,
-  tilt,
-}: {
-  tone: string;
-  word: string;
-  label: string;
-  meta: string;
-  className: string;
-  tilt: string;
-}) {
-  return (
-    <div
-      aria-hidden
-      className={`glass animate-float absolute hidden w-32 rounded-[1.6rem] p-2.5 lg:block xl:w-36 ${className}`}
-      style={{ ["--tilt" as string]: tilt }}
-    >
-      <div className={`relative aspect-[9/14] overflow-hidden rounded-[1.1rem] ${tone}`}>
-        <span className="absolute bottom-0 left-1/2 h-[42%] w-[70%] -translate-x-1/2 rounded-t-full bg-white/15" />
-        <span className="absolute bottom-[40%] left-1/2 size-10 -translate-x-1/2 rounded-full bg-white/20" />
-        <span className="absolute inset-x-1 bottom-[22%] text-center font-display text-sm font-black text-lime uppercase [text-shadow:0_2px_6px_rgb(0_0_0/0.5)]">
-          {word}
-        </span>
-      </div>
-      <p className="mt-2 truncate text-center text-[13px] font-bold text-white">{label}</p>
-      <p className="text-center text-[11px] text-white/75">{meta}</p>
-    </div>
-  );
-}
 
 export function Hero() {
   const [error, setError] = useState<string | null>(null);
@@ -55,30 +22,37 @@ export function Hero() {
     <section className="blue-grid relative mx-2 mt-2 overflow-hidden rounded-[2rem] pb-32 sm:mx-4 sm:mt-4 sm:rounded-[2.75rem] sm:pb-40">
       <SiteHeader />
 
-      <div className="relative mx-auto max-w-6xl px-4 pt-10 text-center sm:px-8 sm:pt-14">
-        <h1 className="display-heavy animate-pop text-[clamp(2.3rem,8vw,6rem)] text-white">
+      <div className="relative mx-auto max-w-6xl px-4 pt-8 text-center sm:px-8 sm:pt-12">
+        <p className="animate-pop mx-auto inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold tracking-wide text-white ring-1 ring-white/30 uppercase">
+          <span className="size-2 animate-pulse rounded-full bg-lime" />
+          AI clip editor for podcasts &amp; interviews
+        </p>
+        <h1 className="display-heavy animate-pop mt-6 text-[clamp(1.55rem,7.2vw,4.4rem)] text-white">
+          <span className="block whitespace-nowrap">One episode.</span>
           <span className="block whitespace-nowrap">
-            <span className="text-lime">#</span>Long video
+            <span className="text-lime">10</span> viral shorts.
           </span>
-          <span className="block whitespace-nowrap">to shorts</span>
-          <span className="block whitespace-nowrap">in one click</span>
+          <span className="block whitespace-nowrap">
+            Zero <span className="rounded-2xl bg-lime px-3 text-ink">editing.</span>
+          </span>
         </h1>
 
-        <GlassClip
+        <PhoneClip
+          className="animate-float absolute top-4 -right-10 hidden xl:block 2xl:-right-20"
           tone="video-tone-1"
-          word="changed"
-          label="Clip 01 · 0:41"
-          meta="The habit that…"
-          className="top-0 right-[0%] xl:right-[2%]"
-          tilt="8deg"
+          title="Rogan was stunned"
+          caption={["He", "spends", "$28", "on", "lunch", "every", "single", "day"]}
+          highlight={["$28"]}
+          score={92}
+          hook="Shocking number"
         />
-        <GlassClip
+        <PhoneClip
+          className="animate-float absolute top-[40%] -left-10 hidden [animation-delay:-3s] xl:block 2xl:-left-20"
           tone="video-tone-2"
-          word="focus."
-          label="Clip 02 · 0:58"
-          meta="Why startups die…"
-          className="top-[40%] left-[0%] [animation-delay:-3s] xl:left-[2%]"
-          tilt="-7deg"
+          title="The worst advice I ever got"
+          caption={["I", "thought", "it", "was", "easy", "money.", "I", "was", "wrong."]}
+          score={88}
+          hook="Confession"
         />
         <Squiggle className="absolute -top-6 left-[8%] hidden w-24 -rotate-12 text-lime md:block lg:left-[12%]" />
         <Squiggle
@@ -88,8 +62,8 @@ export function Hero() {
         <SpinBadge className="absolute right-[2%] bottom-[-3.5rem] hidden sm:grid lg:right-[6%]" />
 
         <p className="animate-pop mx-auto mt-10 max-w-xl text-base font-medium text-white/90 [animation-delay:120ms] sm:text-lg">
-          Paste a YouTube link or upload a video. Clip2Easy finds the best moments and edits them
-          into ready-to-post vertical clips — captions, hooks and framing included.
+          Paste a YouTube link. Clip2Easy finds the moments people actually stop scrolling for, then
+          cuts, captions and frames them into vertical shorts you can post today.
         </p>
         <div className="animate-pop mx-auto mt-8 max-w-xl text-left [animation-delay:200ms]">
           <LinkBar onError={setError} />
@@ -99,7 +73,8 @@ export function Hero() {
             </div>
           ) : null}
           <p className="mt-5 text-center text-xs font-medium text-white/75">
-            15 free minutes · No credit card · Only upload videos you have the rights to
+            15 free minutes · No credit card · Clips in minutes · Only use videos you have the
+            rights to
           </p>
         </div>
       </div>

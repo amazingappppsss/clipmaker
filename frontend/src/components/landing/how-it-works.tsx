@@ -21,7 +21,10 @@ export function HowItWorks() {
       className="relative z-10 mx-2 -mt-20 scroll-mt-8 rounded-[2rem] bg-surface px-4 py-10 sm:mx-4 sm:rounded-[2.75rem] sm:px-8 sm:py-12"
     >
       <ol className="relative grid gap-4 md:grid-cols-3 md:gap-8">
-        <Step title="Drop your video" body="Podcasts, interviews, lessons — up to 4 hours.">
+        <Step
+          title="Paste a link"
+          body="YouTube link or upload. Podcasts, interviews, lessons, up to 4 hours."
+        >
           <span className="inline-flex items-center gap-2 rounded-full bg-blue py-2 pr-2 pl-4 text-sm font-semibold text-white">
             <Film className="size-4" aria-hidden />
             podcast-ep42.mp4
@@ -31,8 +34,8 @@ export function HowItWorks() {
           </span>
         </Step>
         <Step
-          title="AI finds the moments"
-          body="It reads the whole conversation first — then picks."
+          title="AI picks the bangers"
+          body="It reads the whole conversation, then scores every moment like an editor."
         >
           <span className="inline-flex items-center gap-3 rounded-full border-2 border-ink bg-white py-1.5 pr-1.5 pl-5 text-sm font-semibold">
             Complete moments found
@@ -41,7 +44,10 @@ export function HowItWorks() {
             </span>
           </span>
         </Step>
-        <Step title="Post finished shorts" body="Captions, hooks, titles & hashtags included.">
+        <Step
+          title="Download & post"
+          body="Vertical, captioned, cut tight, with titles and hashtags written."
+        >
           <span className="rounded-3xl rounded-bl-none bg-lime px-6 py-3 text-left">
             <span className="block text-[11px] font-semibold tracking-wide uppercase">
               Ready to post
