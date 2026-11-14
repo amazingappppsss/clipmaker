@@ -28,3 +28,7 @@ backend/.data/
 
 # Vercel CLI link (local)
 .vercel/
+
+# Python packaging output
+build/
+*.egg-info/
