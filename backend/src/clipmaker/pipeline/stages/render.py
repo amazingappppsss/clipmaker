@@ -18,6 +18,7 @@ from clipmaker.media.audio import MediaError, make_thumbnail
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError, RetryableStageError
 from clipmaker.pipeline.stages.common import local_source
+from clipmaker.pipeline.stages.qa import verify
 from clipmaker.providers.transcription.base import Word
 
 logger = logging.getLogger(__name__)
@@ -123,6 +124,9 @@ def run(ctx: StageContext) -> StageOutput:
             t = ctx.storage.upload_file(thumb, thumb_key, "image/jpeg")
         except OSError as exc:
             raise RetryableStageError("storage_error", "Saving a rendered clip failed.") from exc
+        # Check it straight away so the clip can be watched and downloaded while the rest of
+        # the video is still rendering, instead of everyone waiting for the whole batch.
+        problems = verify(ctx, video_key, float(plan.get("duration", 0)))
         with ctx.sessions() as db:
             clip = db.get(Clip, clip_id)
             if clip is None:
@@ -143,8 +147,16 @@ def run(ctx: StageContext) -> StageOutput:
                     size_bytes=t.size_bytes,
                 )
             )
-            clip.status = ClipStatus.QA
             clip.attempts += 1
+            clip.qa_report = problems.report
+            if problems.problems:
+                clip.status = ClipStatus.FAILED
+                clip.error_message = "This clip failed the quality check."
+            else:
+                clip.status = ClipStatus.READY
+                clip.duration_seconds = round(problems.duration, 2)
+                for asset in clip.assets:
+                    asset.is_final = True
             db.commit()
         out.unlink(missing_ok=True)
         done += 1

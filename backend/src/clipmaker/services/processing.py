@@ -14,7 +14,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from clipmaker.core.enums import (
@@ -151,7 +151,16 @@ def job_status(db: Session, project: Project) -> JobStatusOut:
                 attempts=int(rec.get("attempts", 0)),
             )
         )
+    counts = dict(
+        db.execute(
+            select(Clip.status, func.count())
+            .where(Clip.project_id == project.id)
+            .group_by(Clip.status)
+        ).all()
+    )
     return JobStatusOut(
+        clips_total=sum(counts.values()),
+        clips_ready=counts.get(ClipStatus.READY, 0),
         project_state=project.state,
         progress=job.progress if job else 0.0,
         stages=stages,

@@ -35,7 +35,9 @@ import {
 } from "@/services/projects";
 
 const POLL_MS = 3000;
-const RESULT_STATES = new Set(["NEEDS_REVIEW", "COMPLETED"]);
+// Clips are fetched from the moment rendering starts: each one is quality-checked as it
+// finishes, so finished shorts appear while the rest of the video is still rendering.
+const CLIP_STATES = new Set(["RENDERING", "QUALITY_CHECK", "NEEDS_REVIEW", "COMPLETED"]);
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
@@ -68,7 +70,7 @@ export function ProjectDetail() {
         setProject(p);
         setStatus(s);
         if (quiet) setError(null);
-        if (RESULT_STATES.has(p.state)) setClips(await getClips(id, signal));
+        if (CLIP_STATES.has(p.state)) setClips(await getClips(id, signal));
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (err instanceof ApiError && err.code === "not_found") setNotFound(true);
@@ -237,7 +239,13 @@ export function ProjectDetail() {
 
       {processing ? (
         <div className="mt-8">
-          <ProcessingHero project={project} steps={steps} startedAt={status?.started_at} />
+          <ProcessingHero
+            project={project}
+            steps={steps}
+            startedAt={status?.started_at}
+            clipsReady={status?.clips_ready ?? 0}
+            clipsTotal={status?.clips_total ?? 0}
+          />
         </div>
       ) : null}
 
@@ -344,10 +352,15 @@ export function ProjectDetail() {
         </aside>
       </div>
 
-      {processing ? <MomentPlaceholders /> : null}
+      {processing && !clips.length ? <MomentPlaceholders /> : null}
 
       {clips.length ? (
         <section className="mt-10" aria-label="Picked moments">
+          {processing ? (
+            <h2 className="display-heavy mb-5 text-2xl">
+              {readyCount} short{readyCount === 1 ? "" : "s"} ready — still working…
+            </h2>
+          ) : null}
           <div className="grid gap-6 md:grid-cols-2">
             {clips.map((clip) => (
               <MomentCard key={clip.id} clip={clip} sourceUrl={project.source_video_url ?? null} />

@@ -185,6 +185,9 @@ class JobStatusOut(BaseModel):
     message: str | None
     # Machine-readable reason for a failure (e.g. "insufficient_credits"), for tailored help.
     error_code: str | None = None
+    # Live clip counts, so the page can show "3 of 6 ready" while rendering continues.
+    clips_total: int = 0
+    clips_ready: int = 0
     started_at: datetime | None
     completed_at: datetime | None
 

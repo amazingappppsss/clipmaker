@@ -31,10 +31,14 @@ export function ProcessingHero({
   project,
   steps,
   startedAt,
+  clipsReady = 0,
+  clipsTotal = 0,
 }: {
   project: Project;
   steps: StepStatus[];
   startedAt: string | null | undefined;
+  clipsReady?: number;
+  clipsTotal?: number;
 }) {
   const now = useNow(1000);
   const src = project.source_video;
@@ -103,6 +107,11 @@ export function ProcessingHero({
               );
             })}
           </ol>
+          {clipsTotal ? (
+            <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-lime px-4 py-1.5 text-sm font-black text-ink">
+              {clipsReady} of {clipsTotal} shorts ready
+            </p>
+          ) : null}
           <p className="mt-5 text-sm text-white/70">
             Usually a few minutes. You can close this tab; we&apos;ll keep going.
           </p>

@@ -6,6 +6,7 @@ and the expected length. Anything else is marked failed with the reason — neve
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from clipmaker.core.enums import AssetKind, ClipStatus
@@ -16,6 +17,35 @@ from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError
 
 DURATION_TOLERANCE = 0.75  # seconds
+
+
+@dataclass(frozen=True, slots=True)
+class Verdict:
+    """What the quality check found for one rendered file."""
+
+    problems: list[str]
+    report: dict[str, Any]
+    duration: float
+
+
+def verify(ctx: StageContext, storage_key: str, expected: float) -> Verdict:
+    """Probe a rendered clip in storage and judge it (used per clip and as a final sweep)."""
+    try:
+        meta = probe_media(ctx.storage.media_source(storage_key))
+    except ProbeError as exc:
+        return Verdict(["unreadable file"], {"problems": [str(exc)]}, 0.0)
+    problems = check(meta, expected)
+    return Verdict(
+        problems,
+        {
+            "width": meta.width,
+            "height": meta.height,
+            "duration": meta.duration_seconds,
+            "has_audio": meta.has_audio,
+            "problems": problems,
+        },
+        meta.duration_seconds,
+    )
 
 
 def check(meta: Any, expected: float) -> list[str]:
@@ -46,18 +76,8 @@ def run(ctx: StageContext) -> StageOutput:
 
     passed = 0
     for clip_id, key, expected in todo:
-        try:
-            meta = probe_media(ctx.storage.media_source(key))
-            problems = check(meta, expected)
-            report: dict[str, Any] = {
-                "width": meta.width,
-                "height": meta.height,
-                "duration": meta.duration_seconds,
-                "has_audio": meta.has_audio,
-                "problems": problems,
-            }
-        except ProbeError as exc:
-            problems, report = ["unreadable file"], {"problems": [str(exc)]}
+        verdict = verify(ctx, key, expected)
+        problems, report = verdict.problems, verdict.report
         with ctx.sessions() as db:
             clip = db.get(Clip, clip_id)
             if clip is None:

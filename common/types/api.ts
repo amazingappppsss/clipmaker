@@ -554,6 +554,16 @@ export interface components {
             message: string | null;
             /** Error Code */
             error_code?: string | null;
+            /**
+             * Clips Total
+             * @default 0
+             */
+            clips_total: number;
+            /**
+             * Clips Ready
+             * @default 0
+             */
+            clips_ready: number;
             /** Started At */
             started_at: string | null;
             /** Completed At */

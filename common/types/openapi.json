@@ -1706,6 +1706,16 @@
             ],
             "title": "Error Code"
           },
+          "clips_total": {
+            "type": "integer",
+            "title": "Clips Total",
+            "default": 0
+          },
+          "clips_ready": {
+            "type": "integer",
+            "title": "Clips Ready",
+            "default": 0
+          },
           "started_at": {
             "anyOf": [
               {
