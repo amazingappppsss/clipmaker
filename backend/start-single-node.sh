@@ -8,6 +8,9 @@ python -m clipmaker.preflight
 
 alembic upgrade head
 
+# Jobs cut off by the previous container (e.g. a redeploy) resume now instead of 15 min later.
+python -m clipmaker.workers.recover || echo "Couldn't resume interrupted jobs; the reaper will." >&2
+
 celery -A clipmaker.workers.celery_app worker --beat --schedule /tmp/celerybeat-schedule \
   -Q pipeline,render --concurrency "${WORKER_CONCURRENCY:-2}" --loglevel INFO &
 WORKER_PID=$!

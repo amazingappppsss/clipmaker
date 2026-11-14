@@ -23,7 +23,7 @@ from clipmaker.providers.transcription.base import (
     Word,
 )
 
-POLL_INTERVAL_SECONDS = 5.0
+POLL_INTERVAL_SECONDS = 2.0  # short audio finishes in seconds; poll often
 _UPLOAD_CHUNK = 5 * 1024 * 1024
 
 

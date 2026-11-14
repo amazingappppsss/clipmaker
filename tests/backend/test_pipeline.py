@@ -252,3 +252,28 @@ def test_clip_rows_reference_candidates(started: tuple[str, uuid.UUID]) -> None:
             assert cand is not None and cand.selected
             assert clip.edit_plan["start"] == cand.start_seconds
         assert db.query(User).count() == 1
+
+
+def test_restart_resumes_interrupted_jobs_immediately(started: tuple[str, uuid.UUID]) -> None:
+    """A job cut off by a redeploy is re-queued at startup, not after the lease expires."""
+    _, job_id = started
+    from datetime import UTC, datetime, timedelta
+
+    from clipmaker.workers.recover import recover_interrupted_jobs
+
+    with get_session_factory()() as db:
+        job = db.get(ProcessingJob, job_id)
+        assert job is not None
+        job.state = ProjectState.SELECTING
+        job.lease_owner, job.lease_expires_at = (
+            "old-container",
+            datetime.now(UTC) + timedelta(minutes=14),
+        )
+        db.commit()
+        queued: list[uuid.UUID] = []
+        assert recover_interrupted_jobs(db, queued.append) == [job_id] == queued
+    resumed = make_runner(job_id, FakeLLM(), FakeTranscriber())
+    assert resumed.run()[0] in (Outcome.PAUSED, Outcome.COMPLETED)
+
+    with get_session_factory()() as db:  # finished jobs are left alone
+        assert recover_interrupted_jobs(db, lambda _: None) == []
