@@ -14,15 +14,15 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from clipmaker.core.resources import encoder_threads
 from clipmaker.media.audio import MediaError
 
 OUT_W, OUT_H, OUT_FPS = 1080, 1920, 30
 FLASH_SECONDS = 0.2
 FONTS_DIR = Path(__file__).resolve().parent / "fonts"
 PART_CRF = 18  # intermediate quality; the visible loss after the final pass is negligible
-# x264 buffers frames per thread; 1080x1920 with many threads needs ~600 MB+, which small
-# containers kill. Two threads keep a render near 300 MB and are plenty for short clips.
-ENCODE_THREADS = "2"
+# Threads are chosen from the container's real memory limit (core/resources.py): x264 buffers
+# frames per thread, and a host that caps memory kills the process with no error at all.
 RENDER_TIMEOUT_SECONDS = 1800
 
 # Builds the ASS captions for one piece, given its [start, end) on the finished timeline.
@@ -142,7 +142,7 @@ def render(
                 "-profile:v",
                 "high",
                 "-threads",
-                ENCODE_THREADS,
+                str(encoder_threads()),
                 "-x264-params",
                 "sliced-threads=0:lookahead-threads=1",
                 "-c:a",
