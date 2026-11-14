@@ -22,6 +22,8 @@ from clipmaker.providers.transcription.base import Word
 
 logger = logging.getLogger(__name__)
 
+MAX_CLIP_ATTEMPTS = 3
+
 
 def pieces_for(plan: dict[str, Any], src_w: int, src_h: int) -> list[Piece]:
     """Render pieces from a stored plan (pure): crops, plus the flash after the teaser."""
@@ -52,20 +54,31 @@ def run(ctx: StageContext) -> StageOutput:
         src_w, src_h = int(src.width), int(src.height)
         clips = db.query(Clip).filter_by(project_id=ctx.project_id).order_by(Clip.rank).all()
         rendered = {a.clip_id for c in clips for a in c.assets if a.kind == AssetKind.VIDEO}
+        # Clips that failed before are retried here: "Try again" re-runs this stage, and a
+        # failure is usually transient (a killed encoder, a full disk). MAX_CLIP_ATTEMPTS stops
+        # a genuinely broken clip from being retried forever.
         todo = [
             (c.id, c.title, dict(c.edit_plan.get("render") or {}))
             for c in clips
-            if c.id not in rendered and c.status != ClipStatus.FAILED and "render" in c.edit_plan
+            if c.id not in rendered and "render" in c.edit_plan and c.attempts < MAX_CLIP_ATTEMPTS
         ]
         already = len(rendered)
     if not todo:
         if already:
             return StageOutput({"rendered": 0, "existing": already}, skipped=True)
-        raise PermanentStageError("nothing_to_render", "No clips were ready to render.")
+        raise PermanentStageError(
+            "nothing_to_render",
+            "We couldn't render this video's clips, even after retrying.",
+        )
 
     source = local_source(ctx, source_key)
     done, failed = 0, 0
     for clip_id, title, plan in todo:
+        with ctx.sessions() as db:
+            clip = db.get(Clip, clip_id)
+            if clip is not None and clip.status == ClipStatus.FAILED:
+                clip.status, clip.error_message = ClipStatus.PLANNED, None
+                db.commit()
         out = ctx.work_dir / f"{clip_id}.mp4"
         thumb = ctx.work_dir / f"{clip_id}.jpg"
         words = [Word(t, s, e) for t, s, e in plan.get("words", [])]

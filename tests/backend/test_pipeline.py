@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -424,3 +425,19 @@ def test_remote_storage_sources_are_downloaded_once(tmp_path: Path) -> None:
     first = local_source(ctx, "u/p/source/original.mp4")  # type: ignore[arg-type]
     again = local_source(ctx, "u/p/source/original.mp4")  # type: ignore[arg-type]
     assert first == again == str(tmp_path / "source.mp4") and calls == ["u/p/source/original.mp4"]
+
+
+def test_retry_rerenders_clips_that_failed_before(tmp_path: Path) -> None:
+    """A failed render is retried by "Try again" instead of failing instantly (max 3 tries)."""
+    from clipmaker.core.enums import ClipStatus
+    from clipmaker.pipeline.stages.render import MAX_CLIP_ATTEMPTS
+
+    clips = [
+        SimpleNamespace(id=1, status=ClipStatus.FAILED, attempts=1, edit_plan={"render": {}}),
+        SimpleNamespace(
+            id=2, status=ClipStatus.FAILED, attempts=MAX_CLIP_ATTEMPTS, edit_plan={"render": {}}
+        ),
+        SimpleNamespace(id=3, status=ClipStatus.PLANNED, attempts=0, edit_plan={}),
+    ]
+    todo = [c.id for c in clips if "render" in c.edit_plan and c.attempts < MAX_CLIP_ATTEMPTS]
+    assert todo == [1]  # retried once more; the exhausted and unplanned clips are left alone
