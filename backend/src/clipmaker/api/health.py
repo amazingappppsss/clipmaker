@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from datetime import datetime
 
 import redis
@@ -48,6 +49,7 @@ def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOu
         storage_persistent=_persistent(settings),
         recent_stage_seconds=_recent_timings(db) if db_ok else [],
         recent_failures=_recent_failures(db) if db_ok else [],
+        disk=_disk(settings),
     )
 
 
@@ -104,4 +106,19 @@ def _recent_failures(db: DbSession, limit: int = 5) -> list[dict[str, str | int]
             code = str(rec.get("error") or "").split(":", 1)[0][:40]
             if code:
                 out.append({"stage": stage, "code": code, "attempts": int(rec.get("attempts", 0))})
+    return out
+
+
+def _disk(settings: AppSettings) -> dict[str, float]:
+    """Free and total GB for the storage and work folders (running out breaks processing)."""
+    out: dict[str, float] = {}
+    for name, path in (("storage", settings.local_storage_dir), ("work", settings.work_dir)):
+        try:
+            usage = shutil.disk_usage(
+                path if os.path.exists(path) else os.path.dirname(path) or "/"
+            )
+        except OSError:
+            continue
+        out[f"{name}_free_gb"] = round(usage.free / 1e9, 2)
+        out[f"{name}_total_gb"] = round(usage.total / 1e9, 2)
     return out

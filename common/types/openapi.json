@@ -1588,6 +1588,14 @@
             "type": "array",
             "title": "Recent Failures",
             "default": []
+          },
+          "disk": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Disk",
+            "default": {}
           }
         },
         "type": "object",

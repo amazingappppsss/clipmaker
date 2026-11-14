@@ -507,6 +507,13 @@ export interface components {
             recent_failures: {
                 [key: string]: string | number;
             }[];
+            /**
+             * Disk
+             * @default {}
+             */
+            disk: {
+                [key: string]: number;
+            };
         };
         /**
          * ImportRequest

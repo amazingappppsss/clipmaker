@@ -249,6 +249,8 @@ class HealthOut(BaseModel):
     recent_stage_seconds: list[dict[str, float]] = []
     # Latest failed stages: stage, error code and attempt (codes only, never user data).
     recent_failures: list[dict[str, str | int]] = []
+    # Free/total space (GB) where videos are stored, and in the scratch work folder.
+    disk: dict[str, float] = {}
 
 
 class DevTokenRequest(BaseModel):
