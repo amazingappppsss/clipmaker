@@ -9,8 +9,10 @@ source into one filter graph needs gigabytes of RAM and dies on small containers
 
 from __future__ import annotations
 
+import os
 import subprocess
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -64,6 +66,12 @@ def loudness_filter() -> str:
     return "loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000"
 
 
+def _be_nice() -> None:
+    """Run the encoder at low priority so the API keeps serving videos while it works."""
+    with suppress(OSError):
+        os.nice(10)
+
+
 def _run(cmd: list[str], cwd: Path, what: str) -> None:
     try:
         result = subprocess.run(  # noqa: S603
@@ -73,6 +81,7 @@ def _run(cmd: list[str], cwd: Path, what: str) -> None:
             text=True,
             timeout=RENDER_TIMEOUT_SECONDS,
             check=False,
+            preexec_fn=_be_nice,
         )
     except subprocess.TimeoutExpired as exc:
         raise MediaError(f"{what} timed out") from exc

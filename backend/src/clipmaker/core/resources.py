@@ -68,8 +68,11 @@ def encoder_threads(budget_mb: int | None = None) -> int:
     Only half the container's memory is spent here, since the API, the worker and the page
     cache share it — and a host kills the whole process the moment the cap is crossed.
     """
+    # One CPU always stays free for the API: on a 2-core box an encoder using both makes the
+    # site crawl and videos buffer while a render is running.
+    usable = max(1, cpu_count() - 1)
     limit = budget_mb if budget_mb is not None else memory_limit_mb()
     if limit is None:
-        return min(4, cpu_count())
+        return min(4, usable)
     spare = max(0, limit // 2 - 200)
-    return max(1, min(cpu_count(), 1 + spare // 120, 4))
+    return max(1, min(usable, 1 + spare // 120, 4))
