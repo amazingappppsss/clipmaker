@@ -178,6 +178,8 @@ class FakeLLM:
                     "before_state": "anxious",
                     "after_state": "in control",
                     "missing_context": "",
+                    "teaser_segment": idx[base + 5],
+                    "teaser_reason": "the turn, shown before the setup",
                     "scores": {
                         s: strength
                         for s in (

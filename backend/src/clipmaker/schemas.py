@@ -152,6 +152,10 @@ class ClipOut(ApiModel):
     strengths: list[str] = []
     # The instant something changes (Storyworthy's "five-second moment"), when it's a story.
     five_second_moment: str | None = None
+    # Flash-forward hook: this line plays first, then the clip from its start (None = no teaser).
+    teaser_text: str | None = None
+    teaser_start_seconds: float | None = None
+    teaser_end_seconds: float | None = None
 
 
 StageRunStatus = Literal["pending", "running", "done", "failed"]

@@ -337,6 +337,12 @@ export interface components {
             strengths: string[];
             /** Five Second Moment */
             five_second_moment?: string | null;
+            /** Teaser Text */
+            teaser_text?: string | null;
+            /** Teaser Start Seconds */
+            teaser_start_seconds?: number | null;
+            /** Teaser End Seconds */
+            teaser_end_seconds?: number | null;
         };
         /**
          * ClipStatus

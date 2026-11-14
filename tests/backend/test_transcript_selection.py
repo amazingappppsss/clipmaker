@@ -13,6 +13,7 @@ from clipmaker.pipeline.selection import (
     normalise_range,
     overlap_fraction,
     parse_weights,
+    pick_teaser,
     select_clips,
     strengths,
     weighted_score,
@@ -179,3 +180,12 @@ def test_prompt_version_fits_its_column() -> None:
     from clipmaker.pipeline.prompts import PROMPT_VERSION
 
     assert len(PROMPT_VERSION) <= 20
+
+
+def test_teaser_must_be_inside_short_and_not_the_payoff() -> None:
+    segs = _segments([10, 3, 3, 10, 4])  # S1-S2 short lines, S4 is the last (payoff) line
+    assert pick_teaser(segs, 0, 4, 2) == (2, segs[2].start, segs[2].end)
+    assert pick_teaser(segs, 0, 4, 0) is None  # the first line already plays first
+    assert pick_teaser(segs, 0, 4, 4) is None  # never spoil the payoff
+    assert pick_teaser(segs, 0, 4, 3) is None  # 10 s is too long for a hook
+    assert pick_teaser(segs, 0, 4, -1) is None  # model chose no teaser

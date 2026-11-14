@@ -27,6 +27,7 @@ from clipmaker.pipeline.selection import (
     ScoredCandidate,
     auto_clip_count,
     parse_weights,
+    pick_teaser,
     select_clips,
 )
 from clipmaker.pipeline.stages.common import load_segments, windows
@@ -44,6 +45,13 @@ def _llm_call(ctx: StageContext, request: LLMRequest, code: str) -> tuple[dict[s
         raise error(code, str(exc)) from exc
     ctx.heartbeat()
     return result.data, result.cost_usd
+
+
+def _int_or(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 STORY_FIELDS = ("five_second_moment", "before_state", "after_state", "missing_context")
@@ -68,18 +76,27 @@ def parse_proposals(data: dict[str, Any], segment_count: int) -> list[Proposal]:
                 rationale=str(c.get("rationale", "")),
                 hook_line=str(c.get("hook_line", "")),
                 scores=scores,
-                story={
-                    k: str(c.get(k) or "")[:500]
-                    for k in (
-                        "five_second_moment",
-                        "before_state",
-                        "after_state",
-                        "missing_context",
-                    )
-                },
+                story={k: str(c.get(k) or "")[:500] for k in STORY_FIELDS},
+                teaser_segment=_int_or(c.get("teaser_segment"), -1),
+                teaser_reason=str(c.get("teaser_reason") or "")[:300],
             )
         )
     return proposals
+
+
+def _teaser_plan(segments: list[Segment], c: ScoredCandidate) -> dict[str, Any] | None:
+    """Flash-forward hook for the edit plan, or None (validated by selection.pick_teaser)."""
+    picked = pick_teaser(segments, c.start_segment, c.end_segment, c.proposal.teaser_segment)
+    if picked is None:
+        return None
+    idx, t0, t1 = picked
+    return {
+        "segment": idx,
+        "start": t0,
+        "end": t1,
+        "text": segments[idx].text,
+        "reason": c.proposal.teaser_reason,
+    }
 
 
 def _clip_text(segments: list[Segment], c: ScoredCandidate) -> str:
@@ -217,6 +234,7 @@ def run(ctx: StageContext) -> StageOutput:
                         "end_segment": cand.end_segment,
                         "transcript": _clip_text(segments, cand),
                         "notes": cand.notes,
+                        "teaser": _teaser_plan(segments, cand),
                     },
                 )
             )

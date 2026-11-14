@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = "v3-sss-story"  # <= 20 chars (video_analyses.version)
+PROMPT_VERSION = "v4-sss-teaser"  # <= 20 chars (video_analyses.version)
 
 # The Clip2Easy framework (docs/CLIP_FRAMEWORK.md): every short must win three moments —
 # STOP the scroll, make them STAY, make them SHARE / want more. Distilled from the YouTube
@@ -133,7 +133,14 @@ transcript (plain words, e.g. "Bold money claim, then a specific story that prov
 - before_state and after_state: the speaker's state before and after, in a few words each \
 (empty if it isn't a story)
 - missing_context: anything a cold viewer would lack that could weaken the clip (empty if \
-none)"""
+none)
+- teaser_segment: the flash-forward hook. Pick ONE segment strictly inside the clip (not its \
+first or last segment) that is the most curiosity-filled line: a shocking claim, an open \
+question, or the moment things turn. It will be shown first (2-6 s), then the clip plays from \
+its start, so viewers stay to see how we get there. Tease, don't spoil: never the final \
+answer or punchline. Use -1 when the opening is already the strongest hook or no line \
+qualifies.
+- teaser_reason: why that line makes people need to keep watching (empty if -1)"""
 
 METADATA_INSTRUCTION = """For each selected clip below, write publishing metadata. Use ONLY \
 what is said in that clip's transcript. Never invent claims, numbers or names.
@@ -221,6 +228,8 @@ CANDIDATES_SCHEMA = _obj(
                     "before_state": _STR,
                     "after_state": _STR,
                     "missing_context": _STR,
+                    "teaser_segment": _INT,
+                    "teaser_reason": _STR,
                     "scores": _obj(
                         {
                             s: _NUM

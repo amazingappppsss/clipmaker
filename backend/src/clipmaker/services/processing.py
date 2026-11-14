@@ -118,6 +118,7 @@ def list_clips(db: Session, project: Project) -> list[ClipOut]:
         scores: dict[str, Any] = dict(cand.scores or {}) if cand else {}
         story = scores.get("story") if isinstance(scores.get("story"), dict) else {}
         numeric = {k: float(v) for k, v in scores.items() if isinstance(v, int | float)}
+        teaser = plan.get("teaser") if isinstance(plan.get("teaser"), dict) else None
         out.append(
             ClipOut(
                 id=c.id,
@@ -136,6 +137,9 @@ def list_clips(db: Session, project: Project) -> list[ClipOut]:
                 why=(cand.rationale or None) if cand else None,
                 strengths=strengths(numeric),
                 five_second_moment=(story or {}).get("five_second_moment") or None,
+                teaser_text=teaser.get("text") if teaser else None,
+                teaser_start_seconds=teaser.get("start") if teaser else None,
+                teaser_end_seconds=teaser.get("end") if teaser else None,
             )
         )
     return out

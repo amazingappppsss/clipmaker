@@ -84,6 +84,9 @@ class Proposal:
     # Story anatomy (Storyworthy): five_second_moment, before_state, after_state,
     # missing_context — empty strings when the clip isn't a story.
     story: dict[str, str] = field(default_factory=dict)
+    # Flash-forward hook proposed by the model (segment index inside the clip, or -1).
+    teaser_segment: int = -1
+    teaser_reason: str = ""
 
 
 @dataclass(slots=True)
@@ -263,3 +266,25 @@ def select_clips(
         cand.selected = True
         chosen.append(cand)
     return scored
+
+
+TEASER_MIN_SECONDS = 1.5
+TEASER_MAX_SECONDS = 6.0
+
+
+def pick_teaser(
+    segments: list[Segment], start: int, end: int, proposed: int
+) -> tuple[int, float, float] | None:
+    """Validate the model's flash-forward line for a clip spanning segments [start, end].
+
+    It must sit strictly inside the clip (the first line already plays first; the last line is
+    the payoff, which a teaser must not spoil) and be short enough to work as a 2-6 s hook.
+    Returns (segment, start_seconds, end_seconds) or None when no teaser should be used.
+    """
+    if not start < proposed < end:
+        return None
+    seg = segments[proposed]
+    length = seg.end - seg.start
+    if not TEASER_MIN_SECONDS <= length <= TEASER_MAX_SECONDS:
+        return None
+    return proposed, round(seg.start, 3), round(seg.end, 3)

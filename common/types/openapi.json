@@ -1096,6 +1096,39 @@
               }
             ],
             "title": "Five Second Moment"
+          },
+          "teaser_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teaser Text"
+          },
+          "teaser_start_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teaser Start Seconds"
+          },
+          "teaser_end_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teaser End Seconds"
           }
         },
         "type": "object",

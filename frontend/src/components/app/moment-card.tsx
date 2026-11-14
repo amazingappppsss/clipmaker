@@ -8,6 +8,8 @@
 import { Check, Copy } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { initialPlayback, nextPlayback, type Phase } from "@/lib/teaser";
+
 import { formatDuration } from "@/lib/format";
 import type { Clip } from "@/services/api-types";
 
@@ -38,6 +40,15 @@ export function MomentCard({ clip, sourceUrl }: { clip: Clip; sourceUrl: string 
   const videoRef = useRef<HTMLVideoElement>(null);
   const start = clip.start_seconds ?? 0;
   const end = clip.end_seconds ?? start;
+  const timing = {
+    start,
+    end,
+    teaserStart: clip.teaser_start_seconds,
+    teaserEnd: clip.teaser_end_seconds,
+  };
+  const first = initialPlayback(timing);
+  const phase = useRef<Phase>(first.phase);
+  const [rewinding, setRewinding] = useState(false);
   const post = [clip.social_caption, clip.hashtags.join(" ")].filter(Boolean).join("\n\n");
 
   return (
@@ -46,17 +57,42 @@ export function MomentCard({ clip, sourceUrl }: { clip: Clip; sourceUrl: string 
         {sourceUrl ? (
           <video
             ref={videoRef}
-            src={`${sourceUrl}#t=${start.toFixed(2)},${end.toFixed(2)}`}
+            src={`${sourceUrl}#t=${first.at.toFixed(2)}`}
             controls
             preload="metadata"
             className="aspect-video w-full"
+            onPlay={(e) => {
+              if (phase.current === "done") {
+                // Replay from the top: teaser first again.
+                phase.current = first.phase;
+                e.currentTarget.currentTime = first.at;
+              }
+            }}
             onTimeUpdate={(e) => {
-              if (e.currentTarget.currentTime >= end) e.currentTarget.pause();
+              const step = nextPlayback(phase.current, e.currentTarget.currentTime, timing);
+              if (!step) return;
+              phase.current = step.phase;
+              if (step.seekTo !== undefined) e.currentTarget.currentTime = step.seekTo;
+              if (step.pause) e.currentTarget.pause();
+              if (step.rewind) {
+                setRewinding(true);
+                window.setTimeout(() => setRewinding(false), 450);
+              }
             }}
           />
         ) : (
           <div className="aspect-video" />
         )}
+        {rewinding ? (
+          <div
+            className="pointer-events-none absolute inset-0 grid place-items-center bg-white/25 backdrop-blur-sm"
+            aria-hidden
+          >
+            <span className="rounded-full bg-ink px-4 py-1.5 font-display text-sm font-black text-lime">
+              ⏪ REWIND
+            </span>
+          </div>
+        ) : null}
         <span className="absolute top-3 left-3 rounded-full bg-lime px-3 py-1 font-display text-xs font-black text-ink">
           #{clip.rank}
         </span>
@@ -97,6 +133,18 @@ export function MomentCard({ clip, sourceUrl }: { clip: Clip; sourceUrl: string 
                 ))}
               </ul>
             ) : null}
+          </div>
+        ) : null}
+        {clip.teaser_text ? (
+          <div className="rounded-2xl border-2 border-dashed border-ink/15 p-4">
+            <p className="text-[0.7rem] font-bold tracking-widest text-muted uppercase">
+              Opens with a flash-forward
+            </p>
+            <p className="mt-1 text-sm font-semibold">“{clip.teaser_text}”</p>
+            <p className="mt-1 text-xs text-muted">
+              Plays first, then the clip rewinds to the start so viewers stay to see how it gets
+              there.
+            </p>
           </div>
         ) : null}
         {clip.five_second_moment ? (
