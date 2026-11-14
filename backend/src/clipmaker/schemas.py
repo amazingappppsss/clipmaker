@@ -225,6 +225,8 @@ class HealthOut(BaseModel):
     link_import_ready: bool = False
     # Base address used in upload/download links for this request (diagnostics).
     storage_base_url: str | None = None
+    # True when stored videos live on a persistent volume (survive redeploys).
+    storage_persistent: bool | None = None
 
 
 class DevTokenRequest(BaseModel):

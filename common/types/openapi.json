@@ -1216,6 +1216,17 @@
               }
             ],
             "title": "Storage Base Url"
+          },
+          "storage_persistent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Persistent"
           }
         },
         "type": "object",

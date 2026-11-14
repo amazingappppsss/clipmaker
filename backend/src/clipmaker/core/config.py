@@ -6,6 +6,7 @@ Secrets are never hardcoded; see `.env.example` at the repository root for every
 
 from __future__ import annotations
 
+import os
 from enum import StrEnum
 from functools import lru_cache
 
@@ -146,6 +147,21 @@ class Settings(BaseSettings):
             if value.startswith(prefix):
                 return "postgresql+psycopg://" + value[len(prefix) :]
         return value
+
+    @model_validator(mode="after")
+    def _use_platform_volume(self) -> Settings:
+        """Keep files on the host's persistent volume when one is attached.
+
+        Railway mounts a volume and sets RAILWAY_VOLUME_MOUNT_PATH; without this, files written
+        to the container's own disk vanish on every redeploy. Explicit settings still win.
+        """
+        mount = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "").strip()
+        if mount:
+            if "local_storage_dir" not in self.model_fields_set:
+                self.local_storage_dir = f"{mount.rstrip('/')}/storage"
+            if "work_dir" not in self.model_fields_set:
+                self.work_dir = f"{mount.rstrip('/')}/work"
+        return self
 
     @model_validator(mode="after")
     def _check_production_safety(self) -> Settings:

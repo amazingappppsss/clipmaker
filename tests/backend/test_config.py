@@ -60,3 +60,13 @@ def test_api_keys_accept_variant_names_and_strip_quotes(monkeypatch: pytest.Monk
     assert s.assemblyai_api_key is not None
     assert s.assemblyai_api_key.get_secret_value() == "abc123"
     assert s.anthropic_api_key is None
+
+
+def test_files_go_to_the_platform_volume(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RAILWAY_VOLUME_MOUNT_PATH", "/data")
+    monkeypatch.delenv("LOCAL_STORAGE_DIR", raising=False)
+    monkeypatch.delenv("WORK_DIR", raising=False)
+    s = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert (s.local_storage_dir, s.work_dir) == ("/data/storage", "/data/work")
+    monkeypatch.setenv("LOCAL_STORAGE_DIR", "/elsewhere")
+    assert Settings(_env_file=None).local_storage_dir == "/elsewhere"  # type: ignore[call-arg]

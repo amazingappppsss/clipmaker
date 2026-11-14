@@ -402,6 +402,8 @@ export interface components {
             link_import_ready: boolean;
             /** Storage Base Url */
             storage_base_url?: string | null;
+            /** Storage Persistent */
+            storage_persistent?: boolean | null;
         };
         /**
          * ImportRequest

@@ -43,6 +43,7 @@ def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOu
         llm_ready=_has(settings.anthropic_api_key),
         link_import_ready=settings.enable_url_import and _has(settings.apify_token),
         storage_base_url=storage_base_url(),
+        storage_persistent=_persistent(settings),
     )
 
 
@@ -54,3 +55,13 @@ def storage_base_url() -> str | None:
     """Where signed upload links point for this request (None when not using local storage)."""
     storage = get_storage()
     return storage.base_url() if isinstance(storage, LocalStorage) else None
+
+
+def _persistent(settings: AppSettings) -> bool | None:
+    """Local storage under the platform volume survives redeploys; None if not on such a host."""
+    mount = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "").strip()
+    if settings.storage_backend.value != "local":
+        return True
+    if not mount:
+        return None
+    return os.path.abspath(settings.local_storage_dir).startswith(os.path.abspath(mount))
