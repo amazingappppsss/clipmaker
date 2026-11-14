@@ -33,7 +33,9 @@ def pieces_for(plan: dict[str, Any], src_w: int, src_h: int) -> list[Piece]:
     last_teaser = max((i for i, p in enumerate(raw) if p.get("part") == "teaser"), default=-1)
     out = []
     for i, p in enumerate(raw):
-        shot = Shot(p["start"], p["end"], p["cx"], p["cy"], p.get("zoom", 1.0))
+        shot = Shot(
+            p["start"], p["end"], p["cx"], p["cy"], p.get("zoom", 1.0), p.get("face_h", 0.0)
+        )
         out.append(
             Piece(
                 start=shot.start,

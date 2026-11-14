@@ -16,6 +16,7 @@ from __future__ import annotations
 import statistics
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from clipmaker.editing.cuts import Interval
 
@@ -30,8 +31,14 @@ DETECT_WIDTH = 640
 MIN_FACE_SCORE = 0.7
 TRACK_MATCH = 0.12  # max horizontal distance (fraction of width) to call it the same face
 MIN_SHOT_SECONDS = 1.2  # don't switch speakers faster than this
-PUNCH_IN_EVERY = 6.0  # split long shots so the picture changes at least this often
-PUNCH_IN_ZOOM = 1.15
+# A real editor does not cut away for a two-word interjection, and does not re-frame every
+# few seconds for no reason: both read as "machine made". These are the broadcast-style
+# minimums that keep the camera calm.
+MIN_TURN_SECONDS = 2.0  # a speaker must hold the floor this long to earn a cut
+PUNCH_IN_EVERY = 9.0  # split long shots so the picture changes at least this often
+PUNCH_IN_ZOOM = 1.08  # gentle: a big jump reads as a glitch
+FACE_FROM_TOP = 0.42  # face centre sits below the middle, so the eyes land near the top third
+HEAD_MARGIN = 1.05  # keep this much of the face height above the eyes (hair, hats, headphones)
 
 
 @dataclass(slots=True)
@@ -39,6 +46,7 @@ class Face:
     cx: float  # centre, as a fraction of frame width/height
     cy: float
     w: float  # width as a fraction of frame width
+    h: float = 0.0  # height as a fraction of frame height (0 = unknown)
     motion: float = 0.0  # mouth movement (mean abs pixel change), higher = talking
 
 
@@ -57,10 +65,88 @@ class Shot:
     cx: float  # where to centre the crop (fraction of width)
     cy: float
     zoom: float = 1.0
+    face_h: float = 0.0  # face height as a fraction of frame height (0 = unknown)
 
 
-def _active_x(samples: list[Sample], t0: float, t1: float) -> tuple[float, float] | None:
-    """Centre of the most-talking face in [t0, t1] (by summed mouth motion per face track)."""
+@dataclass(frozen=True, slots=True)
+class Turn:
+    """A stretch of source video where one diarised speaker holds the floor."""
+
+    start: float
+    end: float
+    speaker: str
+
+
+def turns_from_words(words: list[Any], min_seconds: float = MIN_TURN_SECONDS) -> list[Turn]:
+    """Speaker turns from diarised words (pure). Short interjections join the turn before.
+
+    The transcript already knows who is talking, sentence by sentence. Driving the camera from
+    that is far steadier than guessing from mouth movement, which flickers on a laugh, a cough
+    or a nod — the twitchy cutting that makes automatic reframing look machine-made.
+    """
+    turns: list[Turn] = []
+    for word in words:
+        speaker = getattr(word, "speaker", None) or "?"
+        if turns and turns[-1].speaker == speaker:
+            turns[-1] = Turn(turns[-1].start, word.end, speaker)
+        else:
+            turns.append(Turn(word.start, word.end, speaker))
+    merged: list[Turn] = []
+    for turn in turns:
+        too_short = turn.end - turn.start < min_seconds
+        if merged and too_short:
+            merged[-1] = Turn(merged[-1].start, turn.end, merged[-1].speaker)
+        elif merged and merged[-1].speaker == turn.speaker:
+            merged[-1] = Turn(merged[-1].start, turn.end, turn.speaker)
+        else:
+            merged.append(turn)
+    return merged
+
+
+def face_tracks(samples: list[Sample]) -> list[list[tuple[float, Face]]]:
+    """Group face sightings into tracks by horizontal position (pure)."""
+    tracks: list[list[tuple[float, Face]]] = []
+    for sample in samples:
+        for face in sample.faces:
+            for track in tracks:
+                if abs(track[-1][1].cx - face.cx) < TRACK_MATCH:
+                    track.append((sample.t, face))
+                    break
+            else:
+                tracks.append([(sample.t, face)])
+    return [t for t in tracks if t]
+
+
+def speaker_positions(
+    samples: list[Sample], turns: list[Turn]
+) -> dict[str, tuple[float, float, float]]:
+    """Map each speaker to their face (cx, cy, face height), by who moves while they talk."""
+    tracks = face_tracks(samples)
+    if len(tracks) < 2:
+        return {}
+    positions: dict[str, tuple[float, float, float]] = {}
+    for speaker in {t.speaker for t in turns}:
+        spans = [(t.start, t.end) for t in turns if t.speaker == speaker]
+        best, score = None, 0.0
+        for track in tracks:
+            motion = sum(f.motion for (t, f) in track if any(a <= t <= b for a, b in spans))
+            if motion > score:
+                best, score = track, motion
+        if best is not None and score > 0:
+            positions[speaker] = (
+                statistics.median(f.cx for _, f in best),
+                statistics.median(f.cy for _, f in best),
+                statistics.median(f.h for _, f in best) if best[0][1].h else 0.0,
+            )
+    # Two speakers judged to be the same face means the mapping is unreliable: better to hold
+    # a steady frame than to cut to the wrong person.
+    if len({(round(x, 2), round(y, 2)) for x, y, _ in positions.values()}) < len(positions):
+        return {}
+    return positions
+
+
+def _steady(samples: list[Sample], t0: float, t1: float) -> tuple[float, float, float] | None:
+    """Centre of the most-talking face in [t0, t1] (fallback when diarisation can't guide us)."""
     tracks: list[list[Face]] = []
     for s in samples:
         if not t0 <= s.t <= t1:
@@ -75,44 +161,81 @@ def _active_x(samples: list[Sample], t0: float, t1: float) -> tuple[float, float
     if not tracks:
         return None
     best = max(tracks, key=lambda tr: (sum(f.motion for f in tr), len(tr)))
-    return statistics.median(f.cx for f in best), statistics.median(f.cy for f in best)
+    return (
+        statistics.median(f.cx for f in best),
+        statistics.median(f.cy for f in best),
+        statistics.median(f.h for f in best) if best[0].h else 0.0,
+    )
 
 
-def plan_shots(samples: list[Sample], intervals: list[Interval]) -> list[Shot]:
+def plan_shots(
+    samples: list[Sample], intervals: list[Interval], words: list[Any] | None = None
+) -> list[Shot]:
     """Framing for each kept interval: follow the speaker, punch in on long shots (pure)."""
+    turns = turns_from_words(words) if words else []
+    positions = speaker_positions(samples, turns) if turns else {}
     shots: list[Shot] = []
     for iv in intervals:
-        # 1) Split the interval into windows and find who is talking in each.
-        windows: list[tuple[float, float, tuple[float, float] | None]] = []
-        t = iv.start
-        while t < iv.end - 1e-6:
-            t1 = min(iv.end, t + MIN_SHOT_SECONDS)
-            if iv.end - t1 < MIN_SHOT_SECONDS / 2:  # don't leave a sliver at the end
-                t1 = iv.end
-            windows.append((t, t1, _active_x(samples, t, t1)))
-            t = t1
-        # 2) Merge neighbouring windows that frame (almost) the same spot.
-        merged: list[list[float]] = []  # [start, end, cx, cy]
-        last: tuple[float, float] = (0.5, 0.5)
-        for w0, w1, pos in windows:
-            cx, cy = pos if pos is not None else (merged[-1][2:4] if merged else last)
-            if merged and abs(merged[-1][2] - cx) < TRACK_MATCH:
-                merged[-1][1] = w1
-            else:
-                merged.append([w0, w1, cx, cy])
-            last = (cx, cy)
-        # 3) Punch in/out so the picture changes at least every PUNCH_IN_EVERY seconds.
-        for m0, m1, cx, cy in merged:
-            pieces = max(1, int((m1 - m0) // PUNCH_IN_EVERY) + 1) if m1 - m0 > PUNCH_IN_EVERY else 1
-            step = (m1 - m0) / pieces
+        blocks: list[list[float | str]] = []  # [start, end, cx, cy, face_h]
+        if positions:
+            # Follow the diarised speaker: one framing per turn, nothing shorter than a turn.
+            for turn in turns:
+                start, end = max(turn.start, iv.start), min(turn.end, iv.end)
+                if end - start <= 0.01:
+                    continue
+                place = positions.get(turn.speaker)
+                if place is None:
+                    place = _steady(samples, start, end) or (0.5, 0.45, 0.0)
+                if blocks and abs(float(blocks[-1][2]) - place[0]) < TRACK_MATCH:
+                    blocks[-1][1] = end
+                else:
+                    blocks.append([start, end, place[0], place[1], place[2]])
+            if blocks:
+                blocks[0][0], blocks[-1][1] = iv.start, iv.end
+        if not blocks:
+            # No diarisation to follow (or it was unreliable): track the moving mouth, but only
+            # let the frame move after MIN_TURN_SECONDS so it never twitches.
+            t = iv.start
+            while t < iv.end - 1e-6:
+                t1 = min(iv.end, t + MIN_TURN_SECONDS)
+                if iv.end - t1 < MIN_TURN_SECONDS / 2:
+                    t1 = iv.end
+                place = _steady(samples, t, t1) or (
+                    (float(blocks[-1][2]), float(blocks[-1][3]), float(blocks[-1][4]))
+                    if blocks
+                    else (0.5, 0.45, 0.0)
+                )
+                if blocks and abs(float(blocks[-1][2]) - place[0]) < TRACK_MATCH:
+                    blocks[-1][1] = t1
+                else:
+                    blocks.append([t, t1, place[0], place[1], place[2]])
+                t = t1
+        for b0, b1, cx, cy, fh in blocks:
+            start, end = float(b0), float(b1)
+            span = end - start
+            pieces = max(1, int(span // PUNCH_IN_EVERY) + 1) if span > PUNCH_IN_EVERY else 1
+            step = span / pieces
             for k in range(pieces):
                 zoom = PUNCH_IN_ZOOM if (len(shots) % 2 == 1) else 1.0
-                shots.append(Shot(m0 + k * step, m0 + (k + 1) * step, cx, cy, zoom))
+                shots.append(
+                    Shot(
+                        start + k * step,
+                        start + (k + 1) * step,
+                        float(cx),
+                        float(cy),
+                        zoom,
+                        float(fh),
+                    )
+                )
     return shots
 
 
 def crop_box(src_w: int, src_h: int, shot: Shot) -> tuple[int, int, int, int]:
-    """(x, y, w, h) of the 9:16 crop for `shot`, clamped inside the frame. Even sizes."""
+    """(x, y, w, h) of the 9:16 crop for `shot`, clamped inside the frame. Even sizes.
+
+    The face sits below the middle so the eyes land near the upper third — standard framing —
+    and the top of the head is never cut off, whatever the zoom.
+    """
     if src_w * 16 <= src_h * 9 + 1:  # already vertical (or narrower): use the whole frame
         w, h = src_w, src_h
         if shot.zoom > 1.0:
@@ -122,8 +245,10 @@ def crop_box(src_w: int, src_h: int, shot: Shot) -> tuple[int, int, int, int]:
         w = int(h * 9 / 16)
     w, h = w - w % 2, h - h % 2
     x = round(shot.cx * src_w - w / 2)
-    # Keep faces in the upper part of the frame (where eyes sit in good framing).
-    y = round(shot.cy * src_h - h * 0.38)
+    y = round(shot.cy * src_h - h * FACE_FROM_TOP)
+    if shot.face_h > 0:  # never cut the top of the head off
+        head_top = (shot.cy - shot.face_h * HEAD_MARGIN) * src_h
+        y = min(y, round(head_top - h * 0.03))
     x = max(0, min(src_w - w, x))
     y = max(0, min(src_h - h, y))
     return x, y, w, h
@@ -195,6 +320,7 @@ def analyze_faces(video_path: Path, intervals: list[Interval]) -> list[Sample]:
                             cx=(x + w / 2) / size[0],
                             cy=(y + h / 2) / size[1],
                             w=w / size[0],
+                            h=h / size[1],
                             motion=motion,
                         )
                     )

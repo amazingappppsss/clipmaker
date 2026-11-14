@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import itertools
+
 from clipmaker.editing.captions import LIME, _ts, build_ass, chunk_words, is_keyword
 from clipmaker.providers.transcription.base import Word
 
@@ -49,3 +51,22 @@ def test_timestamps() -> None:
 def test_title_drops_emoji_the_font_cannot_draw() -> None:
     doc = build_ass([], title="Rogan Was Stunned 😭")
     assert "ROGAN WAS STUNNED" in doc and "😭" not in doc
+
+
+def test_caption_events_never_overlap() -> None:
+    """Two captions alive at once get drawn on top of each other — the glitchy doubled look."""
+    import re
+
+    words = [
+        Word("Great", 0.0, 0.3),
+        Word("but", 0.35, 0.5),
+        Word("I", 0.55, 0.6),  # sentence break here; next line starts almost immediately
+        Word("don't", 0.62, 0.9),
+        Word("say", 0.95, 1.2),
+        Word("anything", 1.25, 1.9),
+    ]
+    doc = build_ass(words)
+    times = re.findall(r"Dialogue: 0,(\d:\d\d:\d\d\.\d\d),(\d:\d\d:\d\d\.\d\d),", doc)
+    assert len(times) == len(words)
+    for (_, ends), (starts, _) in itertools.pairwise(times):
+        assert ends <= starts  # each caption is gone before the next appears

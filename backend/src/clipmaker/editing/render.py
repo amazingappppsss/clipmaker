@@ -31,7 +31,7 @@ def output_size(source_height: int) -> tuple[int, int]:
     return SIZES[0] if source_height >= FULL_HD_SOURCE_HEIGHT else SIZES[1]
 
 
-FLASH_SECONDS = 0.2
+FLASH_SECONDS = 0.12  # a long white flash reads as a glitch; a quick blink reads as an edit
 FONTS_DIR = Path(__file__).resolve().parent / "fonts"
 PART_CRF = 18  # intermediate quality; the visible loss after the final pass is negligible
 # Threads are chosen from the container's real memory limit (core/resources.py): x264 buffers

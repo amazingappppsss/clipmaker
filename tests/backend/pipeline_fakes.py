@@ -21,7 +21,7 @@ from clipmaker.providers.transcription.base import (
 )
 
 # A two-speaker conversation; each entry becomes one sentence. Repeated to ~8 minutes.
-_SCRIPT = [
+SCRIPT = [
     ("A", "Welcome back to the show, today we are talking about building habits that stick."),
     ("B", "Thanks for having me, this is a topic I have thought about for ten years."),
     ("A", "So what was the moment everything changed for you?"),
@@ -47,7 +47,7 @@ def fake_words(repeats: int = 6, words_per_second: float = 2.6) -> list[Word]:
     t = 0.5
     prev_speaker = None
     for _ in range(repeats):
-        for speaker, sentence in _SCRIPT:
+        for speaker, sentence in SCRIPT:
             if prev_speaker is not None:
                 t += 1.5 if speaker != prev_speaker else 0.5
             for token in sentence.split():
@@ -162,7 +162,7 @@ class FakeLLM:
 
     def _candidates(self, context: str) -> dict[str, Any]:
         idx = self._indexes(context)
-        n = len(_SCRIPT)
+        n = len(SCRIPT)
         cands = []
         # One strong story per script repetition, plus a weak one and a duplicate.
         for rep, base in enumerate(range(0, len(idx) - n + 1, n)):

@@ -33,7 +33,7 @@ from clipmaker.pipeline.runner import NOT_YET_AVAILABLE_MESSAGE, JobRunner, Outc
 from clipmaker.providers.llm.base import LLMError
 from clipmaker.storage.factory import get_storage
 from conftest import upload_project
-from pipeline_fakes import FakeLLM, FakeTranscriber, analysis_only_handlers
+from pipeline_fakes import SCRIPT, FakeLLM, FakeTranscriber, analysis_only_handlers
 
 
 def make_runner(
@@ -103,12 +103,18 @@ def test_full_run_selects_clips(
         assert 20 <= clip["end_seconds"] - clip["start_seconds"] <= 90
         assert clip["title"] and clip["hook"] and len(clip["hashtags"]) == 3
         assert clip["status"] == ClipStatus.PLANNED.value
-        assert clip["transcript"].startswith("So what was the moment")  # whole sentences
+        # Clips always span whole sentences: each starts exactly where a script line starts.
+        starts = tuple(sentence for _, sentence in SCRIPT)
+        assert clip["transcript"].startswith(starts)
     assert [c["rank"] for c in clips] == list(range(1, len(clips) + 1))
 
-    # The same cached transcript prefix is reused by analysis and selection (prompt caching).
+    # Candidate hunting runs as parallel parts over slices of the transcript: every part shares
+    # the editor's system prompt, and no part re-sends the whole transcript.
     smart = [r for r in llm.requests if r.tier == "smart"]
-    assert len({(r.system, r.context) for r in smart}) == 1
+    assert smart and len({r.system for r in smart}) == 1
+    assert len({r.context for r in smart}) == len(smart)
+    fast = [r for r in llm.requests if r.tier == "fast"]
+    assert fast  # the whole-video analysis and the publishing metadata use the fast model
 
     with get_session_factory()() as db:
         reasons = db.scalars(

@@ -70,9 +70,17 @@ def plan_clip(
         )
     samples = analyze_faces(Path(source), teaser + main)
     pieces = [
-        {"start": s.start, "end": s.end, "cx": s.cx, "cy": s.cy, "zoom": s.zoom, "part": part}
-        for part, ivs in (("teaser", teaser), ("main", main))
-        for s in plan_shots(samples, ivs)
+        {
+            "start": s.start,
+            "end": s.end,
+            "cx": s.cx,
+            "cy": s.cy,
+            "zoom": s.zoom,
+            "face_h": s.face_h,
+            "part": part,
+        }
+        for part, ivs, spoken in (("teaser", teaser, teaser_words), ("main", main, words))
+        for s in plan_shots(samples, ivs, spoken)
     ]
     offset = total_duration(teaser)
     out_words = map_words(teaser_words, teaser) + map_words(words, main, offset=offset)

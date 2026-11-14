@@ -18,6 +18,7 @@ MAX_WORDS_PER_CHUNK = 3
 MAX_CHARS_PER_CHUNK = 18
 CHUNK_BREAK_GAP = 0.35  # a pause this long starts a new caption
 TITLE_SECONDS = 3.0
+CAPTION_HOLD = 0.12  # how long the last word of a line stays up before the next line
 
 _SENTENCE_END = re.compile(r"[.!?…]$")
 _NUMBERISH = re.compile(r"[\d$€£%]")
@@ -140,13 +141,15 @@ def build_ass(
     for i, w in enumerate(words):
         keywords[i] = is_keyword(w, previous)
         previous = w
+    # Build every caption event first, then make sure none overlaps the next one. Two events
+    # alive at the same instant are drawn on top of each other (libass stacks them), which is
+    # the "glitchy doubled subtitle" look.
+    events: list[tuple[float, float, str]] = []
     index = 0
     for chunk in chunk_words(words):
         ids = list(range(index, index + len(chunk)))
         index += len(chunk)
         for j, active in enumerate(chunk):
-            start = active.start
-            end = chunk[j + 1].start if j + 1 < len(chunk) else active.end + 0.12
             parts = []
             for k, w in zip(ids, chunk, strict=True):
                 text = _clean(w.text)
@@ -157,11 +160,17 @@ def build_ass(
                 else:
                     parts.append(text)
             pop = "{\\fscx85\\fscy85\\t(0,90,\\fscx100\\fscy100)}" if j == 0 else ""
-            event = emit(
-                start,
-                max(end, start + 0.05),
-                f"Caption,,0,0,0,,{pop}{' '.join(parts)}",
-            )
-            if event:
-                lines.append(f"Dialogue: 0,{event}")
+            natural = chunk[j + 1].start if j + 1 < len(chunk) else active.end + CAPTION_HOLD
+            events.append((active.start, max(natural, active.start + 0.05), pop + " ".join(parts)))
+
+    for i in range(len(events) - 1):
+        begin, finish, body = events[i]
+        events[i] = (begin, min(finish, events[i + 1][0]), body)
+    for begin, finish, body in events:
+        if finish <= begin:
+            continue
+        event = emit(begin, finish, f"Caption,,0,0,0,,{body}")
+        if event:
+            lines.append(f"Dialogue: 0,{event}")
+
     return "\n".join(lines) + "\n"
