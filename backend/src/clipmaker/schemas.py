@@ -153,6 +153,8 @@ class ClipOut(ApiModel):
     # The instant something changes (Storyworthy's "five-second moment"), when it's a story.
     five_second_moment: str | None = None
     # Flash-forward hook: this line plays first, then the clip from its start (None = no teaser).
+    # Which proven opener the clip uses (question, bold_claim, shocking_number, …).
+    hook_type: str | None = None
     teaser_text: str | None = None
     teaser_start_seconds: float | None = None
     teaser_end_seconds: float | None = None

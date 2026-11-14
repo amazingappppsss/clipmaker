@@ -5,6 +5,7 @@ import {
   formatDate,
   formatDuration,
   formatUsd,
+  hookLabel,
 } from "@/lib/format";
 
 describe("formatBytes", () => {
@@ -36,5 +37,13 @@ describe("formatDate / formatUsd", () => {
     expect(formatUsd(0)).toBe("Free");
     expect(formatUsd(1500)).toBe("$15");
     expect(formatUsd(1499)).toBe("$14.99");
+  });
+});
+
+describe("hookLabel", () => {
+  it("names known hook types and hides unknown ones", () => {
+    expect(hookLabel("shocking_number")).toBe("Shocking number");
+    expect(hookLabel("none")).toBeNull();
+    expect(hookLabel(null)).toBeNull();
   });
 });

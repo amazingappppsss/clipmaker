@@ -1097,6 +1097,17 @@
             ],
             "title": "Five Second Moment"
           },
+          "hook_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hook Type"
+          },
           "teaser_text": {
             "anyOf": [
               {

@@ -337,6 +337,8 @@ export interface components {
             strengths: string[];
             /** Five Second Moment */
             five_second_moment?: string | null;
+            /** Hook Type */
+            hook_type?: string | null;
             /** Teaser Text */
             teaser_text?: string | null;
             /** Teaser Start Seconds */

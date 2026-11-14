@@ -88,6 +88,49 @@ It is our own synthesis, written in our own words, drawn from:
 **Signals:** `transformation`, `causality`. **Extra outputs:** `five_second_moment`,
 `before_state`, `after_state`, `missing_context`.
 
+
+## 5. The Hook Playbook (what breakout Shorts actually open with)
+
+We pulled the 24 biggest breakout podcast-clip Shorts on YouTube from the last 3 months (vidIQ
+outliers) and read the openings of the top 7:
+
+| Short | Views | Opening | Hook type |
+|---|---|---|---|
+| UFC rules (3.6K-sub channel) | 6.6M | "If you could change one rule in the UFC, what would it be?" | hypothetical |
+| Iced Coffee Hour | 1.8M | "What's the worst you've ever called someone out for wearing a fake watch?" | question + famous name |
+| PBD Podcast | 1.6M | Quotes a provocative take, then pushes back | quote → rebuttal |
+| Caleb Hammer clip | 792K | "Watching Caleb Hammer shows is the most radicalizing thing." | bold claim |
+| Rogan clip | 777K | "People think I'm evil because… $28 for lunch" | confession + number |
+| P1 with Matt & Tommy | 493K | "I completely agree with Lewis Hamilton…" | famous name → debate |
+| One Percent Heart | 291× breakout | "…makes me feel less scared and not alone" | emotional |
+
+**What they all share:**
+
+- **Zero warm-up.** Every one of them starts mid-conversation.
+- The first sentence is a **question or a claim**.
+- Most contain a **famous name** or a **specific number**.
+- They're **short**: 13–97 s, and many are under 45 s.
+- They **split opinions**, which is what drives the comments.
+
+The AI tags every clip with the opener it uses: `question`, `hypothetical`, `bold_claim`,
+`shocking_number`, `quote_rebuttal`, `confession`, `famous_name`, `story_in_motion`,
+`secret_reveal`, `warning`, `call_out`, `result_first`, `emotional` or `funny`. A clip with no
+real hook is tagged `none` and scores low on `hook`.
+
+## 6. Flash-forward hooks (the "spoiler" opener)
+
+When a clip's most curiosity-filled line sits in the middle, we show it first (2–6 s), flash a
+rewind, and then play the clip from its start. Viewers stay to see how the story gets there.
+
+The rules:
+
+- **Tease, never spoil.** The teaser must sit strictly inside the clip, never be its first
+  line, and never be its final payoff line.
+- **Keep it short.** A teaser is one whole sentence of 1.5–6 s.
+- **Show it's a flash-forward.** The rewind transition is visible, so we never misrepresent
+  the order of what was said.
+- **Skip it when the opening is already the strongest hook.**
+
 ---
 
 ## Scoring

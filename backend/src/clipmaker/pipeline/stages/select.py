@@ -79,6 +79,7 @@ def parse_proposals(data: dict[str, Any], segment_count: int) -> list[Proposal]:
                 story={k: str(c.get(k) or "")[:500] for k in STORY_FIELDS},
                 teaser_segment=_int_or(c.get("teaser_segment"), -1),
                 teaser_reason=str(c.get("teaser_reason") or "")[:300],
+                hook_type=str(c.get("hook_type") or "none")[:30],
             )
         )
     return proposals
@@ -203,6 +204,7 @@ def run(ctx: StageContext) -> StageOutput:
                     "end_segment": cand.end_segment,
                     "adjusted": cand.adjusted,
                     "story": cand.proposal.story,
+                    "hook_type": cand.proposal.hook_type,
                 },
                 total_score=cand.total_score,
                 selected=cand.selected,

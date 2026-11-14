@@ -10,7 +10,7 @@ import { useRef, useState } from "react";
 
 import { initialPlayback, nextPlayback, type Phase } from "@/lib/teaser";
 
-import { formatDuration } from "@/lib/format";
+import { formatDuration, hookLabel } from "@/lib/format";
 import type { Clip } from "@/services/api-types";
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -113,6 +113,11 @@ export function MomentCard({ clip, sourceUrl }: { clip: Clip; sourceUrl: string 
               </span>
             ) : null}
           </div>
+          {hookLabel(clip.hook_type) ? (
+            <span className="mt-2 inline-block rounded-full border-2 border-ink px-2.5 py-0.5 text-xs font-bold">
+              🎣 {hookLabel(clip.hook_type)}
+            </span>
+          ) : null}
           {clip.hook ? <p className="mt-2 font-semibold text-blue">{clip.hook}</p> : null}
         </div>
         {clip.why || clip.strengths.length ? (

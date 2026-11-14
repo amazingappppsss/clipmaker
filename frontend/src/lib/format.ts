@@ -37,3 +37,25 @@ export function formatUsd(cents: number): string {
   const dollars = cents / 100;
   return `$${Number.isInteger(dollars) ? dollars.toLocaleString("en-US") : dollars.toFixed(2)}`;
 }
+
+const HOOK_LABELS: Record<string, string> = {
+  question: "Question hook",
+  hypothetical: "“What if…” hook",
+  bold_claim: "Bold claim",
+  shocking_number: "Shocking number",
+  quote_rebuttal: "Quote → pushback",
+  confession: "Confession",
+  famous_name: "Famous name",
+  story_in_motion: "Mid-story start",
+  secret_reveal: "Secret reveal",
+  warning: "Warning",
+  call_out: "Calls out the viewer",
+  result_first: "Result first",
+  emotional: "Raw emotion",
+  funny: "Funny",
+};
+
+/** Creator-facing name for a hook type (null when unknown or "none"). */
+export function hookLabel(type: string | null | undefined): string | null {
+  return type ? (HOOK_LABELS[type] ?? null) : null;
+}

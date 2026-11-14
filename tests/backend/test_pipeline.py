@@ -83,6 +83,7 @@ def test_full_run_selects_clips(
         # Every pick explains itself: score, why it works, strengths, the five-second moment.
         assert clip["score"] and clip["why"] and isinstance(clip["strengths"], list)
         assert clip["five_second_moment"]
+        assert clip["hook_type"] == "story_in_motion"
         if clip["teaser_text"]:  # flash-forward sits strictly inside the clip
             assert clip["start_seconds"] < clip["teaser_start_seconds"]
             assert clip["teaser_end_seconds"] < clip["end_seconds"]

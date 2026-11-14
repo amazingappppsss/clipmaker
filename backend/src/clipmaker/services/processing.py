@@ -137,6 +137,11 @@ def list_clips(db: Session, project: Project) -> list[ClipOut]:
                 why=(cand.rationale or None) if cand else None,
                 strengths=strengths(numeric),
                 five_second_moment=(story or {}).get("five_second_moment") or None,
+                hook_type=(
+                    str(scores["hook_type"])
+                    if scores.get("hook_type") not in (None, "", "none")
+                    else None
+                ),
                 teaser_text=teaser.get("text") if teaser else None,
                 teaser_start_seconds=teaser.get("start") if teaser else None,
                 teaser_end_seconds=teaser.get("end") if teaser else None,

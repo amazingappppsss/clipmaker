@@ -180,6 +180,7 @@ class FakeLLM:
                     "missing_context": "",
                     "teaser_segment": idx[base + 5],
                     "teaser_reason": "the turn, shown before the setup",
+                    "hook_type": "story_in_motion",
                     "scores": {
                         s: strength
                         for s in (

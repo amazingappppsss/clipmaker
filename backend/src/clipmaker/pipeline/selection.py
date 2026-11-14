@@ -87,6 +87,7 @@ class Proposal:
     # Flash-forward hook proposed by the model (segment index inside the clip, or -1).
     teaser_segment: int = -1
     teaser_reason: str = ""
+    hook_type: str = "none"
 
 
 @dataclass(slots=True)

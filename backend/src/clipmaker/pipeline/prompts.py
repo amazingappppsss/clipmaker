@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = "v4-sss-teaser"  # <= 20 chars (video_analyses.version)
+PROMPT_VERSION = "v5-hooks"  # <= 20 chars (video_analyses.version)
 
 # The Clip2Easy framework (docs/CLIP_FRAMEWORK.md): every short must win three moments —
 # STOP the scroll, make them STAY, make them SHARE / want more. Distilled from the YouTube
@@ -54,6 +54,29 @@ or argue about it in the comments (a strong take people will split on)?
    - Prefer the bright side: what to do, what's possible, who they can become — over gloom. \
 Hopeful, useful or exciting beats doom.
    - Standalone: makes complete sense to someone who never saw the rest of the video.
+
+THE HOOK PLAYBOOK — proven openers (from breakout podcast-clip Shorts). Every clip's first \
+line (or its flash-forward teaser) should be one of these, taken word-for-word from the talk:
+- question: a question the viewer instantly wants answered ("What's the worst fake watch \
+you've ever called out?")
+- hypothetical: "If you could change one rule…", "What would you do if…"
+- bold_claim: a strong or contrarian statement ("Watching that show is the most \
+radicalizing thing")
+- shocking_number: a specific figure that surprises ("$28 for lunch", "a $14 million set")
+- quote_rebuttal: someone else's provocative quote, then the pushback
+- confession: a vulnerable or controversial admission ("People think I'm evil because…")
+- famous_name: a take on, or a story about, a well-known person ("I completely agree with \
+Lewis Hamilton…")
+- story_in_motion: drops straight into the middle of a scene ("Three days before launch, our \
+investor pulled out")
+- secret_reveal: "Nobody tells you…", "Here's what really happened…"
+- warning: "Stop doing X", "The biggest mistake people make…"
+- call_out: names who it's for ("If you're 25 and broke…")
+- result_first: the outcome first, then how ("I went from zero to $1M by…")
+- emotional: a raw, relatable feeling ("It made me feel less alone")
+- funny: a punchline or roast that lands immediately
+Breakout clips start mid-conversation, often name a famous person or a specific number, and \
+split opinions so people comment. Many are under 45 s: never pad a clip that is already done.
 
 THE STORY LAYER — search for meaningful moments, not interesting sentences.
 - A story is not something that happened; it is something that happened that CHANGED \
@@ -129,6 +152,7 @@ Also give:
 - category, and a one-line rationale = "why it works" for the creator, citing what is in the \
 transcript (plain words, e.g. "Bold money claim, then a specific story that proves it")
 - hook_line: the exact first sentence
+- hook_type: which playbook opener the clip (or its teaser) uses; "none" if it has no real hook
 - five_second_moment: the exact sentence where something changes or lands (empty if none)
 - before_state and after_state: the speaker's state before and after, in a few words each \
 (empty if it isn't a story)
@@ -160,6 +184,25 @@ comments when it fits naturally
 
 Clips:
 {clips}"""
+
+
+HOOK_TYPES = (
+    "question",
+    "hypothetical",
+    "bold_claim",
+    "shocking_number",
+    "quote_rebuttal",
+    "confession",
+    "famous_name",
+    "story_in_motion",
+    "secret_reveal",
+    "warning",
+    "call_out",
+    "result_first",
+    "emotional",
+    "funny",
+    "none",
+)
 
 
 def _obj(properties: dict[str, Any], required: list[str] | None = None) -> dict[str, Any]:
@@ -224,6 +267,7 @@ CANDIDATES_SCHEMA = _obj(
                     },
                     "rationale": _STR,
                     "hook_line": _STR,
+                    "hook_type": {"type": "string", "enum": list(HOOK_TYPES)},
                     "five_second_moment": _STR,
                     "before_state": _STR,
                     "after_state": _STR,
