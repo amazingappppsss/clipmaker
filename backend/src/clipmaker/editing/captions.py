@@ -111,14 +111,30 @@ def build_ass(
     title: str | None = None,
     title_seconds: float = TITLE_SECONDS,
     font: str = "Montserrat Black",
+    window: tuple[float, float] | None = None,
 ) -> str:
-    """ASS document for words already on the output timeline."""
+    """ASS document for words already on the output timeline.
+
+    `window` limits it to one rendered piece: only captions overlapping [start, end) are kept,
+    and their times are shifted so the piece starts at zero. That lets captions be burned in
+    while each piece is encoded, so the finished video is never re-encoded a second time.
+    """
+    w0, w1 = window if window else (0.0, float("inf"))
+
+    def emit(start: float, end: float, body: str) -> str | None:
+        if end <= w0 or start >= w1:
+            return None
+        return f"{_ts(max(start, w0) - w0)},{_ts(min(end, w1) - w0)},{body}"
+
     lines = [_header(font)]
     if title:
-        lines.append(
-            f"Dialogue: 1,{_ts(0)},{_ts(title_seconds)},Title,,0,0,0,,"
-            f"{{\\fad(150,250)}}{_escape(_strip_emoji(title).upper())}"
+        event = emit(
+            0.0,
+            title_seconds,
+            f"Title,,0,0,0,,{{\\fad(150,250)}}{_escape(_strip_emoji(title).upper())}",
         )
+        if event:
+            lines.append(f"Dialogue: 1,{event}")
     previous: Word | None = None
     keywords: dict[int, bool] = {}
     for i, w in enumerate(words):
@@ -141,8 +157,11 @@ def build_ass(
                 else:
                     parts.append(text)
             pop = "{\\fscx85\\fscy85\\t(0,90,\\fscx100\\fscy100)}" if j == 0 else ""
-            lines.append(
-                f"Dialogue: 0,{_ts(start)},{_ts(max(end, start + 0.05))},Caption,,0,0,0,,"
-                f"{pop}{' '.join(parts)}"
+            event = emit(
+                start,
+                max(end, start + 0.05),
+                f"Caption,,0,0,0,,{pop}{' '.join(parts)}",
             )
+            if event:
+                lines.append(f"Dialogue: 0,{event}")
     return "\n".join(lines) + "\n"

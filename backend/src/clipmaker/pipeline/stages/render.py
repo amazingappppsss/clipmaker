@@ -13,7 +13,7 @@ from clipmaker.core.enums import AssetKind, ClipStatus
 from clipmaker.db.models import Clip, ClipAsset, SourceVideo
 from clipmaker.editing.captions import build_ass
 from clipmaker.editing.framing import Shot, crop_box
-from clipmaker.editing.render import Piece, render
+from clipmaker.editing.render import CaptionsFor, Piece, render
 from clipmaker.media.audio import MediaError, make_thumbnail
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError, RetryableStageError
@@ -43,6 +43,15 @@ def pieces_for(plan: dict[str, Any], src_w: int, src_h: int) -> list[Piece]:
             )
         )
     return out
+
+
+def _captions_for(words: list[Word], title: str | None, font: str) -> CaptionsFor:
+    """Captions for one rendered piece, so each piece is encoded with its own text burned in."""
+
+    def build(start: float, end: float) -> str:
+        return build_ass(words, title=title, font=font, window=(start, end))
+
+    return build
 
 
 def run(ctx: StageContext) -> StageOutput:
@@ -88,9 +97,10 @@ def run(ctx: StageContext) -> StageOutput:
                 pieces_for(plan, src_w, src_h),
                 out,
                 ctx.work_dir / f"render-{clip_id}",
-                build_ass(words, title=title, font=ctx.settings.caption_font),
+                None,
                 preset=ctx.settings.render_preset,
                 crf=ctx.settings.render_crf,
+                captions=_captions_for(words, title, ctx.settings.caption_font),
             )
             make_thumbnail(str(out), thumb, at_seconds=min(1.0, float(plan.get("duration", 2)) / 2))
         except MediaError as exc:

@@ -10,6 +10,7 @@ source into one filter graph needs gigabytes of RAM and dies on small containers
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -23,6 +24,9 @@ PART_CRF = 18  # intermediate quality; the visible loss after the final pass is 
 # containers kill. Two threads keep a render near 300 MB and are plenty for short clips.
 ENCODE_THREADS = "2"
 RENDER_TIMEOUT_SECONDS = 1800
+
+# Builds the ASS captions for one piece, given its [start, end) on the finished timeline.
+CaptionsFor = Callable[[float, float], str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,10 +59,9 @@ def piece_filter(piece: Piece) -> str:
     return chain
 
 
-def final_filter(ass_name: str | None) -> str:
-    """Filters for the joining pass: burned-in captions and broadcast-level loudness."""
-    video = f"ass={ass_name}:fontsdir={FONTS_DIR}" if ass_name else "null"
-    return f"-vf|{video}|-af|loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000"
+def loudness_filter() -> str:
+    """Audio levelled to the -14 LUFS social platforms target (applied without touching video)."""
+    return "loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000"
 
 
 def _run(cmd: list[str], cwd: Path, what: str) -> None:
@@ -86,16 +89,33 @@ def render(
     *,
     preset: str = "veryfast",
     crf: int = 21,
+    captions: CaptionsFor | None = None,
 ) -> Path:
-    """Render the edit to `out_path`. Raises MediaError on failure."""
+    """Render the edit to `out_path`. Raises MediaError on failure.
+
+    The video is encoded exactly once: each piece is seeked, cropped, scaled and captioned in
+    one pass, the parts are joined by copying, and only the audio is re-encoded for loudness.
+    Re-encoding the joined video instead needs ~5x the memory and dies on small containers.
+    """
     if not pieces:
         raise MediaError("Nothing to render")
     work_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1) Each piece on its own: seek, crop, scale, encode. Memory stays flat.
+    # 1) Each piece on its own: seek, crop, scale, burn its captions, encode.
     parts: list[Path] = []
+    elapsed = 0.0
     for i, piece in enumerate(pieces):
         part = work_dir / f"part{i:03d}.mp4"
+        chain = piece_filter(piece)
+        if captions is not None:
+            text = captions(elapsed, elapsed + piece.duration)
+            if text.strip():
+                name = f"captions{i:03d}.ass"
+                (work_dir / name).write_text(text, encoding="utf-8")
+                chain += f",ass={name}:fontsdir={FONTS_DIR}"
+        elif ass_text and i == 0:  # legacy: whole-clip captions on the first piece only
+            (work_dir / "captions.ass").write_text(ass_text, encoding="utf-8")
+            chain += f",ass=captions.ass:fontsdir={FONTS_DIR}"
         _run(
             [
                 "ffmpeg",
@@ -110,13 +130,17 @@ def render(
                 "-i",
                 source,
                 "-vf",
-                piece_filter(piece),
+                chain,
                 "-c:v",
                 "libx264",
                 "-preset",
-                "veryfast",
+                preset,
                 "-crf",
-                str(PART_CRF),
+                str(crf),
+                "-pix_fmt",
+                "yuv420p",
+                "-profile:v",
+                "high",
                 "-threads",
                 ENCODE_THREADS,
                 "-x264-params",
@@ -139,8 +163,9 @@ def render(
         if not part.is_file() or part.stat().st_size == 0:
             raise MediaError(f"Part {i + 1} produced no output")
         parts.append(part)
+        elapsed += piece.duration
 
-    # 2) Join without re-encoding, then one pass for captions and loudness.
+    # 2) Join by copying (no video decode), then level the audio only.
     listing = work_dir / "parts.txt"
     listing.write_text("".join(f"file '{p.name}'\n" for p in parts), encoding="utf-8")
     joined = work_dir / "joined.mp4"
@@ -166,12 +191,6 @@ def render(
     )
     for part in parts:
         part.unlink(missing_ok=True)
-
-    ass_name = None
-    if ass_text:
-        ass_name = "captions.ass"
-        (work_dir / ass_name).write_text(ass_text, encoding="utf-8")
-    video_filter, audio_filter = final_filter(ass_name).split("|-af|")
     _run(
         [
             "ffmpeg",
@@ -181,37 +200,20 @@ def render(
             "-y",
             "-i",
             str(joined),
-            *video_filter.split("|"),
-            "-af",
-            audio_filter,
             "-c:v",
-            "libx264",
-            "-preset",
-            preset,
-            "-crf",
-            str(crf),
-            "-threads",
-            ENCODE_THREADS,
-            "-x264-params",
-            "sliced-threads=0:lookahead-threads=1",
-            "-pix_fmt",
-            "yuv420p",
-            "-profile:v",
-            "high",
-            "-r",
-            str(OUT_FPS),
+            "copy",
+            "-af",
+            loudness_filter(),
             "-c:a",
             "aac",
             "-b:a",
             "160k",
-            "-ar",
-            "48000",
             "-movflags",
             "+faststart",
             str(out_path),
         ],
         work_dir,
-        "Finishing the clip",
+        "Levelling audio",
     )
     joined.unlink(missing_ok=True)
     if not out_path.is_file() or out_path.stat().st_size == 0:

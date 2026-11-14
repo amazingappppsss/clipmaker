@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from clipmaker.editing.captions import build_ass
-from clipmaker.editing.render import OUT_H, OUT_W, Piece, final_filter, piece_filter, render
+from clipmaker.editing.render import OUT_H, OUT_W, Piece, loudness_filter, piece_filter, render
 from clipmaker.media.probe import probe_media
 from clipmaker.providers.transcription.base import Word
 
@@ -19,9 +19,8 @@ def test_piece_filter_crops_scales_and_flashes() -> None:
     assert "fade=" not in piece_filter(Piece(2.0, 5.0, (0, 0, 2, 2)))
 
 
-def test_final_pass_burns_captions_and_normalises_loudness() -> None:
-    assert "ass=captions.ass" in final_filter("captions.ass")
-    assert "loudnorm=I=-14" in final_filter(None) and "ass=" not in final_filter(None)
+def test_audio_is_levelled_for_social_platforms() -> None:
+    assert "loudnorm=I=-14" in loudness_filter()
 
 
 def test_renders_a_vertical_short(sample_video: Path, tmp_path: Path) -> None:
@@ -36,10 +35,32 @@ def test_renders_a_vertical_short(sample_video: Path, tmp_path: Path) -> None:
         pieces,
         tmp_path / "clip.mp4",
         tmp_path / "work",
-        build_ass(words, title="Test Clip"),
+        None,
         preset="ultrafast",
+        captions=lambda a, b: build_ass(words, title="Test Clip", window=(a, b)),
     )
     meta = probe_media(str(out))
     assert (meta.width, meta.height) == (OUT_W, OUT_H)
     assert meta.has_audio
     assert abs(meta.duration_seconds - 5.5) < 0.4
+
+
+def test_captions_are_burned_into_each_piece(sample_video: Path, tmp_path: Path) -> None:
+    """Captions are written per piece, so the joined video is never re-encoded."""
+    seen: list[tuple[float, float]] = []
+
+    def captions(start: float, end: float) -> str:
+        seen.append((round(start, 2), round(end, 2)))
+        return build_ass([Word("hi", start, start + 0.4)], window=(start, end))
+
+    out = render(
+        str(sample_video),
+        [Piece(1.0, 3.0, (0, 0, 404, 720)), Piece(5.0, 6.5, (0, 0, 404, 720))],
+        tmp_path / "c.mp4",
+        tmp_path / "w",
+        None,
+        preset="ultrafast",
+        captions=captions,
+    )
+    assert out.is_file()
+    assert seen == [(0.0, 2.0), (2.0, 3.5)]  # windows follow the finished timeline
