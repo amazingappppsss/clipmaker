@@ -7,15 +7,74 @@ import type { ProjectState, StageStatus } from "@/services/api-types";
 export type StateTone = "neutral" | "active" | "success" | "warning" | "danger";
 
 /** Processing stages in pipeline order, with user-facing labels (PRD §6-D). */
-export const PIPELINE_STEPS: ReadonlyArray<{ state: ProjectState; label: string }> = [
+export const PIPELINE_STEPS: ReadonlyArray<{ state: ProjectState; label: string; soon?: true }> = [
   { state: "INGESTING", label: "Preparing video" },
   { state: "TRANSCRIBING", label: "Transcribing" },
   { state: "UNDERSTANDING", label: "Understanding video" },
   { state: "SELECTING", label: "Finding moments" },
-  { state: "EDITING", label: "Editing" },
-  { state: "RENDERING", label: "Rendering" },
-  { state: "QUALITY_CHECK", label: "Quality checking" },
+  // Not built yet (Milestone 3+): shown so users see what's coming, never as running.
+  { state: "EDITING", label: "Editing", soon: true },
+  { state: "RENDERING", label: "Rendering", soon: true },
+  { state: "QUALITY_CHECK", label: "Quality checking", soon: true },
 ];
+
+/** The stages that actually run today. */
+export const LIVE_STEPS = PIPELINE_STEPS.filter((s) => !s.soon);
+
+/** Headline and one-line explanation for the stage that is running (describes real work). */
+export function stepCopy(
+  state: ProjectState,
+  fromLink: boolean,
+): { title: string; detail: string } {
+  switch (state) {
+    case "INGESTING":
+      return fromLink
+        ? {
+            title: "Fetching your video",
+            detail: "Downloading it, checking the audio and pulling out a clean speech track.",
+          }
+        : {
+            title: "Preparing your video",
+            detail: "Checking the file and pulling out a clean speech track.",
+          };
+    case "TRANSCRIBING":
+      return {
+        title: "Listening to every word",
+        detail: "A word-by-word transcript with timestamps and who's speaking.",
+      };
+    case "UNDERSTANDING":
+      return {
+        title: "Understanding the story",
+        detail: "AI reads the whole conversation: the topics, the speakers, the big ideas.",
+      };
+    case "SELECTING":
+      return {
+        title: "Picking the best moments",
+        detail: "Scoring every candidate on hook, payoff, emotion and whether it stands alone.",
+      };
+    default:
+      return { title: "Working on it", detail: "Your video is being processed." };
+  }
+}
+
+/** Index (in LIVE_STEPS) of the stage running now, from the real step statuses; -1 if none. */
+export function currentLiveStep(statuses: StepStatus[]): number {
+  const live = statuses.slice(0, LIVE_STEPS.length);
+  const running = live.indexOf("current");
+  if (running >= 0) return running;
+  const firstPending = live.indexOf("pending");
+  return firstPending;
+}
+
+/** "m:ss" (or "h:mm:ss") between an ISO start time and now; "" when not started. */
+export function elapsedLabel(startedAt: string | null | undefined, now: number): string {
+  if (!startedAt) return "";
+  const total = Math.max(0, Math.floor((now - Date.parse(startedAt)) / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = String(total % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
+}
 
 const LABELS: Record<ProjectState, string> = {
   CREATED: "Awaiting upload",

@@ -33,6 +33,11 @@ export function StageTimeline({ statuses }: { statuses: StepStatus[] }) {
               {step.label}
               {status === "failed" ? <span className="sr-only"> (failed)</span> : null}
             </span>
+            {step.soon && status === "pending" ? (
+              <span className="ml-auto rounded-full bg-sunken px-2 py-0.5 text-[0.65rem] font-semibold tracking-wide text-muted uppercase">
+                Soon
+              </span>
+            ) : null}
           </li>
         );
       })}

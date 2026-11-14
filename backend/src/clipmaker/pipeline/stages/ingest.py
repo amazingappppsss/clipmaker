@@ -15,7 +15,7 @@ from typing import Any
 from clipmaker.core.enums import UploadStatus
 from clipmaker.core.errors import InsufficientCreditsError
 from clipmaker.db.models import Project, SourceVideo, User
-from clipmaker.media.audio import MediaError, extract_audio, make_thumbnail
+from clipmaker.media.audio import MediaError, extract_audio, make_streamable, make_thumbnail
 from clipmaker.media.probe import ProbeError, probe_media
 from clipmaker.media.url_import import UrlImportError
 from clipmaker.pipeline.context import StageContext, StageOutput
@@ -60,6 +60,14 @@ def _fetch_from_link(ctx: StageContext, src: SourceVideo) -> dict[str, Any]:
             "too_long",
             f"Video is too long (maximum {limits.max_video_duration_seconds // 60} min).",
         )
+
+    if path.suffix in (".mp4", ".mov"):
+        # Downloaded MP4s often keep their index at the end, which makes previews spin until
+        # the whole file loads. A quick lossless remux fixes that; the original is fine if not.
+        try:
+            path = make_streamable(path, path.with_name(f"streamable{path.suffix}"))
+        except MediaError:
+            pass
 
     key = src.storage_key.rsplit(".", 1)[0] + path.suffix
     try:

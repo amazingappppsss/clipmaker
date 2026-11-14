@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  LIVE_STEPS,
   PIPELINE_STEPS,
+  currentLiveStep,
+  elapsedLabel,
+  stepCopy,
   isProcessing,
   stateTone,
   stepStatuses,
@@ -68,5 +72,34 @@ describe("stepStatusesFromJob", () => {
       },
     ];
     expect(stepStatusesFromJob(stages)[1]).toBe("current");
+  });
+});
+
+describe("live processing helpers", () => {
+  it("only counts the stages that actually run", () => {
+    expect(LIVE_STEPS.map((s) => s.state)).toEqual([
+      "INGESTING",
+      "TRANSCRIBING",
+      "UNDERSTANDING",
+      "SELECTING",
+    ]);
+  });
+
+  it("finds the running stage from real statuses", () => {
+    expect(currentLiveStep(["done", "current", "pending", "pending"])).toBe(1);
+    expect(currentLiveStep(["done", "done", "pending", "pending"])).toBe(2);
+    expect(currentLiveStep(["done", "done", "done", "done"])).toBe(-1);
+  });
+
+  it("formats elapsed time", () => {
+    const start = "2026-01-01T00:00:00Z";
+    expect(elapsedLabel(start, Date.parse(start) + 75_000)).toBe("1:15");
+    expect(elapsedLabel(start, Date.parse(start) + 3_725_000)).toBe("1:02:05");
+    expect(elapsedLabel(null, 0)).toBe("");
+  });
+
+  it("describes link downloads differently from uploads", () => {
+    expect(stepCopy("INGESTING", true).title).toBe("Fetching your video");
+    expect(stepCopy("INGESTING", false).title).toBe("Preparing your video");
   });
 });

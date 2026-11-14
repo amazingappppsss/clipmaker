@@ -39,6 +39,33 @@
   --animate-pop: pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
   --animate-float: float 6s ease-in-out infinite;
   --animate-spin-slow: spin 14s linear infinite;
+  --animate-scan: scan 2.4s ease-in-out infinite;
+  --animate-stripes: stripes 0.8s linear infinite;
+  --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+
+  @keyframes scan {
+    0%,
+    100% {
+      top: 4%;
+    }
+    50% {
+      top: 92%;
+    }
+  }
+  @keyframes stripes {
+    to {
+      background-position: 28px 0;
+    }
+  }
+  @keyframes shimmer {
+    0%,
+    100% {
+      opacity: 0.45;
+    }
+    50% {
+      opacity: 0.9;
+    }
+  }
 
   @keyframes pop {
     from {
@@ -105,6 +132,16 @@
       linear-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1px),
       linear-gradient(90deg, rgb(255 255 255 / 0.09) 1px, transparent 1px);
     background-size: 64px 64px;
+  }
+
+  /* Moving diagonal stripes for the active progress segment. */
+  .stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      var(--color-lime) 0 10px,
+      var(--color-lime-deep) 10px 20px
+    );
+    background-size: 28px 100%;
   }
 
   /* Frosted card floating over blue. */

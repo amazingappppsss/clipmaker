@@ -20,3 +20,18 @@ export function looksLikeYouTubeUrl(raw: string): boolean {
     return false;
   }
 }
+
+/** Public thumbnail for a YouTube link (shown while the video is being fetched), or null. */
+export function youtubeThumbnail(raw: string | null | undefined): string | null {
+  if (!raw || !looksLikeYouTubeUrl(raw)) return null;
+  const url = new URL(raw.includes("://") ? raw.trim() : `https://${raw.trim()}`);
+  const host = url.hostname.toLowerCase();
+  let id: string | null = null;
+  if (host === "youtu.be") id = url.pathname.split("/")[1] ?? null;
+  else if (url.pathname === "/watch") id = url.searchParams.get("v");
+  else {
+    const m = url.pathname.match(/^\/(?:shorts|live|embed)\/([^/?#]+)/);
+    id = m?.[1] ?? null;
+  }
+  return id && /^[\w-]{11}$/.test(id) ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : null;
+}

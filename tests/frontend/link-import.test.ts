@@ -7,7 +7,7 @@ import {
   takePendingLink,
   takePendingUpload,
 } from "@/lib/pending-upload";
-import { looksLikeYouTubeUrl } from "@/lib/youtube";
+import { looksLikeYouTubeUrl, youtubeThumbnail } from "@/lib/youtube";
 
 describe("looksLikeYouTubeUrl", () => {
   it.each([
@@ -38,5 +38,25 @@ describe("landing → /new hand-off", () => {
     expect(hasPendingUpload()).toBe(true);
     expect(takePendingUpload()?.name).toBe("a.mp4");
     expect(hasPendingUpload()).toBe(false);
+  });
+});
+
+describe("youtubeThumbnail", () => {
+  it("builds a thumbnail for common link shapes", () => {
+    const want = "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg";
+    expect(
+      youtubeThumbnail("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10"),
+    ).toBe(want);
+    expect(youtubeThumbnail("https://youtu.be/dQw4w9WgXcQ")).toBe(want);
+    expect(youtubeThumbnail("https://youtube.com/shorts/dQw4w9WgXcQ")).toBe(
+      want,
+    );
+  });
+
+  it("returns null for anything else", () => {
+    expect(
+      youtubeThumbnail("https://example.com/watch?v=dQw4w9WgXcQ"),
+    ).toBeNull();
+    expect(youtubeThumbnail(null)).toBeNull();
   });
 });

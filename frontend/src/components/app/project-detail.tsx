@@ -13,6 +13,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { MomentCard } from "@/components/app/moment-card";
+import { MomentPlaceholders, ProcessingHero } from "@/components/app/processing-hero";
 import { StageTimeline } from "@/components/app/stage-timeline";
 import { StateBadge } from "@/components/app/state-badge";
 import { Alert } from "@/components/ui/alert";
@@ -172,6 +173,12 @@ export function ProjectDetail() {
         </div>
       ) : null}
 
+      {processing ? (
+        <div className="mt-8">
+          <ProcessingHero project={project} steps={steps} startedAt={status?.started_at} />
+        </div>
+      ) : null}
+
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
         <section className="rounded-[1.75rem] bg-surface p-6 ring-1 ring-line sm:p-8">
           {uploadFailed ? (
@@ -208,9 +215,11 @@ export function ProjectDetail() {
             </div>
           ) : processing ? (
             <div>
-              <h2 className="display-heavy text-2xl">Working on it…</h2>
+              <h2 className="display-heavy text-2xl">About this video</h2>
               <p className="mt-2 text-muted">
-                This runs in the background — you can close this tab and come back later.
+                {src?.duration_seconds
+                  ? "Details from the file we're working on."
+                  : "Details appear once we've fetched the video."}
               </p>
             </div>
           ) : project.state === "FAILED" ? (
@@ -237,7 +246,7 @@ export function ProjectDetail() {
             </div>
           )}
 
-          {src && !uploadFailed ? (
+          {src && !uploadFailed && src.duration_seconds ? (
             <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-line pt-6 sm:grid-cols-4">
               <Fact label="Duration" value={formatDuration(src.duration_seconds)} />
               <Fact
@@ -255,6 +264,8 @@ export function ProjectDetail() {
           <StageTimeline statuses={steps} />
         </aside>
       </div>
+
+      {processing ? <MomentPlaceholders /> : null}
 
       {clips.length ? (
         <section className="mt-10" aria-label="Picked moments">

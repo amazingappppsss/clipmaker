@@ -61,3 +61,14 @@ def test_probe_garbage_file(tmp_path: Path) -> None:
     bad.write_bytes(b"definitely not a video" * 100)
     with pytest.raises(ProbeError):
         probe_media(str(bad))
+
+
+def test_make_streamable_moves_index_to_front(sample_video: Path, tmp_path: Path) -> None:
+    from clipmaker.media.audio import make_streamable
+
+    out = make_streamable(sample_video, tmp_path / "s.mp4")
+    head = out.read_bytes()[:4096]
+    assert head.find(b"moov") != -1 and (
+        head.find(b"mdat") == -1 or head.find(b"moov") < head.find(b"mdat")
+    )
+    assert probe_media(str(out)).has_audio
