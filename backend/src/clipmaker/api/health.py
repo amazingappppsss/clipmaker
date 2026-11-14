@@ -47,6 +47,7 @@ def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOu
         storage_base_url=storage_base_url(),
         storage_persistent=_persistent(settings),
         recent_stage_seconds=_recent_timings(db) if db_ok else [],
+        recent_failures=_recent_failures(db) if db_ok else [],
     )
 
 
@@ -87,4 +88,20 @@ def _recent_timings(db: DbSession, limit: int = 5) -> list[dict[str, float]]:
             row[stage] = round((end - start).total_seconds(), 1)
         if row:
             out.append(row)
+    return out
+
+
+def _recent_failures(db: DbSession, limit: int = 5) -> list[dict[str, str | int]]:
+    """Failed stages of the latest runs: stage name, error code, attempt (diagnostics)."""
+    jobs = db.scalars(
+        select(ProcessingJob).order_by(ProcessingJob.created_at.desc()).limit(limit)
+    ).all()
+    out: list[dict[str, str | int]] = []
+    for job in jobs:
+        for stage, rec in (job.stages or {}).items():
+            if rec.get("status") != "failed" and not (rec.get("error") and rec.get("attempts")):
+                continue
+            code = str(rec.get("error") or "").split(":", 1)[0][:40]
+            if code:
+                out.append({"stage": stage, "code": code, "attempts": int(rec.get("attempts", 0))})
     return out

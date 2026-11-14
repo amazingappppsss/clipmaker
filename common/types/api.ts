@@ -500,6 +500,13 @@ export interface components {
             recent_stage_seconds: {
                 [key: string]: number;
             }[];
+            /**
+             * Recent Failures
+             * @default []
+             */
+            recent_failures: {
+                [key: string]: string | number;
+            }[];
         };
         /**
          * ImportRequest

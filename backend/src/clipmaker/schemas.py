@@ -247,6 +247,8 @@ class HealthOut(BaseModel):
     storage_persistent: bool | None = None
     # Seconds each stage took in the most recent runs (newest first) — speed diagnostics only.
     recent_stage_seconds: list[dict[str, float]] = []
+    # Latest failed stages: stage, error code and attempt (codes only, never user data).
+    recent_failures: list[dict[str, str | int]] = []
 
 
 class DevTokenRequest(BaseModel):
