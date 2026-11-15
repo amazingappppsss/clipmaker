@@ -79,7 +79,7 @@ export function WaitlistLanding() {
                 hook="Speaker-tracked"
               />
               <p className="mt-2 text-center text-xs font-medium text-white/70">
-                Real footage, real re-framing · licensed stock, not a customer&rsquo;s episode
+                Licensed stock footage · real re-framing, demo captions
               </p>
             </div>
           </div>

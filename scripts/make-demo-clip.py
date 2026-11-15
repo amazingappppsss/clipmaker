@@ -11,10 +11,11 @@ with no attribution required; the file is not redistributed in the repository, o
 rendered result. Someone else's podcast could not be used here at any quality: we would not own
 it, and a takedown on the landing page is not a risk worth a nicer demo.
 
-**No invented quotes.** Everything drawn over the footage is our own interface — the re-framing
-notice, the score badge, the progress bar. Word-by-word captions are deliberately absent: we do
-not know what these people are saying, and putting a sentence under a real face would be
-claiming they said it.
+**The captions are illustrative, and the page says so.** The source has no audio track at all,
+so there is no speech to contradict and nobody is being misquoted — these are licensed actors
+in a staged scene, and the words demonstrate what our caption engine draws. They are timed to
+the camera move, so the second line lands on whoever takes the floor: the reaction beat the
+whole framework is built around.
 
 Run:  python scripts/make-demo-clip.py
 """
@@ -22,11 +23,17 @@ Run:  python scripts/make-demo-clip.py
 from __future__ import annotations
 
 import subprocess
+import sys
 import tempfile
 import urllib.request
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend/src"))
+
+from clipmaker.editing.captions import build_ass  # noqa: E402
+from clipmaker.providers.transcription.base import Word  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "frontend/public/demo"
@@ -46,8 +53,12 @@ LEFT_X = 158  # the speaker on the left, centred
 RIGHT_X = 818  # the speaker on the right
 
 RAW_UNTIL, SNAP_UNTIL = 1.5, 2.1  # wide frame, then the crop closing in
-TURN_AT, TURN_UNTIL = 4.3, 4.65  # the floor changes hands; the camera follows
+TURN_AT, TURN_UNTIL = 4.7, 4.95  # the floor changes hands; the camera follows
 DURATION = 7.0
+
+#: Timed to the camera move: the first line belongs to the speaker on the left, the second to
+#: whoever takes the floor at TURN_AT. The reaction is the payoff, so it lands on the cut.
+LINES = [("I walked away from $400K on a Tuesday.", 2.2), ("Wait. You did WHAT?", 5.05)]
 SOURCE_FROM = 1.2  # skip the first second, where nobody has started
 
 
@@ -187,6 +198,18 @@ def decorate(canvas: Image.Image, t: float, art: dict[str, Image.Image]) -> Imag
     return Image.alpha_composite(out, bar).convert("RGB")
 
 
+def captions() -> str:
+    """Word timings for the two lines, captioned by the engine that captions real clips."""
+    words: list[Word] = []
+    for line, start in LINES:
+        t = start
+        for token in line.split():
+            span = 0.3 * (0.65 + min(len(token), 10) / 11)
+            words.append(Word(text=token, start=round(t, 2), end=round(t + span * 0.95, 2)))
+            t += span
+    return build_ass(words, title=None)  # the title card is part of the painted chrome
+
+
 def build() -> Path:
     OUT.mkdir(parents=True, exist_ok=True)
     out = OUT / "podcast-reframe.mp4"
@@ -211,16 +234,19 @@ def build() -> Path:
                     work / f"out{i:04d}.png"
                 )
 
+        (work / "captions.ass").write_text(captions(), encoding="utf-8")
         subprocess.run(
             [
                 "ffmpeg", "-y", "-v", "error",
-                "-framerate", str(FPS), "-i", str(work / "out%04d.png"),
+                "-framerate", str(FPS), "-i", "out%04d.png",
+                "-vf", f"ass=captions.ass:fontsdir={FONT_PATH.parent}",
                 "-an",  # the page autoplays it muted; audio would only add bytes
                 "-c:v", "libx264", "-preset", "veryslow", "-crf", "31",
                 "-pix_fmt", "yuv420p", "-movflags", "+faststart",
                 str(out),
             ],
             check=True,
+            cwd=work,
         )
     return out
 
