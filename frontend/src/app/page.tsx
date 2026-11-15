@@ -1,30 +1,19 @@
-/** Public landing page (PRD §6-A). The site header lives inside the hero panel. */
-import { AiReads } from "@/components/landing/ai-reads";
-import { Capabilities } from "@/components/landing/capabilities";
-import { Faq } from "@/components/landing/faq";
-import { Hero } from "@/components/landing/hero";
-import { HowItWorks } from "@/components/landing/how-it-works";
-import { LiveDemo } from "@/components/landing/live-demo";
-import { Pricing } from "@/components/landing/pricing";
-import { SiteFooter } from "@/components/landing/site-footer";
-import { StickyCta } from "@/components/landing/sticky-cta";
-import { WhyBetter } from "@/components/landing/why-better";
+/**
+ * The front door. We have not launched, so this is the waitlist — showing a paste bar for a
+ * product nobody can use yet would waste the visit.
+ *
+ * When we open up, swap this back to the product landing that still lives at /product.
+ */
+import type { Metadata } from "next";
 
-export default function LandingPage() {
-  return (
-    <>
-      <main>
-        <Hero />
-        <HowItWorks />
-        <AiReads />
-        <LiveDemo />
-        <WhyBetter />
-        <Capabilities />
-        <Pricing />
-        <Faq />
-      </main>
-      <SiteFooter />
-      <StickyCta />
-    </>
-  );
+import { WaitlistLanding } from "@/components/waitlist/waitlist-landing";
+
+export const metadata: Metadata = {
+  title: "Clip2Easy — one episode, ten viral shorts",
+  description:
+    "Join the first 100. We clip your first episode by hand before launch, free, and lock your price at half off for life.",
+};
+
+export default function HomePage() {
+  return <WaitlistLanding />;
 }
