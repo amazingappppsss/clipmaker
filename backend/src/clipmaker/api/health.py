@@ -24,6 +24,19 @@ from clipmaker.storage.local import LocalStorage
 router = APIRouter(tags=["health"])
 
 
+def _email_env_seen() -> list[str]:
+    """NAMES of email-ish variables this process can see — never their values.
+
+    A key set on the wrong service, or under a name nothing reads, is invisible: the service
+    looks healthy and silently sends nothing. This turns "is it even here?" into a fact.
+    """
+    return sorted(
+        name
+        for name, value in os.environ.items()
+        if value.strip() and re.search(r"RESEND|EMAIL|SMTP|MAIL", name, re.IGNORECASE)
+    )
+
+
 @router.get("/health")
 def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOut:
     """Report dependency status; 503 when any dependency is down."""
@@ -49,6 +62,7 @@ def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOu
         llm_ready=_has(settings.anthropic_api_key),
         link_import_ready=settings.enable_url_import and _has(settings.apify_token),
         email_ready=get_email_sender().ready,
+        email_env_seen=_email_env_seen(),
         storage_base_url=storage_base_url(),
         storage_persistent=_persistent(settings),
         recent_stage_seconds=_recent_timings(db) if db_ok else [],

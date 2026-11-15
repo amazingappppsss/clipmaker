@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from conftest import settings_patched
 from fastapi.testclient import TestClient
@@ -130,3 +132,18 @@ def test_the_key_is_found_under_any_of_the_obvious_names(
     assert settings.resend_api_key is not None
     assert settings.resend_api_key.get_secret_value() == "re_abc123"
     assert build_email_sender(settings).ready is True
+
+
+def test_health_lists_email_variable_names_but_never_values(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A key on the wrong service is invisible; names make that diagnosable, values would leak."""
+    monkeypatch.setenv("RESEND_API_KEY", "re_supersecret")
+    monkeypatch.setenv("EMAIL_FROM", "Clip2Easy <hi@example.com>")
+    monkeypatch.setenv("UNRELATED_THING", "x")
+    body = client.get("/health").json()
+    seen = body["email_env_seen"]
+    assert "RESEND_API_KEY" in seen
+    assert "EMAIL_FROM" in seen
+    assert "UNRELATED_THING" not in seen
+    assert "re_supersecret" not in json.dumps(body)

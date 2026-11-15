@@ -579,6 +579,8 @@ export interface components {
              * @default false
              */
             email_ready: boolean;
+            /** Email Env Seen */
+            email_env_seen?: string[];
             /** Storage Base Url */
             storage_base_url?: string | null;
             /** Storage Persistent */

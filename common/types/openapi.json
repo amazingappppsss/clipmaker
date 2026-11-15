@@ -1713,6 +1713,13 @@
             "title": "Email Ready",
             "default": false
           },
+          "email_env_seen": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Email Env Seen"
+          },
           "storage_base_url": {
             "anyOf": [
               {
