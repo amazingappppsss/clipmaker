@@ -472,3 +472,14 @@ def test_try_again_gives_failed_clips_a_fresh_start(
         clips = list(db.scalars(select(Clip)))
         assert clips and all(c.status == ClipStatus.PLANNED and c.attempts == 0 for c in clips)
         assert all(c.error_message is None for c in clips)
+
+
+def test_transcriber_is_given_the_stored_url_not_an_extracted_audio_file(
+    started: tuple[str, uuid.UUID],
+) -> None:
+    """Extracting and uploading an audio track was the slowest part of preparing a video."""
+    _, job_id = started
+    tx = FakeTranscriber()
+    make_runner(job_id, FakeLLM(), tx).run()
+    assert tx.sources and all(isinstance(s, str) for s in tx.sources)
+    assert all(s.startswith(("http://", "https://")) for s in tx.sources)  # type: ignore[union-attr]

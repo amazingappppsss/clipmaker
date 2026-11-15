@@ -55,8 +55,11 @@ class TranscriptionProvider(Protocol):
     name: str
 
     def transcribe(
-        self, audio: Path, language: str | None, heartbeat: Heartbeat
+        self, audio: Path | str, language: str | None, heartbeat: Heartbeat
     ) -> TranscriptionResult:
-        """Transcribe `audio`. `language` is an ISO code or None for auto-detect.
+        """Transcribe `audio`: a local file, or a URL the provider can fetch itself.
+
+        A URL lets the provider pull the media straight from storage, so we never extract and
+        upload an audio track first. `language` is an ISO code or None for auto-detect, and
         `heartbeat` must be called at least every few minutes during long waits."""
         ...

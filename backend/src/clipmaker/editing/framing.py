@@ -26,7 +26,7 @@ MODEL_PATH = (
     / "models"
     / ("face_detection_yunet_2023mar.onnx")
 )
-SAMPLE_FPS = 4.0
+SAMPLE_FPS = 2.0  # twice a second is plenty to follow a speaker, and halves the decoding
 DETECT_WIDTH = 640
 MIN_FACE_SCORE = 0.7
 TRACK_MATCH = 0.12  # max horizontal distance (fraction of width) to call it the same face

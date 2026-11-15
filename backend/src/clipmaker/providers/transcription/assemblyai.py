@@ -97,19 +97,24 @@ class AssemblyAIProvider:
         return body
 
     def transcribe(
-        self, audio: Path, language: str | None, heartbeat: Heartbeat
+        self, audio: Path | str, language: str | None, heartbeat: Heartbeat
     ) -> TranscriptionResult:
         try:
-            upload = self._check(
-                self._client.post(
-                    "/v2/upload",
-                    content=_iter_file(audio),
-                    headers={"content-type": "application/octet-stream"},
-                ),
-                "upload",
-            )
+            # A URL is fetched by AssemblyAI directly: no audio track to extract, and no
+            # upload of our own, which is the slowest part of preparing a video.
+            if isinstance(audio, str):
+                source = audio
+            else:
+                source = self._check(
+                    self._client.post(
+                        "/v2/upload",
+                        content=_iter_file(audio),
+                        headers={"content-type": "application/octet-stream"},
+                    ),
+                    "upload",
+                )["upload_url"]
             request: dict[str, Any] = {
-                "audio_url": upload["upload_url"],
+                "audio_url": source,
                 "speaker_labels": True,
                 "punctuate": True,
                 "format_text": True,

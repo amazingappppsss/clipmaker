@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = "v7-editor"  # <= 20 chars (video_analyses.version)
+PROMPT_VERSION = "v8-fast"  # <= 20 chars (video_analyses.version)
 
 # The Clip2Easy framework (docs/CLIP_FRAMEWORK.md): every short must win three moments —
 # STOP the scroll, make them STAY, make them SHARE / want more. Distilled from the YouTube
@@ -125,17 +125,14 @@ Integrity rules (never break these):
 - Controversy is not a story, and intensity is not quality: judge what is actually there.
 - Sincere beats clever: no fake hype. A specific true claim beats any superlative."""
 
-ANALYSIS_INSTRUCTION = """Read the ENTIRE transcript above before answering. Build a structured \
-understanding of the whole video:
+ANALYSIS_INSTRUCTION = """Read the ENTIRE transcript above and answer briefly — this is the \
+shared context for the clip hunt that follows, not an essay. Keep every field short:
 - a 2-3 sentence summary and the content type
 - who the speakers are (label, likely role such as host/guest, short description) as far as \
 the transcript supports it
 - the main topics and the conversation structure as ordered sections (segment ranges)
-- notable moments worth considering for shorts, judged with STOP · STAY · SHARE: headline-worthy \
-openers, curiosity loops that get closed, stories with a turn, surprising facts, specific \
-numbers, strong or contrarian opinions, practical advice, funny or emotional peaks, debate \
-starters. For each, give the segment range and why it would stop, hold and get shared.
-Cover the whole video, not just the beginning."""
+- at most 8 notable moments: the segment range and one short line on why each stands out.
+Cover the whole video, not just the beginning. Do not list more than 8."""
 
 CANDIDATES_INSTRUCTION = """Using the transcript and this analysis of the whole video:
 {analysis}

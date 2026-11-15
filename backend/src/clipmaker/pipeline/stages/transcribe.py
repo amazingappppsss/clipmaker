@@ -7,13 +7,44 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any
 
-from clipmaker.db.models import Project, Transcript, TranscriptSegment
+from clipmaker.db.models import Project, SourceVideo, Transcript, TranscriptSegment
+from clipmaker.media.audio import MediaError, extract_audio
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError, RetryableStageError
 from clipmaker.pipeline.transcript import build_segments
 from clipmaker.providers.transcription.base import TranscriptionError
+
+
+def transcription_source(ctx: StageContext) -> Path | str:
+    """What to hand the transcriber: the stored video's URL, else a local audio file.
+
+    Letting the provider fetch the video itself removes extracting an audio track and
+    uploading it — the slowest part of preparing a video — from the critical path.
+    """
+    with ctx.sessions() as db:
+        src = db.query(SourceVideo).filter_by(project_id=ctx.project_id).one_or_none()
+        key = src.storage_key if src else None
+    if key:
+        url = ctx.storage.presign_download(key)
+        if url.startswith(("http://", "https://")) and "localhost" not in url:
+            return url
+    audio_path = ctx.work_dir / "audio.mp3"
+    if audio_path.is_file():
+        return audio_path
+    audio_key = f"{ctx.prefix}work/audio.mp3"
+    if ctx.storage.head(audio_key):
+        ctx.storage.download_file(audio_key, audio_path)
+        return audio_path
+    if not key:
+        raise PermanentStageError("no_source", "This project has no video to transcribe.")
+    try:
+        extract_audio(ctx.storage.media_source(key), audio_path)
+    except MediaError as exc:
+        raise PermanentStageError("media_unreadable", f"We couldn't read the video: {exc}") from exc
+    return audio_path
 
 
 def run(ctx: StageContext) -> StageOutput:
@@ -26,12 +57,9 @@ def run(ctx: StageContext) -> StageOutput:
     language = settings.get("language")
     language = None if language in (None, "auto") else str(language)
 
-    audio_path = ctx.work_dir / "audio.mp3"
-    if not audio_path.is_file():
-        ctx.storage.download_file(f"{ctx.prefix}work/audio.mp3", audio_path)
-
+    source = transcription_source(ctx)
     try:
-        result = ctx.transcriber().transcribe(audio_path, language, ctx.heartbeat)
+        result = ctx.transcriber().transcribe(source, language, ctx.heartbeat)
     except TranscriptionError as exc:
         error = RetryableStageError if exc.retryable else PermanentStageError
         raise error("transcription_failed", str(exc)) from exc

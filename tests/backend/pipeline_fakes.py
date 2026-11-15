@@ -75,15 +75,17 @@ class FakeTranscriber:
         self, fail_times: int = 0, retryable: bool = True, words: list[Word] | None = None
     ) -> None:
         self.calls = 0
+        self.sources: list[Path | str] = []
         self.fail_times = fail_times
         self.retryable = retryable
         self.words = fake_words() if words is None else words
 
     def transcribe(
-        self, audio: Path, language: str | None, heartbeat: Callable[[], None]
+        self, audio: Path | str, language: str | None, heartbeat: Callable[[], None]
     ) -> TranscriptionResult:
         self.calls += 1
-        assert audio.is_file(), "pipeline must hand the provider a real audio file"
+        self.sources.append(audio)
+        assert isinstance(audio, str) or audio.is_file(), "needs a real file or a URL"
         heartbeat()
         if self.calls <= self.fail_times:
             raise TranscriptionError("simulated provider outage", retryable=self.retryable)

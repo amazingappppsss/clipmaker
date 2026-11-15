@@ -15,7 +15,7 @@ from typing import Any
 from clipmaker.core.enums import UploadStatus
 from clipmaker.core.errors import InsufficientCreditsError
 from clipmaker.db.models import Project, SourceVideo, User
-from clipmaker.media.audio import MediaError, extract_audio, make_streamable, make_thumbnail
+from clipmaker.media.audio import MediaError, make_streamable, make_thumbnail
 from clipmaker.media.probe import ProbeError, probe_media
 from clipmaker.media.url_import import UrlImportError
 from clipmaker.pipeline.context import StageContext, StageOutput
@@ -131,35 +131,34 @@ def run(ctx: StageContext) -> StageOutput:
             outputs["downloaded_bytes"] = updates["size_bytes"]
         source_key, duration = src.storage_key, float(src.duration_seconds or 0)
 
-    if ctx.storage.head(audio_key) and ctx.storage.head(thumb_key):
+    if ctx.storage.head(thumb_key):
         with ctx.sessions() as db:
             db.query(SourceVideo).filter_by(project_id=ctx.project_id).update(
                 {"thumbnail_key": thumb_key}
             )
             db.commit()
-        return StageOutput(
-            {**outputs, "audio_key": audio_key, "thumbnail_key": thumb_key}, skipped=True
-        )
+        return StageOutput({**outputs, "thumbnail_key": thumb_key}, skipped=True)
 
     media = ctx.storage.media_source(source_key)
     try:
         thumb = make_thumbnail(
             media, ctx.work_dir / "thumbnail.jpg", at_seconds=min(5.0, duration / 3)
         )
-        audio = extract_audio(media, ctx.work_dir / "audio.mp3")
     except MediaError as exc:
         # A file that passed verification but cannot be decoded is not going to improve.
         raise PermanentStageError("media_unreadable", f"We couldn't read the video: {exc}") from exc
 
+    # No audio track is extracted: the transcriber fetches the stored video itself
+    # (pipeline/stages/transcribe.py). Only when it cannot — storage that isn't reachable from
+    # the internet — is an audio file made, there and then.
     try:
         ctx.storage.upload_file(thumb, thumb_key, "image/jpeg")
-        ctx.storage.upload_file(audio, audio_key, "audio/mpeg")
     except OSError as exc:
-        raise RetryableStageError("storage_error", "Saving processed files failed.") from exc
+        raise RetryableStageError("storage_error", "Saving the preview image failed.") from exc
 
     with ctx.sessions() as db:
         db.query(SourceVideo).filter_by(project_id=ctx.project_id).update(
             {"thumbnail_key": thumb_key}
         )
         db.commit()
-    return StageOutput({**outputs, "audio_key": audio_key, "thumbnail_key": thumb_key})
+    return StageOutput({**outputs, "thumbnail_key": thumb_key, "audio_key": audio_key})
