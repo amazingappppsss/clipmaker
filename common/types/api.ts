@@ -992,7 +992,9 @@ export interface operations {
     health_health_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-diagnostics-token"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1005,6 +1007,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

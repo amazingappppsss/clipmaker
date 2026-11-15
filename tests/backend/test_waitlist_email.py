@@ -9,6 +9,7 @@ from conftest import settings_patched
 from fastapi.testclient import TestClient
 
 from clipmaker.core.config import Settings
+from pydantic import SecretStr
 from clipmaker.providers.email.base import Email, EmailError, NullSender
 from clipmaker.providers.email.factory import build_email_sender
 from clipmaker.services.waitlist import WaitlistPlace
@@ -134,21 +135,31 @@ def test_the_key_is_found_under_any_of_the_obvious_names(
     assert build_email_sender(settings).ready is True
 
 
-def test_health_lists_email_variable_names_but_never_values(
+def test_health_hides_internals_from_the_public_and_never_leaks_values(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A key on the wrong service is invisible; names make that diagnosable, values would leak."""
+    """Variable names are reconnaissance; values are a breach. Neither is public."""
+    from conftest import settings_patched
+
     monkeypatch.setenv("RESEND_API_KEY", "re_supersecret")
     monkeypatch.setenv("EMAIL_FROM", "Clip2Easy <hi@example.com>")
-    monkeypatch.setenv("UNRELATED_THING", "x")
-    body = client.get("/health").json()
-    seen = body["email_env_seen"]
-    assert "RESEND_API_KEY" in seen
-    assert "EMAIL_FROM" in seen
-    assert "UNRELATED_THING" not in seen
-    assert "re_supersecret" not in json.dumps(body)
 
+    public = client.get("/health").json()
+    assert public["email_env_seen"] == []
+    assert public["recent_email_results"] == []
+    assert public["storage_base_url"] is None
 
+    with settings_patched(diagnostics_token=SecretStr("s3cret-token")):
+        # Wrong token is treated exactly like no token.
+        assert client.get("/health", headers={"x-diagnostics-token": "wrong"}).json()[
+            "email_env_seen"
+        ] == []
+
+        body = client.get("/health", headers={"x-diagnostics-token": "s3cret-token"}).json()
+        assert "RESEND_API_KEY" in body["email_env_seen"]
+        assert "EMAIL_FROM" in body["email_env_seen"]
+        # Even for us, names only — never the key itself.
+        assert "re_supersecret" not in json.dumps(body)
 def test_send_outcomes_are_recorded_without_the_address() -> None:
     """A swallowed failure is invisible otherwise — but the reason must not name who."""
     from clipmaker.services.waitlist_email import RECENT

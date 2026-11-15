@@ -40,7 +40,12 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Clip2Easy API",
         version=__version__,
-        docs_url=None if settings.app_env == AppEnv.PRODUCTION else "/docs",
+        # Closed unless explicitly opened. The previous rule — open unless APP_ENV is
+        # exactly "production" — left /docs, /redoc and /openapi.json serving the whole API
+        # surface publicly the moment that one variable was unset or spelled differently.
+        docs_url="/docs" if settings.expose_api_docs else None,
+        redoc_url="/redoc" if settings.expose_api_docs else None,
+        openapi_url="/openapi.json" if settings.expose_api_docs else None,
     )
 
     app.add_middleware(
@@ -57,6 +62,14 @@ def create_app() -> FastAPI:
         request_base_url.set(public_base_url(request))
         response = await call_next(request)
         response.headers["x-request-id"] = request_id
+        # Hardening. The API returns JSON to our own origin only, so it has no reason to be
+        # framed, sniffed, or to leak the path it was called from.
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
         logger.info(
             "request",
             extra={

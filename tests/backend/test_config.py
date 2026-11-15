@@ -86,3 +86,9 @@ def test_our_own_frontends_are_always_allowed_origins() -> None:
     # No duplicates when the host already lists one of ours.
     overlap = Settings(cors_origins="https://clip2easy.vercel.app")
     assert overlap.cors_origin_list.count("https://clip2easy.vercel.app") == 1
+
+
+def test_api_docs_are_closed_unless_switched_on() -> None:
+    """They were open to the internet because APP_ENV was not exactly "production"."""
+    assert Settings().expose_api_docs is False
+    assert Settings(expose_api_docs=True).expose_api_docs is True

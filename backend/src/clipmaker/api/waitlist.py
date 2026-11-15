@@ -33,15 +33,19 @@ HOUR = 3600
 
 
 def client_ip(request: Request) -> str | None:
-    """The caller's address.
+    """The caller's address, as far as it can be trusted.
 
-    In production we sit behind the platform's proxy, which rewrites `x-forwarded-for`, so the
-    first hop is the real client. A direct caller could spoof the header — which is why this
-    only ever feeds a rate-limit bucket and a one-way hash, never an authorization decision.
+    `x-forwarded-for` is a list the caller can start themselves: a request arriving with
+    "X-Forwarded-For: 1.2.3.4" reaches us as "1.2.3.4, <real address>", because our platform
+    *appends* rather than replaces. Reading the first hop therefore reads whatever the
+    attacker typed, and rotating it defeats any per-machine limit. The last hop is the one
+    our own proxy observed, so that is the only entry worth counting.
     """
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
-        return forwarded.split(",")[0].strip() or None
+        hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
+        if hops:
+            return hops[-1]
     return request.client.host if request.client else None
 
 
@@ -69,7 +73,12 @@ def join_waitlist(
 ) -> WaitlistPlaceOut:
     """Join the waitlist, or get back the place you already hold."""
     ip = client_ip(request)
-    if not is_allowed(counter, f"waitlist:{ip}", settings.waitlist_signups_per_hour, HOUR):
+    # `strict` because this is an unauthenticated write: if the counter is unreachable we
+    # refuse rather than let the form run unmetered. Signed-in endpoints still fail open,
+    # where an outage of the limiter must not take the product down.
+    if not is_allowed(
+        counter, f"waitlist:{ip}", settings.waitlist_signups_per_hour, HOUR, strict=True
+    ):
         raise RateLimitedError("Too many signups from here. Try again later.")
 
     if payload.company.strip():

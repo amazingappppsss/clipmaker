@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     api_public_url: str | None = None
     # Comma-separated list of browser origins allowed to call the API.
     cors_origins: str = "http://localhost:3000"
+    # Interactive API docs (/docs, /redoc, /openapi.json). Off unless deliberately switched
+    # on: they describe every endpoint and schema to anyone who asks.
+    expose_api_docs: bool = False
+    # Unset means the detailed /health internals (variable names, internal error text) are
+    # simply never served. Set it to read them with an X-Diagnostics-Token header.
+    diagnostics_token: SecretStr | None = None
 
     database_url: str = "postgresql+psycopg://clipmaker:clipmaker@localhost:5432/clipmaker"
     redis_url: str = "redis://localhost:6379/0"

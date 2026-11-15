@@ -1,7 +1,9 @@
 """Fixed-window rate limiter backed by Redis.
 
-Fails *open* when Redis is unreachable (logged as a warning): an outage of the limiter must
-not take the whole API down. Abuse protection at the edge (Cloudflare) is the second layer.
+Fails *open* when Redis is unreachable (logged as a warning) so an outage of the limiter does
+not take the whole API down — except for callers that pass `strict=True`, which are the
+unauthenticated endpoints where "no limiter" means "no limit". Abuse protection at the edge
+(Cloudflare) is the second layer.
 """
 
 from __future__ import annotations
@@ -46,11 +48,24 @@ def get_counter() -> Counter:
     return RedisCounter(get_settings().redis_url)
 
 
-def is_allowed(counter: Counter, subject: str, limit: int, window_seconds: int = 60) -> bool:
-    """True if `subject` is under `limit` requests in the current window."""
+def is_allowed(
+    counter: Counter,
+    subject: str,
+    limit: int,
+    window_seconds: int = 60,
+    *,
+    strict: bool = False,
+) -> bool:
+    """True if `subject` is under `limit` requests in the current window.
+
+    `strict` decides what happens when the counter itself is unreachable. Signed-in traffic
+    fails open, because an outage of the limiter must not take the product down. Public,
+    unauthenticated writes pass `strict=True` and fail closed: an unmetered open endpoint is
+    worse than a brief refusal, and an outage is exactly when abuse is cheapest.
+    """
     window = int(time.time()) // window_seconds
     try:
         return counter.incr_window(f"rl:{subject}:{window}", window_seconds) <= limit
     except redis.RedisError:
-        logger.warning("rate_limiter_unavailable", extra={"subject": subject})
-        return True
+        logger.warning("rate_limiter_unavailable", extra={"subject": subject, "strict": strict})
+        return not strict

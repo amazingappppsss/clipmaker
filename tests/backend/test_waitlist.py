@@ -128,3 +128,45 @@ def test_export_is_owner_only(
         allowed = client.get("/waitlist/export", headers=auth)
         assert allowed.status_code == 200
         assert [row["email"] for row in allowed.json()] == ["ada@example.com"]
+
+
+def test_a_spoofed_forwarded_header_cannot_escape_the_limit(client: TestClient) -> None:
+    """Our proxy APPENDS the real address, so a caller who sets the header owns the first hop.
+
+    Reading that first hop reads whatever the attacker typed, and rotating it defeats any
+    per-machine limit. Everything here must bucket by the last hop instead.
+    """
+    with settings_patched(waitlist_signups_per_hour=2):
+        # The attacker varies the hop they control; the trailing one stays the same machine.
+        for i in range(2):
+            res = client.post(
+                "/waitlist",
+                json={"email": f"spoof{i}@example.com"},
+                headers={"x-forwarded-for": f"10.0.0.{i}, 203.0.113.5"},
+            )
+            assert res.status_code == 201
+        blocked = client.post(
+            "/waitlist",
+            json={"email": "spoof-extra@example.com"},
+            headers={"x-forwarded-for": "10.0.0.99, 203.0.113.5"},
+        )
+        assert blocked.status_code == 429, "rotating the spoofable hop bypassed the limit"
+
+
+def test_the_public_form_fails_closed_when_the_limiter_is_down(client: TestClient) -> None:
+    """An unauthenticated write with no working limiter is an unmetered write."""
+    import redis
+
+    from clipmaker.core.rate_limit import get_counter
+    from clipmaker.main import app
+
+    class Broken:
+        def incr_window(self, key: str, window_seconds: int) -> int:
+            raise redis.ConnectionError("down")
+
+    app.dependency_overrides[get_counter] = Broken
+    try:
+        res = client.post("/waitlist", json={"email": "nope@example.com"})
+    finally:
+        app.dependency_overrides.pop(get_counter, None)
+    assert res.status_code == 429
