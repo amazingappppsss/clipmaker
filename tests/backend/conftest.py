@@ -11,6 +11,7 @@ import os
 import subprocess
 import uuid
 from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -256,3 +257,16 @@ def upload_project(client: TestClient, auth: dict[str, str], video: Path) -> str
     assert client.put(url, content=video.read_bytes(), headers=ticket["headers"]).status_code == 204
     assert client.post(f"/projects/{pid}/upload/complete", headers=auth).status_code == 200
     return pid
+
+
+@contextmanager
+def settings_patched(**changes: object) -> Iterator[None]:
+    """Run with a tweaked Settings, without touching the process-wide cache."""
+    from clipmaker.main import app
+
+    patched = get_settings().model_copy(update=changes)
+    app.dependency_overrides[get_settings] = lambda: patched
+    try:
+        yield
+    finally:
+        app.dependency_overrides.pop(get_settings, None)

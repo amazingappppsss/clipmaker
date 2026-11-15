@@ -98,6 +98,17 @@ class Settings(BaseSettings):
     # Server-side refusal fallback for the smart model (on by default; set false to disable).
     llm_refusal_fallback: bool = True
 
+    # --- Email ----------------------------------------------------------------------------
+    # "resend" needs RESEND_API_KEY and a verified EMAIL_FROM domain. Anything else (or a
+    # missing key) means no mail is sent; signups are still stored and /health says so.
+    # Where the public site lives. Referral links in emails point here, not at the API host.
+    site_url: str = "https://clip2easy.vercel.app"
+    email_provider: str = "resend"
+    resend_api_key: SecretStr | None = None
+    # Until a domain is verified, Resend's onboarding sender delivers to the account owner only.
+    email_from: str = "Clip2Easy <onboarding@resend.dev>"
+    email_reply_to: str = ""
+
     transcription_provider: str = "assemblyai"
     assemblyai_api_key: SecretStr | None = Field(
         default=None,
@@ -148,7 +159,9 @@ class Settings(BaseSettings):
     )
     work_dir: str = "./.data/work"
 
-    @field_validator("anthropic_api_key", "assemblyai_api_key", "apify_token", mode="before")
+    @field_validator(
+        "anthropic_api_key", "assemblyai_api_key", "apify_token", "resend_api_key", mode="before"
+    )
     @classmethod
     def _clean_key(cls, value: object) -> object:
         """Keys pasted into dashboards often carry spaces, newlines or quotes; drop them."""

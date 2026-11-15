@@ -16,6 +16,7 @@ from clipmaker import __version__
 from clipmaker.api.deps import AppSettings, DbSession
 from clipmaker.core.resources import cpu_count, encoder_threads, memory_limit_mb, memory_used_mb
 from clipmaker.db.models import Clip, ProcessingJob
+from clipmaker.providers.email.factory import get_email_sender
 from clipmaker.schemas import HealthOut
 from clipmaker.storage.factory import get_storage
 from clipmaker.storage.local import LocalStorage
@@ -47,6 +48,7 @@ def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOu
         transcription_ready=_has(settings.assemblyai_api_key),
         llm_ready=_has(settings.anthropic_api_key),
         link_import_ready=settings.enable_url_import and _has(settings.apify_token),
+        email_ready=get_email_sender().ready,
         storage_base_url=storage_base_url(),
         storage_persistent=_persistent(settings),
         recent_stage_seconds=_recent_timings(db) if db_ok else [],

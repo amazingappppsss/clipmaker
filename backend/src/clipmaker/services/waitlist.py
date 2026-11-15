@@ -150,3 +150,12 @@ def export(db: Session, limit: int = 5000) -> list[WaitlistSignup]:
             select(WaitlistSignup).order_by(WaitlistSignup.created_at.asc()).limit(limit)
         ).all()
     )
+
+
+def remove(db: Session, email: str) -> bool:
+    """Delete one signup by address. Returns whether a row was there to delete."""
+    row = db.scalar(select(WaitlistSignup).where(WaitlistSignup.email == normalize_email(email)))
+    if row is None:
+        return False
+    db.delete(row)
+    return True

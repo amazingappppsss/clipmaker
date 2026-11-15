@@ -2,29 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-from contextlib import contextmanager
-
+from conftest import settings_patched
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from clipmaker.db.models import WaitlistSignup
 from clipmaker.services import waitlist
-
-
-@contextmanager
-def settings_patched(**changes: object) -> Iterator[None]:
-    """Run with a tweaked Settings, without touching the process-wide cache."""
-    from clipmaker.core.config import get_settings
-    from clipmaker.main import app
-
-    patched = get_settings().model_copy(update=changes)
-    app.dependency_overrides[get_settings] = lambda: patched
-    try:
-        yield
-    finally:
-        app.dependency_overrides.pop(get_settings, None)
 
 
 def _join(client: TestClient, email: str, **extra: object) -> dict:

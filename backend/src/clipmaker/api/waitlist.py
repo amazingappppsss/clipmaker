@@ -10,11 +10,13 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 
 from clipmaker.api.deps import AppSettings, CurrentUser, DbSession
 from clipmaker.core.errors import NotFoundError, RateLimitedError
 from clipmaker.core.rate_limit import Counter, get_counter, is_allowed
+from clipmaker.providers.email.base import EmailSender
+from clipmaker.providers.email.factory import get_email_sender
 from clipmaker.schemas import (
     WaitlistEntryOut,
     WaitlistJoinIn,
@@ -22,6 +24,7 @@ from clipmaker.schemas import (
     WaitlistStatsOut,
 )
 from clipmaker.services import waitlist
+from clipmaker.services.waitlist_email import send_welcome
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["waitlist"])
@@ -58,9 +61,11 @@ def waitlist_stats(db: DbSession) -> WaitlistStatsOut:
 def join_waitlist(
     payload: WaitlistJoinIn,
     request: Request,
+    background: BackgroundTasks,
     db: DbSession,
     settings: AppSettings,
     counter: Annotated[Counter, Depends(get_counter)],
+    sender: Annotated[EmailSender, Depends(get_email_sender)],
 ) -> WaitlistPlaceOut:
     """Join the waitlist, or get back the place you already hold."""
     ip = client_ip(request)
@@ -90,6 +95,12 @@ def join_waitlist(
     db.commit()
     # Never log the address itself.
     logger.info("waitlist_join", extra={"new": place.is_new, "position": place.position})
+
+    # Only on a first join, so re-submitting an address can't be used to mailbomb someone.
+    # In the background: a slow provider must not hold up the response, and a failed send
+    # must not fail a signup that is already committed.
+    if place.is_new:
+        background.add_task(send_welcome, sender, payload.email, place, settings.site_url)
     return WaitlistPlaceOut(
         position=place.position,
         referral_code=place.referral_code,
@@ -97,6 +108,31 @@ def join_waitlist(
         total=place.total,
         places_per_referral=waitlist.PLACES_PER_REFERRAL,
     )
+
+
+@router.delete(
+    "/waitlist/{email}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    response_model=None,
+)
+def remove_from_waitlist(
+    email: str,
+    user: CurrentUser,
+    db: DbSession,
+    settings: AppSettings,
+) -> None:
+    """Remove one signup. Owner only, and a 404 to everyone else, like the export.
+
+    For clearing test rows and for honouring a deletion request. Anyone this signup referred
+    keeps their place: the foreign key is ON DELETE SET NULL, so their position is unaffected.
+    """
+    if (user.email or "").lower() not in settings.owner_email_set:
+        raise NotFoundError("Not found")
+    if not waitlist.remove(db, email):
+        raise NotFoundError("Not found")
+    db.commit()
+    logger.info("waitlist_removed")
 
 
 @router.get("/waitlist/export", response_model=list[WaitlistEntryOut])

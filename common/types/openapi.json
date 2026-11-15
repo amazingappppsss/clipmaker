@@ -1002,6 +1002,58 @@
         }
       }
     },
+    "/waitlist/{email}": {
+      "delete": {
+        "tags": [
+          "waitlist"
+        ],
+        "summary": "Remove From Waitlist",
+        "description": "Remove one signup. Owner only, and a 404 to everyone else, like the export.\n\nFor clearing test rows and for honouring a deletion request. Anyone this signup referred\nkeeps their place: the foreign key is ON DELETE SET NULL, so their position is unaffected.",
+        "operationId": "remove_from_waitlist_waitlist__email__delete",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Email"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/waitlist/export": {
       "get": {
         "tags": [
@@ -1654,6 +1706,11 @@
           "link_import_ready": {
             "type": "boolean",
             "title": "Link Import Ready",
+            "default": false
+          },
+          "email_ready": {
+            "type": "boolean",
+            "title": "Email Ready",
             "default": false
           },
           "storage_base_url": {

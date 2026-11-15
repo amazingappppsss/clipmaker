@@ -336,6 +336,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/waitlist/{email}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove From Waitlist
+         * @description Remove one signup. Owner only, and a 404 to everyone else, like the export.
+         *
+         *     For clearing test rows and for honouring a deletion request. Anyone this signup referred
+         *     keeps their place: the foreign key is ON DELETE SET NULL, so their position is unaffected.
+         */
+        delete: operations["remove_from_waitlist_waitlist__email__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/waitlist/export": {
         parameters: {
             query?: never;
@@ -551,6 +574,11 @@ export interface components {
              * @default false
              */
             link_import_ready: boolean;
+            /**
+             * Email Ready
+             * @default false
+             */
+            email_ready: boolean;
             /** Storage Base Url */
             storage_base_url?: string | null;
             /** Storage Persistent */
@@ -1532,6 +1560,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WaitlistPlaceOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_from_waitlist_waitlist__email__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                email: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
