@@ -206,8 +206,23 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        """CORS origins as a list. A trailing "/" is ignored (browsers send origins without one)."""
-        return [o.strip().rstrip("/") for o in self.cors_origins.split(",") if o.strip()]
+        """CORS origins: the configured ones, plus our own frontends, always.
+
+        Our own site being able to call our own API is not a deployment decision, and a stale
+        CORS_ORIGINS on the host silently breaks every form on the page while the site looks
+        perfectly healthy. A trailing "/" is ignored, because browsers send origins without one.
+        """
+        configured = [o.strip().rstrip("/") for o in self.cors_origins.split(",") if o.strip()]
+        merged = [*configured, *OUR_FRONTEND_ORIGINS]
+        return list(dict.fromkeys(merged))  # de-duplicated, order kept
+
+
+#: Frontends we ship ourselves. Always permitted, whatever the host is configured with — add
+#: a new one here when the site moves, so a missed variable can't take the forms down again.
+OUR_FRONTEND_ORIGINS: tuple[str, ...] = (
+    "https://clip2easy.vercel.app",
+    "http://localhost:3000",
+)
 
 
 @lru_cache(maxsize=1)

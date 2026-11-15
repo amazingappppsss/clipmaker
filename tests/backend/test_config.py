@@ -49,7 +49,9 @@ def test_unsafe_production_config_refused(override: dict[str, object], message: 
 
 def test_cors_origins_tolerate_spaces_and_trailing_slash() -> None:
     settings = Settings(cors_origins=" https://a.app/ , https://b.app")
-    assert settings.cors_origin_list == ["https://a.app", "https://b.app"]
+    # Our own frontends are appended (see OUR_FRONTEND_ORIGINS); what matters here is that the
+    # configured ones are parsed, trimmed and come first.
+    assert settings.cors_origin_list[:2] == ["https://a.app", "https://b.app"]
 
 
 def test_api_keys_accept_variant_names_and_strip_quotes(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -70,3 +72,17 @@ def test_files_go_to_the_platform_volume(monkeypatch: pytest.MonkeyPatch) -> Non
     assert (s.local_storage_dir, s.work_dir) == ("/data/storage", "/data/work")
     monkeypatch.setenv("LOCAL_STORAGE_DIR", "/elsewhere")
     assert Settings(_env_file=None).local_storage_dir == "/elsewhere"  # type: ignore[call-arg]
+
+
+def test_our_own_frontends_are_always_allowed_origins() -> None:
+    """A stale CORS_ORIGINS on the host must not be able to take the live site's forms down."""
+    from clipmaker.core.config import OUR_FRONTEND_ORIGINS, Settings
+
+    stale = Settings(cors_origins="https://an-old-domain.example")
+    for origin in OUR_FRONTEND_ORIGINS:
+        assert origin in stale.cors_origin_list
+    assert "https://an-old-domain.example" in stale.cors_origin_list
+
+    # No duplicates when the host already lists one of ours.
+    overlap = Settings(cors_origins="https://clip2easy.vercel.app")
+    assert overlap.cors_origin_list.count("https://clip2easy.vercel.app") == 1
