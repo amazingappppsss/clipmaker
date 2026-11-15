@@ -21,6 +21,10 @@ from clipmaker.media.url_import import UrlImportError
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError, RetryableStageError
 from clipmaker.services.billing import credits_for_duration, debit_credits, project_net_charge
+from clipmaker.services.housekeeping import make_room
+
+# A 720p import of a long talk is usually well under this; it only sizes the clean-up.
+EXPECTED_DOWNLOAD_BYTES = 400 * 1024 * 1024
 
 _CONTENT_TYPES = {
     ".mp4": "video/mp4",
@@ -34,6 +38,11 @@ def _fetch_from_link(ctx: StageContext, src: SourceVideo) -> dict[str, Any]:
     """Download a link import into storage and verify it. Returns fields to save on the row."""
     if not src.source_url:
         raise PermanentStageError("no_source", "This project has no video link.")
+    # Make room before the download rather than failing halfway through it.
+    settings = ctx.settings
+    if settings.storage_backend.value == "local":
+        with ctx.sessions() as db:
+            make_room(db, ctx.storage, settings.local_storage_dir, EXPECTED_DOWNLOAD_BYTES)
     try:
         path = ctx.importer().download(src.source_url, ctx.work_dir / "download", ctx.heartbeat)
     except UrlImportError as exc:
