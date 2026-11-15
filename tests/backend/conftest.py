@@ -36,6 +36,7 @@ os.environ.update(
         "WORK_DIR": "/tmp/clipmaker-test-work",
         "ANTHROPIC_API_KEY": "",
         "ASSEMBLYAI_API_KEY": "",
+        "WAITLIST_SIGNUPS_PER_HOUR": "100",
     }
 )
 

@@ -26,3 +26,20 @@ export type Clip = Schemas["ClipOut"];
 export type JobStatus = Schemas["JobStatusOut"];
 export type StageStatus = Schemas["StageStatusOut"];
 export type ImportRequest = Schemas["ImportRequest"];
+
+/** A person's own spot on the pre-launch waitlist (backend/src/clipmaker/api/waitlist.py). */
+export interface WaitlistPlace {
+  position: number;
+  referral_code: string;
+  referrals: number;
+  total: number;
+  places_per_referral: number;
+}
+
+/** Public counters for the pre-launch page. */
+export interface WaitlistStats {
+  total: number;
+  founding_spots: number;
+  spots_left: number;
+  places_per_referral: number;
+}

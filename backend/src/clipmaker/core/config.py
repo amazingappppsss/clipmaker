@@ -80,6 +80,8 @@ class Settings(BaseSettings):
 
     # --- Rate limiting -------------------------------------------------------------------
     rate_limit_per_minute: int = 120
+    # The waitlist form is unauthenticated, so it gets a much tighter per-machine budget.
+    waitlist_signups_per_hour: int = 5
 
     # --- AI providers (PRD §7: swappable through configuration) --------------------------
     llm_provider: str = "anthropic"

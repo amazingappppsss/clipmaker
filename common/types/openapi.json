@@ -938,6 +938,124 @@
         }
       }
     },
+    "/waitlist/stats": {
+      "get": {
+        "tags": [
+          "waitlist"
+        ],
+        "summary": "Waitlist Stats",
+        "description": "How many have joined and how many founding spots are left. Counters only.",
+        "operationId": "waitlist_stats_waitlist_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistStatsOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waitlist": {
+      "post": {
+        "tags": [
+          "waitlist"
+        ],
+        "summary": "Join Waitlist",
+        "description": "Join the waitlist, or get back the place you already hold.",
+        "operationId": "join_waitlist_waitlist_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaitlistJoinIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistPlaceOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waitlist/export": {
+      "get": {
+        "tags": [
+          "waitlist"
+        ],
+        "summary": "Export Waitlist",
+        "description": "Every signup, for the owner only.\n\nAnyone else gets a 404 rather than a 403, so the endpoint doesn't advertise that it exists.",
+        "operationId": "export_waitlist_waitlist_export_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaitlistEntryOut"
+                  },
+                  "title": "Response Export Waitlist Waitlist Export Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/storage/local/{key}": {
       "put": {
         "tags": [
@@ -2361,6 +2479,157 @@
         ],
         "title": "VideoStyle",
         "description": "Visual style for captions and titles."
+      },
+      "WaitlistEntryOut": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "referral_code": {
+            "type": "string",
+            "title": "Referral Code"
+          },
+          "referrals": {
+            "type": "integer",
+            "title": "Referrals"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "referral_code",
+          "referrals",
+          "source",
+          "created_at"
+        ],
+        "title": "WaitlistEntryOut",
+        "description": "One row of the owner-only export."
+      },
+      "WaitlistJoinIn": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "referral_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referral Code"
+          },
+          "company": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Company",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "WaitlistJoinIn",
+        "description": "A public waitlist signup. Every field is bounded; nothing here is trusted."
+      },
+      "WaitlistPlaceOut": {
+        "properties": {
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "referral_code": {
+            "type": "string",
+            "title": "Referral Code"
+          },
+          "referrals": {
+            "type": "integer",
+            "title": "Referrals"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "places_per_referral": {
+            "type": "integer",
+            "title": "Places Per Referral"
+          }
+        },
+        "type": "object",
+        "required": [
+          "position",
+          "referral_code",
+          "referrals",
+          "total",
+          "places_per_referral"
+        ],
+        "title": "WaitlistPlaceOut",
+        "description": "Someone's own spot on the list. Says nothing about any other signup."
+      },
+      "WaitlistStatsOut": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "founding_spots": {
+            "type": "integer",
+            "title": "Founding Spots"
+          },
+          "spots_left": {
+            "type": "integer",
+            "title": "Spots Left"
+          },
+          "places_per_referral": {
+            "type": "integer",
+            "title": "Places Per Referral"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "founding_spots",
+          "spots_left",
+          "places_per_referral"
+        ],
+        "title": "WaitlistStatsOut",
+        "description": "Public counters for the pre-launch page. No personal data."
       }
     }
   }

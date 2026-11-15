@@ -296,6 +296,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/waitlist/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Waitlist Stats
+         * @description How many have joined and how many founding spots are left. Counters only.
+         */
+        get: operations["waitlist_stats_waitlist_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join Waitlist
+         * @description Join the waitlist, or get back the place you already hold.
+         */
+        post: operations["join_waitlist_waitlist_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/waitlist/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Waitlist
+         * @description Every signup, for the owner only.
+         *
+         *     Anyone else gets a 404 rather than a 403, so the endpoint doesn't advertise that it exists.
+         */
+        get: operations["export_waitlist_waitlist_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/storage/local/{key}": {
         parameters: {
             query?: never;
@@ -815,6 +877,75 @@ export interface components {
          * @enum {string}
          */
         VideoStyle: "auto" | "modern_creator" | "minimal_professional";
+        /**
+         * WaitlistEntryOut
+         * @description One row of the owner-only export.
+         */
+        WaitlistEntryOut: {
+            /** Email */
+            email: string;
+            /** Referral Code */
+            referral_code: string;
+            /** Referrals */
+            referrals: number;
+            /** Source */
+            source: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * WaitlistJoinIn
+         * @description A public waitlist signup. Every field is bounded; nothing here is trusted.
+         */
+        WaitlistJoinIn: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Source */
+            source?: string | null;
+            /** Referral Code */
+            referral_code?: string | null;
+            /**
+             * Company
+             * @default
+             */
+            company: string;
+        };
+        /**
+         * WaitlistPlaceOut
+         * @description Someone's own spot on the list. Says nothing about any other signup.
+         */
+        WaitlistPlaceOut: {
+            /** Position */
+            position: number;
+            /** Referral Code */
+            referral_code: string;
+            /** Referrals */
+            referrals: number;
+            /** Total */
+            total: number;
+            /** Places Per Referral */
+            places_per_referral: number;
+        };
+        /**
+         * WaitlistStatsOut
+         * @description Public counters for the pre-launch page. No personal data.
+         */
+        WaitlistStatsOut: {
+            /** Total */
+            total: number;
+            /** Founding Spots */
+            founding_spots: number;
+            /** Spots Left */
+            spots_left: number;
+            /** Places Per Referral */
+            places_per_referral: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -1356,6 +1487,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanOut"][];
+                };
+            };
+        };
+    };
+    waitlist_stats_waitlist_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistStatsOut"];
+                };
+            };
+        };
+    };
+    join_waitlist_waitlist_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WaitlistJoinIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistPlaceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_waitlist_waitlist_export_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistEntryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 
 from clipmaker.core.enums import (
     ClipStatus,
@@ -203,6 +203,47 @@ class UsageRecordOut(ApiModel):
     credits: int
     description: str
     project_id: uuid.UUID | None
+    created_at: datetime
+
+
+class WaitlistJoinIn(BaseModel):
+    """A public waitlist signup. Every field is bounded; nothing here is trusted."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    source: Annotated[str, StringConstraints(max_length=60)] | None = None
+    referral_code: Annotated[str, StringConstraints(max_length=16)] | None = None
+    # Hidden in the form: a human never fills it, so anything here is a bot.
+    company: Annotated[str, StringConstraints(max_length=100)] = ""
+
+
+class WaitlistPlaceOut(BaseModel):
+    """Someone's own spot on the list. Says nothing about any other signup."""
+
+    position: int
+    referral_code: str
+    referrals: int
+    total: int
+    places_per_referral: int
+
+
+class WaitlistStatsOut(BaseModel):
+    """Public counters for the pre-launch page. No personal data."""
+
+    total: int
+    founding_spots: int
+    spots_left: int
+    places_per_referral: int
+
+
+class WaitlistEntryOut(BaseModel):
+    """One row of the owner-only export."""
+
+    email: str
+    referral_code: str
+    referrals: int
+    source: str | None
     created_at: datetime
 
 

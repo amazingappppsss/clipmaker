@@ -17,7 +17,7 @@ from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
 from clipmaker import __version__
-from clipmaker.api import account, dev, health, local_storage, plans, projects
+from clipmaker.api import account, dev, health, local_storage, plans, projects, waitlist
 from clipmaker.core.config import AppEnv, StorageBackend, get_settings
 from clipmaker.core.errors import AppError
 from clipmaker.core.logging import configure_logging
@@ -98,6 +98,7 @@ def create_app() -> FastAPI:
     app.include_router(projects.shared_router)
     app.include_router(account.router)
     app.include_router(plans.router)
+    app.include_router(waitlist.router)
     if settings.storage_backend == StorageBackend.LOCAL:
         app.include_router(local_storage.router)
     if settings.enable_dev_auth and settings.app_env != AppEnv.PRODUCTION:

@@ -391,3 +391,28 @@ class Subscription(TimestampMixin, Base):
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     provider_ref: Mapped[str] = mapped_column(String(200), nullable=False)
     current_period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+# --- 13. waitlist_signups ---------------------------------------------------------------
+class WaitlistSignup(Base):
+    """A pre-launch signup.
+
+    Deliberately not tied to `users`: nobody has an account yet. The only personal data
+    stored is the email address itself — the signup's IP is kept as a keyed hash, which is
+    enough to spot one machine spamming the form but cannot be turned back into an address.
+    """
+
+    __tablename__ = "waitlist_signups"
+    __table_args__ = (Index("ix_waitlist_created", "created_at"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)  # lowercased
+    referral_code: Mapped[str] = mapped_column(String(16), nullable=False, unique=True)
+    referred_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("waitlist_signups.id", ondelete="SET NULL")
+    )
+    source: Mapped[str | None] = mapped_column(String(60))
+    ip_hash: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
