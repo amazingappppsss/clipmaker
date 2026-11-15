@@ -14,8 +14,9 @@ import { AiReads } from "@/components/landing/ai-reads";
 import { PhoneClip } from "@/components/landing/phone-clip";
 import { Capabilities } from "@/components/landing/capabilities";
 import { LiveDemo } from "@/components/landing/live-demo";
-import { SiteFooter } from "@/components/landing/site-footer";
+import { Logo } from "@/components/ui/logo";
 import { WhyBetter } from "@/components/landing/why-better";
+import { WaitlistFooter } from "@/components/waitlist/waitlist-footer";
 import { SpotsLeft } from "@/components/waitlist/spots-left";
 import { WaitlistForm } from "@/components/waitlist/waitlist-form";
 import { FOUNDING_SPOTS, OFFER, PROMISES } from "@/lib/offer";
@@ -25,6 +26,11 @@ export function WaitlistLanding() {
     <>
       <main>
         <section className="blue-grid relative mx-2 mt-2 overflow-hidden rounded-[2rem] px-4 pt-10 pb-16 sm:mx-4 sm:mt-4 sm:rounded-[2.75rem] sm:px-8 sm:pt-14 sm:pb-20">
+          <div className="relative mx-auto mb-4 flex max-w-6xl items-center justify-between">
+            <Logo tone="light" />
+            <span className="text-xs font-semibold text-white/80">Launching soon</span>
+          </div>
+
           <div className="relative mx-auto grid max-w-6xl items-center gap-10 text-center lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-14 lg:text-left">
             <div className="min-w-0">
               <p className="animate-pop inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold tracking-wide text-white uppercase ring-1 ring-white/30">
@@ -137,25 +143,8 @@ export function WaitlistLanding() {
             </ul>
           </div>
         </section>
-
-        {/* The ask again, now that they've seen it work. */}
-        <section className="px-4 py-24 sm:px-8">
-          <div className="blue-grid mx-auto max-w-3xl rounded-[2rem] px-6 py-12 text-center sm:px-10">
-            <h2 className="display-heavy text-3xl text-white sm:text-5xl">
-              One link. One free episode.
-            </h2>
-            <p className="mt-4 text-lg font-semibold text-white/90">
-              Then half off for as long as you use it.
-            </p>
-            <div className="mx-auto mt-8 max-w-xl text-left">
-              <Suspense fallback={<div className="h-16" />}>
-                <WaitlistForm source="waitlist-footer" />
-              </Suspense>
-            </div>
-          </div>
-        </section>
       </main>
-      <SiteFooter />
+      <WaitlistFooter />
     </>
   );
 }
