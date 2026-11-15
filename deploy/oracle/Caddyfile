@@ -1,0 +1,10 @@
+# Free, automatic HTTPS for the API. Uploads can be large, so no request size limit here.
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy api:8000 {
+		transport http {
+			read_timeout 1h
+			write_timeout 1h
+		}
+	}
+}

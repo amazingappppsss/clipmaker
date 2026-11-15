@@ -7,9 +7,11 @@ doesn't sink the others; the stage fails only if no clip could be rendered.
 from __future__ import annotations
 
 import logging
+from functools import partial
 from typing import Any
 
 from clipmaker.core.enums import AssetKind, ClipStatus
+from clipmaker.core.resources import render_slots
 from clipmaker.db.models import Clip, ClipAsset, SourceVideo
 from clipmaker.editing.captions import build_ass
 from clipmaker.editing.framing import Shot, crop_box
@@ -17,7 +19,7 @@ from clipmaker.editing.render import CaptionsFor, Piece, render
 from clipmaker.media.audio import MediaError, make_thumbnail
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError, RetryableStageError
-from clipmaker.pipeline.stages.common import local_source
+from clipmaker.pipeline.stages.common import local_source, run_parallel
 from clipmaker.pipeline.stages.qa import verify
 from clipmaker.providers.transcription.base import Word
 
@@ -90,8 +92,9 @@ def run(ctx: StageContext) -> StageOutput:
         )
 
     source = local_source(ctx, source_key)
-    done, failed = 0, 0
-    for clip_id, title, plan in todo:
+
+    def render_one(clip_id: Any, title: str | None, plan: dict[str, Any]) -> bool:
+        """Render, store and quality-check one clip. True when it is ready to watch."""
         with ctx.sessions() as db:
             clip = db.get(Clip, clip_id)
             if clip is not None and clip.status == ClipStatus.FAILED:
@@ -123,8 +126,7 @@ def run(ctx: StageContext) -> StageOutput:
                     clip.error_message = "This clip couldn't be rendered."
                     clip.qa_report = {"render_error": str(exc)[:1000]}
                     db.commit()
-            failed += 1
-            continue
+            return False
 
         video_key = f"{ctx.prefix}clips/{clip_id}.mp4"
         thumb_key = f"{ctx.prefix}clips/{clip_id}.jpg"
@@ -139,7 +141,7 @@ def run(ctx: StageContext) -> StageOutput:
         with ctx.sessions() as db:
             clip = db.get(Clip, clip_id)
             if clip is None:
-                continue
+                return False
             db.add(
                 ClipAsset(
                     clip_id=clip_id,
@@ -172,8 +174,14 @@ def run(ctx: StageContext) -> StageOutput:
                     asset.is_final = True
             db.commit()
         out.unlink(missing_ok=True)
-        done += 1
-        ctx.heartbeat()
+        return True
+
+    # Clips render side by side when the machine has CPUs to spare (core/resources.py).
+    slots = render_slots()
+    results = run_parallel([partial(render_one, *item) for item in todo], workers=slots)
+    done = sum(1 for ok in results if ok)
+    failed = len(results) - done
+    ctx.heartbeat()
 
     if done == 0 and already == 0:
         raise PermanentStageError("render_failed", "We couldn't render any clips from this video.")

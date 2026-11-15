@@ -61,6 +61,15 @@ def cpu_count() -> int:
     return max(1, len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else 1)
 
 
+def render_slots() -> int:
+    """How many clips to render at the same time, leaving a CPU free to serve the site.
+
+    On a two-core box this is 1 (unchanged); on a bigger machine clips render side by side,
+    so six clips take about as long as two.
+    """
+    return max(1, min(4, cpu_count() - 1))
+
+
 def encoder_threads(budget_mb: int | None = None) -> int:
     """How many encoder threads fit in the memory we have.
 
@@ -70,7 +79,8 @@ def encoder_threads(budget_mb: int | None = None) -> int:
     """
     # One CPU always stays free for the API: on a 2-core box an encoder using both makes the
     # site crawl and videos buffer while a render is running.
-    usable = max(1, cpu_count() - 1)
+    # Threads are shared out between the clips rendering at once, never oversubscribed.
+    usable = max(1, (cpu_count() - 1) // render_slots())
     limit = budget_mb if budget_mb is not None else memory_limit_mb()
     if limit is None:
         return min(4, usable)

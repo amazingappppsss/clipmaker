@@ -14,6 +14,12 @@ automated quality checks.
 | [CHANGELOG.md](CHANGELOG.md) | what changed, per milestone |
 | [.env.example](.env.example) | every configuration variable, explained |
 
+## Hosting
+
+The app runs on any single server. `deploy/oracle/` has a ready compose stack and
+step-by-step guide for Oracle Cloud's Always Free machine (4 CPUs, 24 GB RAM, 200 GB disk,
+free forever), with automatic HTTPS and optional Cloudflare R2 storage.
+
 ## Stack
 
 Next.js 16 · TypeScript · Tailwind v4 — FastAPI · SQLAlchemy · Alembic — PostgreSQL (Supabase)
