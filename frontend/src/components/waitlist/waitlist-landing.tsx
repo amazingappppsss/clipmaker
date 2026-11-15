@@ -57,17 +57,26 @@ export function WaitlistLanding() {
               <SpotsLeft />
             </div>
 
-            {/* A short, playing itself, so something is moving the moment the page lands. */}
-            <PhoneClip
-              className="animate-float mx-auto"
-              size="lg"
-              tone="video-tone-1"
-              title="He quit a $400K job"
-              caption={["I", "walked", "away", "from", "$400K", "on", "a", "Tuesday."]}
-              highlight={["$400K"]}
-              score={94}
-              hook="Shocking number"
-            />
+            {/* A real short, playing itself, so something is moving the moment the page lands.
+                Made by scripts/make-demo-clip.py: the picture is synthetic because we own no
+                footage, but the captions are burned in by the same engine that captions real
+                clips. Labelled below so nobody reads it as a customer's episode. */}
+            <div className="mx-auto">
+              <PhoneClip
+                className="animate-float"
+                size="lg"
+                src="/demo/quit-400k.mp4"
+                tone="video-tone-1"
+                title="He quit a $400K job"
+                caption={["I", "walked", "away", "from", "$400K", "on", "a", "Tuesday."]}
+                highlight={["$400K"]}
+                score={94}
+                hook="Shocking number"
+              />
+              <p className="mt-2 text-center text-xs font-medium text-white/70">
+                Demo clip · captions rendered by Clip2Easy
+              </p>
+            </div>
           </div>
         </section>
 
