@@ -104,7 +104,12 @@ class Settings(BaseSettings):
     # Where the public site lives. Referral links in emails point here, not at the API host.
     site_url: str = "https://clip2easy.vercel.app"
     email_provider: str = "resend"
-    resend_api_key: SecretStr | None = None
+    resend_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "RESEND_API_KEY", "RESEND_KEY", "RESEND_TOKEN", "EMAIL_API_KEY"
+        ),
+    )
     # Until a domain is verified, Resend's onboarding sender delivers to the account owner only.
     email_from: str = "Clip2Easy <onboarding@resend.dev>"
     email_reply_to: str = ""

@@ -114,3 +114,19 @@ def test_removing_a_referrer_leaves_their_referrals_in_place(
     with settings_patched(owner_emails="alice@example.com"):
         assert client.delete("/waitlist/ada@example.com", headers=auth).status_code == 204
     assert client.get("/waitlist/stats").json()["total"] == 1
+
+
+@pytest.mark.parametrize(
+    "name", ["RESEND_API_KEY", "RESEND_KEY", "RESEND_TOKEN", "EMAIL_API_KEY"]
+)
+def test_the_key_is_found_under_any_of_the_obvious_names(
+    name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A key pasted under a near-miss name silently sends no mail; accept the variants."""
+    for other in ("RESEND_API_KEY", "RESEND_KEY", "RESEND_TOKEN", "EMAIL_API_KEY"):
+        monkeypatch.delenv(other, raising=False)
+    monkeypatch.setenv(name, '  "re_abc123"  ')  # dashboards paste quotes and spaces
+    settings = Settings()
+    assert settings.resend_api_key is not None
+    assert settings.resend_api_key.get_secret_value() == "re_abc123"
+    assert build_email_sender(settings).ready is True
