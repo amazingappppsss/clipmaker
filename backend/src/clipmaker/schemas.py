@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 
@@ -289,6 +289,7 @@ class HealthOut(BaseModel):
     link_import_ready: bool = False
     email_ready: bool = False
     email_env_seen: list[str] = Field(default_factory=list)
+    recent_email_results: list[dict[str, Any]] = Field(default_factory=list)
     # Base address used in upload/download links for this request (diagnostics).
     storage_base_url: str | None = None
     # True when stored videos live on a persistent volume (survive redeploys).

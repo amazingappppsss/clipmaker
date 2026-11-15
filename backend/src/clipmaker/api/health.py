@@ -18,6 +18,7 @@ from clipmaker.core.resources import cpu_count, encoder_threads, memory_limit_mb
 from clipmaker.db.models import Clip, ProcessingJob
 from clipmaker.providers.email.factory import get_email_sender
 from clipmaker.schemas import HealthOut
+from clipmaker.services.waitlist_email import RECENT as EMAIL_RESULTS
 from clipmaker.storage.factory import get_storage
 from clipmaker.storage.local import LocalStorage
 
@@ -63,6 +64,7 @@ def health(db: DbSession, settings: AppSettings, response: Response) -> HealthOu
         link_import_ready=settings.enable_url_import and _has(settings.apify_token),
         email_ready=get_email_sender().ready,
         email_env_seen=_email_env_seen(),
+        recent_email_results=list(EMAIL_RESULTS),
         storage_base_url=storage_base_url(),
         storage_persistent=_persistent(settings),
         recent_stage_seconds=_recent_timings(db) if db_ok else [],

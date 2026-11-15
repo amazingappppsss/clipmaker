@@ -581,6 +581,10 @@ export interface components {
             email_ready: boolean;
             /** Email Env Seen */
             email_env_seen?: string[];
+            /** Recent Email Results */
+            recent_email_results?: {
+                [key: string]: unknown;
+            }[];
             /** Storage Base Url */
             storage_base_url?: string | null;
             /** Storage Persistent */

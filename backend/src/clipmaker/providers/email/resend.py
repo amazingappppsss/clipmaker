@@ -69,8 +69,18 @@ class ResendSender:
             raise EmailError(f"Could not reach the email provider: {exc}", retryable=True) from exc
 
         if response.status_code >= 400:
-            # The body can echo the recipient, so it never reaches our logs verbatim.
+            # Resend's message says *why* (unverified domain, test-mode recipient, bad key),
+            # which is the whole diagnosis. The recipient is stripped out of it first, so the
+            # reason can be shown on /health without leaking who it was for.
+            detail = ""
+            try:
+                body = response.json()
+                detail = str(body.get("message") or body.get("error") or "")[:200]
+            except ValueError:
+                detail = ""
+            detail = detail.replace(message.to, "<recipient>")
             raise EmailError(
-                f"Email provider refused the message (HTTP {response.status_code})",
+                f"Email provider refused the message (HTTP {response.status_code})"
+                + (f": {detail}" if detail else ""),
                 retryable=response.status_code in _RETRYABLE_STATUS,
             )

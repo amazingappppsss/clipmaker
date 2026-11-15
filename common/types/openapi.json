@@ -1720,6 +1720,14 @@
             "type": "array",
             "title": "Email Env Seen"
           },
+          "recent_email_results": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Recent Email Results"
+          },
           "storage_base_url": {
             "anyOf": [
               {

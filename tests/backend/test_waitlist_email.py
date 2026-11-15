@@ -147,3 +147,48 @@ def test_health_lists_email_variable_names_but_never_values(
     assert "EMAIL_FROM" in seen
     assert "UNRELATED_THING" not in seen
     assert "re_supersecret" not in json.dumps(body)
+
+
+def test_send_outcomes_are_recorded_without_the_address() -> None:
+    """A swallowed failure is invisible otherwise — but the reason must not name who."""
+    from clipmaker.services.waitlist_email import RECENT
+
+    RECENT.clear()
+    send_welcome(Recorder(), "ada@example.com", PLACE, "https://x.app")
+    send_welcome(Recorder(fail=EmailError("domain not verified")), "bob@example.com", PLACE, "https://x.app")
+
+    assert [r["ok"] for r in RECENT] == [False, True]
+    assert "domain not verified" in str(RECENT[0]["reason"])
+    blob = json.dumps(list(RECENT))
+    assert "ada@example.com" not in blob and "bob@example.com" not in blob
+
+
+def test_a_refusal_keeps_the_provider_reason_but_drops_the_recipient() -> None:
+    """Resend's message is the whole diagnosis; the recipient in it is not ours to log."""
+    import httpx
+
+    from clipmaker.providers.email.resend import ResendSender
+
+    sender = ResendSender(Settings(resend_api_key="re_x"))
+    captured: dict[str, object] = {}
+
+    def fake_post(url: str, **kwargs: object) -> httpx.Response:
+        captured["url"] = url
+        return httpx.Response(
+            403,
+            json={"message": "You can only send testing emails to ada@example.com"},
+            request=httpx.Request("POST", url),
+        )
+
+    import clipmaker.providers.email.resend as mod
+
+    original, mod.httpx.post = mod.httpx.post, fake_post  # type: ignore[assignment]
+    try:
+        with pytest.raises(EmailError) as err:
+            sender.send(Email(to="ada@example.com", subject="s", text="t"))
+    finally:
+        mod.httpx.post = original  # type: ignore[assignment]
+
+    assert "only send testing emails" in str(err.value)
+    assert "ada@example.com" not in str(err.value)
+    assert "<recipient>" in str(err.value)

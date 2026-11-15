@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import html
 import logging
+from collections import deque
+from datetime import UTC, datetime
 
 from clipmaker.providers.email.base import Email, EmailError, EmailSender
 from clipmaker.services.waitlist import PLACES_PER_REFERRAL, WaitlistPlace
@@ -19,6 +21,16 @@ from clipmaker.services.waitlist import PLACES_PER_REFERRAL, WaitlistPlace
 logger = logging.getLogger(__name__)
 
 SUBJECT = "You're in — here's your spot"
+
+#: The last few send outcomes, for /health. Reasons only — never an address. A swallowed
+#: failure is invisible otherwise: the API stays healthy and nobody's mail arrives.
+RECENT: deque[dict[str, object]] = deque(maxlen=10)
+
+
+def _record(ok: bool, reason: str) -> None:
+    RECENT.appendleft(
+        {"ok": ok, "reason": reason, "at": datetime.now(UTC).isoformat(timespec="seconds")}
+    )
 
 
 def _share_url(base_url: str, code: str) -> str:
@@ -85,6 +97,7 @@ def send_welcome(sender: EmailSender, to: str, place: WaitlistPlace, base_url: s
     """Send the welcome email. Returns whether it went out; never raises."""
     if not sender.ready:
         logger.info("waitlist_email_skipped", extra={"reason": "no_provider"})
+        _record(False, "no provider configured")
         return False
     try:
         sender.send(
@@ -100,8 +113,11 @@ def send_welcome(sender: EmailSender, to: str, place: WaitlistPlace, base_url: s
         logger.warning(
             "waitlist_email_failed", extra={"retryable": exc.retryable, "error": str(exc)}
         )
+        _record(False, str(exc))
         return False
-    except Exception:  # a provider bug must not cost us the signup
+    except Exception as exc:  # a provider bug must not cost us the signup
         logger.exception("waitlist_email_crashed")
+        _record(False, f"{type(exc).__name__}: {exc}")
         return False
+    _record(True, "sent")
     return True
