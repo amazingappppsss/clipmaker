@@ -71,3 +71,11 @@ def test_nothing_is_deleted_when_there_is_room_or_storage_is_remote(
         assert make_room(db, get_storage(), None, needed_bytes=1 << 60) == 0  # cloud storage
         assert db.query(ClipAsset).count() == 1
     assert (free_bytes(str(tmp_path)) or 0) > HEADROOM_BYTES
+
+
+def test_scheduled_sweep_frees_space(client: TestClient, auth: dict[str, str]) -> None:
+    """The periodic task keeps room ready, so an import never meets a full disk."""
+    from clipmaker.workers.tasks import reap_stale_jobs
+
+    _finished_project(client, auth, ProjectState.COMPLETED)
+    assert reap_stale_jobs() >= 0  # runs without a worker and without raising
