@@ -15,7 +15,7 @@ const ITEMS = [
   {
     Icon: Crop,
     title: "Follows whoever is talking",
-    body: "Finds faces, watches who's speaking, and keeps them centred in 9:16, with punch-in zooms so it never feels static.",
+    body: "Hears who is speaking, finds their face, and holds the frame on them in 9:16 — moving only when the floor actually changes hands.",
   },
   {
     Icon: Captions,

@@ -126,6 +126,66 @@ export function ProcessingHero({
   );
 }
 
+/**
+ * The first minute has nothing to show yet — the transcript isn't back, so there are no
+ * moments to stream in. Rather than leave a dead screen, say what the AI is weighing right
+ * now. These are our real criteria, from docs/CLIP_FRAMEWORK.md, not filler stats.
+ */
+const WHILE_YOU_WAIT: Array<[string, string]> = [
+  [
+    "It scores 11 signals per moment",
+    "Hook, curiosity, stakes, specifics, momentum, emotion, transformation, cause, payoff, shareability, and whether it stands alone.",
+  ],
+  [
+    "Three gates, no exceptions",
+    "A moment that needs outside context, ends without a payoff, or opens flat never ships — however high it scores elsewhere.",
+  ],
+  [
+    "It reads the whole conversation first",
+    "So a clip can start before the line you'd search for, and end after the laugh lands.",
+  ],
+  [
+    "The best line often isn't first",
+    "When it sits mid-clip, we play it up front, then rewind — so viewers stay to see how it got there.",
+  ],
+  [
+    "Reactions beat monologues",
+    "In the breakout Shorts we studied, the other person's disbelief is usually the payoff. We extend the cut to catch it.",
+  ],
+  [
+    "Median viral clip: 45 seconds",
+    "From 84 breakout podcast Shorts. We aim for 20-45s and charge every second past 45.",
+  ],
+];
+
+export function WhileYouWait() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    const timer = window.setInterval(() => setI((n) => (n + 1) % WHILE_YOU_WAIT.length), 6000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const [title, body] = WHILE_YOU_WAIT[i] as [string, string];
+
+  return (
+    <section className="mt-8 rounded-[1.75rem] bg-surface p-6 ring-1 ring-line sm:p-7">
+      <p className="text-xs font-bold tracking-widest text-blue uppercase">While it reads</p>
+      <div key={i} className="animate-pop mt-3">
+        <h3 className="display-heavy text-xl sm:text-2xl">{title}</h3>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{body}</p>
+      </div>
+      <div className="mt-5 flex gap-1.5" aria-hidden>
+        {WHILE_YOU_WAIT.map((item, k) => (
+          <span
+            key={item[0]}
+            className={`h-1 flex-1 rounded-full ${k === i ? "bg-blue" : "bg-sunken"}`}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /** Placeholder cards where the picked moments will appear. */
 export function MomentPlaceholders() {
   return (

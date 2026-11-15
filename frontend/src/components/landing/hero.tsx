@@ -19,7 +19,7 @@ export function Hero() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <section className="blue-grid relative mx-2 mt-2 overflow-hidden rounded-[2rem] pb-32 sm:mx-4 sm:mt-4 sm:rounded-[2.75rem] sm:pb-40">
+    <section id="top" className="blue-grid relative mx-2 mt-2 overflow-hidden rounded-[2rem] pb-32 sm:mx-4 sm:mt-4 sm:rounded-[2.75rem] sm:pb-40">
       <SiteHeader />
 
       <div className="relative mx-auto max-w-6xl px-4 pt-8 text-center sm:px-8 sm:pt-12">

@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { FailurePanel } from "@/components/app/failure-panel";
 import { MomentCard } from "@/components/app/moment-card";
-import { MomentPlaceholders, ProcessingHero } from "@/components/app/processing-hero";
+import { MomentPlaceholders, ProcessingHero, WhileYouWait } from "@/components/app/processing-hero";
 import { StageTimeline } from "@/components/app/stage-timeline";
 import { StateBadge } from "@/components/app/state-badge";
 import { Alert } from "@/components/ui/alert";
@@ -353,7 +353,12 @@ export function ProjectDetail() {
         </aside>
       </div>
 
-      {processing && !clips.length ? <MomentPlaceholders /> : null}
+      {processing && !clips.length ? (
+        <>
+          <WhileYouWait />
+          <MomentPlaceholders />
+        </>
+      ) : null}
 
       {clips.length ? (
         <section className="mt-10" aria-label="Picked moments">
