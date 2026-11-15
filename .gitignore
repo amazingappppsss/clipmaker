@@ -32,3 +32,6 @@ backend/.data/
 # Python packaging output
 build/
 *.egg-info/
+
+# Source footage for the landing page demo (fetched on demand, never committed).
+.data/

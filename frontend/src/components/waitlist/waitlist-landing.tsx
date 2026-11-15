@@ -71,16 +71,15 @@ export function WaitlistLanding() {
               <PhoneClip
                 className="animate-float"
                 size="lg"
-                src="/demo/quit-400k.mp4"
+                src="/demo/podcast-reframe.mp4"
                 tone="video-tone-1"
-                title="He quit a $400K job"
-                caption={["I", "walked", "away", "from", "$400K", "on", "a", "Tuesday."]}
-                highlight={["$400K"]}
+                title="Auto-cropped to 9:16"
+                caption={["Follows", "whoever", "is", "talking"]}
                 score={94}
-                hook="Shocking number"
+                hook="Speaker-tracked"
               />
               <p className="mt-2 text-center text-xs font-medium text-white/70">
-                Demo clip · captions rendered by Clip2Easy
+                Real footage, real re-framing · licensed stock, not a customer&rsquo;s episode
               </p>
             </div>
           </div>

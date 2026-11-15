@@ -30,6 +30,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "pillow>=11.0",             # paints the landing page demo clip (scripts/make-demo-clip.py)
   "pytest>=8.3",               # test runner
   "pytest-cov>=6.0",           # coverage reports
   "ruff>=0.8",                 # linting + formatting

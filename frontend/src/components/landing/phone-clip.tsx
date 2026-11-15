@@ -79,12 +79,14 @@ export function PhoneClip({
             {title}
           </span>
         )}
-        {/* score */}
-        <span
-          className={`absolute top-2 right-2 rounded-full bg-ink/80 px-1.5 font-display font-black text-lime tabular-nums ${big ? "text-sm" : "text-[11px]"}`}
-        >
-          {score}
-        </span>
+        {/* score — a real render carries its own, so don't draw a second one over it */}
+        {src ? null : (
+          <span
+            className={`absolute top-2 right-2 rounded-full bg-ink/80 px-1.5 font-display font-black text-lime tabular-nums ${big ? "text-sm" : "text-[11px]"}`}
+          >
+            {score}
+          </span>
+        )}
         {/* captions: the spoken word pops in lime */}
         {src ? null : (
           <span
