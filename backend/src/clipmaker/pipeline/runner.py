@@ -314,11 +314,23 @@ class JobRunner:
                 return Outcome.RETRY, backoff_seconds(attempts)
             job.state = project.state = ProjectState.FAILED
             job.completed_at = _now()
+            self._free_files(project)
             refunded = self._refund(db, project)
             suffix = " Your credits have been refunded." if refunded else ""
             project.error_message = f"{user_message}{suffix}"
             db.commit()
         return Outcome.FAILED, 0
+
+    def _free_files(self, project: Project) -> None:
+        """Delete a dead run's stored video. Small hosts run out of disk otherwise, and the
+        next attempt downloads it again anyway."""
+        source = project.source_video
+        if source is None or source.source_kind != "url":
+            return  # an uploaded file is the user's only copy: never delete it
+        try:
+            self.storage.delete_prefix(source.storage_key)
+        except OSError:
+            logger.warning("could_not_free_source", extra={"project_id": str(project.id)})
 
     def _refund(self, db: Session, project: Project) -> bool:
         """Return the credits charged for this project's current run (once). True if refunded."""

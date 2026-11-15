@@ -23,6 +23,7 @@ from clipmaker.db.models import (
     ClipAsset,
     ProcessingJob,
     Project,
+    SourceVideo,
     Transcript,
     User,
     VideoAnalysis,
@@ -483,3 +484,47 @@ def test_transcriber_is_given_the_stored_url_not_an_extracted_audio_file(
     make_runner(job_id, FakeLLM(), tx).run()
     assert tx.sources and all(isinstance(s, str) for s in tx.sources)
     assert all(s.startswith(("http://", "https://")) for s in tx.sources)  # type: ignore[union-attr]
+
+
+def test_a_dead_run_frees_its_downloaded_video(
+    client: TestClient, auth: dict[str, str], queued: list[uuid.UUID], monkeypatch
+) -> None:
+    """A small host runs out of disk fast; a failed link import keeps nothing."""
+    from clipmaker.core.enums import ProjectState
+    from clipmaker.pipeline.errors import PermanentStageError
+    from clipmaker.storage.factory import get_storage
+
+    pid = client.post("/projects", json={"title": "link"}, headers=auth).json()["id"]
+    with get_session_factory()() as db:
+        project = db.get(Project, uuid.UUID(pid))
+        assert project is not None
+        project.state = ProjectState.UPLOADED
+        db.add(
+            SourceVideo(
+                project_id=project.id,
+                storage_key=f"u/{pid}/source/original.mp4",
+                original_filename="x.mp4",
+                size_bytes=4,
+                content_type="video/mp4",
+                source_kind="url",
+                source_url="https://youtu.be/x",
+                duration_seconds=60,
+                upload_status="verified",
+            )
+        )
+        db.commit()
+    store = get_storage()
+    tmp = Path(str(store.path_for(f"u/{pid}/source/original.mp4")))  # type: ignore[attr-defined]
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    tmp.write_bytes(b"data")
+    assert store.head(f"u/{pid}/source/original.mp4") is not None
+
+    client.post(f"/projects/{pid}/process", headers=auth)
+
+    def boom(ctx: object) -> None:
+        raise PermanentStageError("nope", "broken")
+
+    runner = make_runner(queued[-1], FakeLLM(), FakeTranscriber())
+    monkeypatch.setitem(runner.handlers, ProjectState.INGESTING, boom)
+    assert runner.run()[0] == Outcome.FAILED
+    assert store.head(f"u/{pid}/source/original.mp4") is None  # freed

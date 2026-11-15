@@ -116,7 +116,9 @@ class Settings(BaseSettings):
     url_import_providers: str = "apify,ytdlp"
     apify_token: SecretStr | None = None
     apify_youtube_actor: str = "coder2077~youtube-video-downloader"
-    url_import_max_height: int = 1080
+    # 720p is what we render to anyway (editing/render.py picks the output size from the
+    # source), and it halves the download, the disk used and the memory a render needs.
+    url_import_max_height: int = 720
     url_import_timeout_seconds: int = 30  # metadata lookup during the API request
 
     # --- Pipeline -------------------------------------------------------------------------
