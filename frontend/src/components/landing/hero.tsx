@@ -38,7 +38,7 @@ export function Hero() {
         </h1>
 
         <PhoneClip
-          className="animate-float absolute top-4 -right-10 hidden xl:block 2xl:-right-20"
+          className="animate-float absolute top-2 -right-14 hidden xl:block 2xl:-right-24"
           tone="video-tone-1"
           title="Rogan was stunned"
           caption={["He", "spends", "$28", "on", "lunch", "every", "single", "day"]}
@@ -47,7 +47,7 @@ export function Hero() {
           hook="Shocking number"
         />
         <PhoneClip
-          className="animate-float absolute top-[40%] -left-10 hidden [animation-delay:-3s] xl:block 2xl:-left-20"
+          className="animate-float absolute top-[38%] -left-14 hidden [animation-delay:-3s] xl:block 2xl:-left-24"
           tone="video-tone-2"
           title="The worst advice I ever got"
           caption={["I", "thought", "it", "was", "easy", "money.", "I", "was", "wrong."]}
@@ -61,7 +61,7 @@ export function Hero() {
         />
         <SpinBadge className="absolute right-[2%] bottom-[-3.5rem] hidden sm:grid lg:right-[6%]" />
 
-        <p className="animate-pop mx-auto mt-10 max-w-xl text-base font-medium text-white/90 [animation-delay:120ms] sm:text-lg">
+        <p className="animate-pop mx-auto mt-10 max-w-2xl text-lg leading-snug font-semibold text-white [text-shadow:0_1px_2px_rgb(5_10_60/0.35)] [animation-delay:120ms] sm:text-xl md:text-2xl">
           Paste a YouTube link. Clip2Easy finds the moments people actually stop scrolling for, then
           cuts, captions and frames them into vertical shorts you can post today.
         </p>
@@ -72,7 +72,7 @@ export function Hero() {
               <Alert tone="error">{error}</Alert>
             </div>
           ) : null}
-          <p className="mt-5 text-center text-xs font-medium text-white/75">
+          <p className="mt-5 text-center text-sm font-semibold text-white/90">
             15 free minutes · No credit card · Clips in minutes · Only use videos you have the
             rights to
           </p>
