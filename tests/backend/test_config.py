@@ -92,3 +92,35 @@ def test_api_docs_are_closed_unless_switched_on() -> None:
     """They were open to the internet because APP_ENV was not exactly "production"."""
     assert Settings().expose_api_docs is False
     assert Settings(expose_api_docs=True).expose_api_docs is True
+
+
+def test_a_placeholder_api_url_loses_to_the_platforms_own_domain(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """This exact value shipped and sent the transcription provider to a 404."""
+    monkeypatch.setenv("RAILWAY_PUBLIC_DOMAIN", "clipmaker-production-ee9196d1.up.railway.app")
+    stale = Settings(api_public_url="https://clipmaker-production-xxxx.up.railway.app")
+    assert stale.public_api_url == "https://clipmaker-production-ee9196d1.up.railway.app"
+
+    # Unset is the normal case: ask the platform.
+    unset = Settings(api_public_url=None)
+    assert unset.public_api_url == "https://clipmaker-production-ee9196d1.up.railway.app"
+
+    # A real custom domain is deliberate and is kept.
+    real = Settings(api_public_url="https://api.clip2easy.com")
+    assert real.public_api_url == "https://api.clip2easy.com"
+
+
+def test_a_relative_api_url_is_deliberate_and_survives(monkeypatch: pytest.MonkeyPatch) -> None:
+    """"/api" behind the dev proxy is a choice, not an unfinished value."""
+    monkeypatch.setenv("RAILWAY_PUBLIC_DOMAIN", "something.up.railway.app")
+    assert Settings(api_public_url="/api").public_api_url == "/api"
+
+
+def test_without_a_platform_domain_nothing_is_invented(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("RAILWAY_PUBLIC_DOMAIN", raising=False)
+    assert Settings(api_public_url=None).public_api_url is None
+    # Even a placeholder is kept when there is nothing better; guessing would be worse.
+    assert Settings(api_public_url="https://x-xxxx.app").public_api_url == "https://x-xxxx.app"

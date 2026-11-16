@@ -30,6 +30,6 @@ def get_storage() -> ObjectStorage:
     return LocalStorage(
         root=Path(s.local_storage_dir),
         signing_key=s.storage_signing_key.get_secret_value().encode(),
-        public_base_url=s.api_public_url,
+        public_base_url=s.public_api_url,
         ttl=s.signed_url_ttl_seconds,
     )

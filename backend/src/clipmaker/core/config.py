@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     # Public base URL of this API, used to build local-storage signed URLs. When unset, the
     # URLs use the host the browser called (so a single-node deploy needs no extra config).
+    # Where signed links point when there is no browser request to learn it from — which is
+    # the case in every worker, and so for every URL we hand to the transcription provider.
+    # Usually left unset: the platform knows its own domain and `public_api_url` asks it.
     api_public_url: str | None = None
     # Comma-separated list of browser origins allowed to call the API.
     cors_origins: str = "http://localhost:3000"
@@ -229,6 +232,28 @@ class Settings(BaseSettings):
         return self
 
     @property
+    def public_api_url(self) -> str | None:
+        """The address other machines can reach this API at.
+
+        A hand-typed URL is the error-prone path: a placeholder left in it once sent the
+        transcription provider to `clipmaker-production-xxxx.up.railway.app`, which 404s, and
+        the failure surfaces a whole stage later as "transcription failed". The platform
+        already publishes its own domain, so that wins over a value that looks unfinished.
+
+        A relative setting (e.g. "/api" behind the dev proxy) is deliberate and is kept.
+        """
+        configured = (self.api_public_url or "").strip().rstrip("/")
+        if configured.startswith("/"):
+            return configured
+
+        platform = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+        if configured and not _looks_unfinished(configured):
+            return configured
+        if platform:
+            return f"https://{platform.rstrip('/')}"
+        return configured or None
+
+    @property
     def owner_email_set(self) -> frozenset[str]:
         return frozenset(e.strip().lower() for e in self.owner_emails.split(",") if e.strip())
 
@@ -251,6 +276,16 @@ OUR_FRONTEND_ORIGINS: tuple[str, ...] = (
     "https://clip2easy.vercel.app",
     "http://localhost:3000",
 )
+
+
+#: Markers of a URL somebody meant to replace. `xxxx` is the one that actually shipped.
+_PLACEHOLDER_MARKERS = ("xxxx", "<", ">", "example.com", "your-", "changeme", "placeholder")
+
+
+def _looks_unfinished(url: str) -> bool:
+    """Whether a configured URL still carries a fill-this-in marker (pure)."""
+    lowered = url.lower()
+    return any(marker in lowered for marker in _PLACEHOLDER_MARKERS)
 
 
 @lru_cache(maxsize=1)
