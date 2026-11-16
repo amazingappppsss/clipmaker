@@ -736,6 +736,90 @@
         }
       }
     },
+    "/projects/{project_id}/clips/{clip_id}": {
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Correct Clip",
+        "description": "Fix a clip the AI got wrong, and rebuild just that one.\n\nNot charged: the viewer already paid to process this video, and billing them to correct\nour own bad cut would be a tax on our mistakes.",
+        "operationId": "correct_clip_projects__project_id__clips__clip_id__patch",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "clip_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Clip Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClipCorrectionIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Correct Clip Projects  Project Id  Clips  Clip Id  Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{project_id}/share": {
       "post": {
         "tags": [
@@ -1362,6 +1446,40 @@
         ],
         "title": "AccountUsage",
         "description": "GET /account/usage response."
+      },
+      "ClipCorrectionIn": {
+        "properties": {
+          "start_seconds": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 86400.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Seconds"
+          },
+          "end_seconds": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 86400.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Seconds"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ClipCorrectionIn",
+        "description": "A viewer's correction to one clip. Every field is optional; at least one is required."
       },
       "ClipOut": {
         "properties": {

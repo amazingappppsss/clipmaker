@@ -206,6 +206,26 @@ class UsageRecordOut(ApiModel):
     created_at: datetime
 
 
+class ClipCorrectionIn(BaseModel):
+    """A viewer's correction to one clip. Every field is optional; at least one is required."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # Absolute seconds in the source video. The planner clamps these to a window around the
+    # moment that was picked, so a correction can rescue a cut without becoming a new clip.
+    start_seconds: Annotated[float, Field(ge=0, le=86_400)] | None = None
+    end_seconds: Annotated[float, Field(ge=0, le=86_400)] | None = None
+
+    def changes(self) -> dict[str, float]:
+        """The correction as stored on the clip; empty when nothing was sent."""
+        out: dict[str, float] = {}
+        if self.start_seconds is not None:
+            out["start"] = self.start_seconds
+        if self.end_seconds is not None:
+            out["end"] = self.end_seconds
+        return out
+
+
 class WaitlistJoinIn(BaseModel):
     """A public waitlist signup. Every field is bounded; nothing here is trusted."""
 

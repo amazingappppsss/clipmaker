@@ -45,6 +45,36 @@ def _words(segments: list[Segment], start: int, end: int) -> list[Word]:
     return [w for seg in segments[start : end + 1] for w in seg.words]
 
 
+#: A trim can move an edge this far from where the AI put it, in seconds. Wide enough to
+#: rescue a cut that lost the payoff, narrow enough that it stays the moment that was picked.
+TRIM_LIMIT = 20.0
+#: However it is trimmed, a clip still has to be a clip.
+MIN_CLIP_SECONDS = 5.0
+
+
+def apply_trim(plan: dict[str, Any], corrections: dict[str, Any] | None) -> tuple[float, float]:
+    """The clip's start and end after the viewer's trim, clamped to something sane (pure).
+
+    Nonsense is ignored rather than refused: a stored correction that no longer makes sense
+    against a re-planned clip must not be able to wedge the render.
+    """
+    start, end = float(plan["start"]), float(plan["end"])
+    if not corrections:
+        return start, end
+
+    want_start = corrections.get("start")
+    want_end = corrections.get("end")
+    if isinstance(want_start, int | float):
+        start = min(max(float(want_start), start - TRIM_LIMIT), start + TRIM_LIMIT)
+    if isinstance(want_end, int | float):
+        end = min(max(float(want_end), end - TRIM_LIMIT), end + TRIM_LIMIT)
+
+    start = max(0.0, start)
+    if end - start < MIN_CLIP_SECONDS:
+        end = start + MIN_CLIP_SECONDS
+    return start, end
+
+
 def plan_clip(
     segments: list[Segment],
     plan: dict[str, Any],
@@ -52,13 +82,13 @@ def plan_clip(
     source: str,
     src_w: int = 1920,
     src_h: int = 1080,
+    corrections: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The render plan for one clip (face analysis is the only I/O)."""
     s_seg, e_seg = int(plan["start_segment"]), int(plan["end_segment"])
     words = _words(segments, s_seg, e_seg)
-    main = keep_intervals(
-        words, float(plan["start"]), float(plan["end"]), reveal_time(segments, s_seg, e_seg, moment)
-    )
+    clip_start, clip_end = apply_trim(plan, corrections)
+    main = keep_intervals(words, clip_start, clip_end, reveal_time(segments, s_seg, e_seg, moment))
     teaser_plan = plan.get("teaser") if isinstance(plan.get("teaser"), dict) else None
     teaser: list[Interval] = []
     teaser_words: list[Word] = []
@@ -104,12 +134,12 @@ def run(ctx: StageContext) -> StageOutput:
         source_key = src.storage_key
         src_w, src_h = int(src.width or 1920), int(src.height or 1080)
         todo = [
-            (c.id, dict(c.edit_plan or {}), c.candidate_id)
+            (c.id, dict(c.edit_plan or {}), c.candidate_id, dict(c.corrections or {}))
             for c in db.query(Clip).filter_by(project_id=ctx.project_id).order_by(Clip.rank)
             if "render" not in (c.edit_plan or {})
         ]
         moments: dict[Any, str | None] = {}
-        for _, _, cand_id in todo:
+        for _, _, cand_id, _ in todo:
             cand = db.get(Candidate, cand_id) if cand_id else None
             story = (cand.scores or {}).get("story") if cand else None
             moments[cand_id] = story.get("five_second_moment") if isinstance(story, dict) else None
@@ -119,8 +149,10 @@ def run(ctx: StageContext) -> StageOutput:
     source = local_source(ctx, source_key)
     segments = load_segments(ctx)
     planned = 0
-    for clip_id, plan, cand_id in todo:
-        render_plan = plan_clip(segments, plan, moments.get(cand_id), source, src_w, src_h)
+    for clip_id, plan, cand_id, corrections in todo:
+        render_plan = plan_clip(
+            segments, plan, moments.get(cand_id), source, src_w, src_h, corrections
+        )
         with ctx.sessions() as db:
             clip = db.get(Clip, clip_id)
             if clip is None:

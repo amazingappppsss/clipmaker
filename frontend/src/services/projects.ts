@@ -74,3 +74,15 @@ export async function shareProject(id: string): Promise<string> {
 export function cancelProcessing(id: string): Promise<Project> {
   return apiRequest<Project>(`/projects/${encodeURIComponent(id)}/cancel`, { method: "POST" });
 }
+
+/** Correct a clip the AI got wrong and rebuild just that one (not charged). */
+export function correctClip(
+  projectId: string,
+  clipId: string,
+  changes: { start_seconds?: number; end_seconds?: number },
+): Promise<{ status: string }> {
+  return apiRequest<{ status: string }>(`/projects/${projectId}/clips/${clipId}`, {
+    method: "PATCH",
+    body: changes,
+  });
+}

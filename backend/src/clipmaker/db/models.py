@@ -302,6 +302,9 @@ class Clip(TimestampMixin, Base):
     style: Mapped[str] = mapped_column(String(50), nullable=False)
     duration_seconds: Mapped[float | None] = mapped_column(Float)
     edit_plan: Mapped[JsonDict] = mapped_column(default=dict, nullable=False)
+    # What the viewer changed by hand, kept apart from `edit_plan` so re-planning never
+    # discards it: the AI's decision is regenerated, the human's correction survives.
+    corrections: Mapped[JsonDict] = mapped_column(default=dict, nullable=False)
     qa_report: Mapped[JsonDict] = mapped_column(default=dict, nullable=False)
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     error_message: Mapped[str | None] = mapped_column(Text)

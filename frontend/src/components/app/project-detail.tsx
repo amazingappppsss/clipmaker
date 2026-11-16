@@ -369,7 +369,15 @@ export function ProjectDetail() {
           ) : null}
           <div className="grid gap-6 md:grid-cols-2">
             {clips.map((clip) => (
-              <MomentCard key={clip.id} clip={clip} sourceUrl={project.source_video_url ?? null} />
+              <MomentCard
+                key={clip.id}
+                clip={clip}
+                sourceUrl={project.source_video_url ?? null}
+                projectId={id}
+                // The rebuild moves the project back into EDITING; poll at once so the card
+                // switches to the live progress instead of showing a stale "ready".
+                onCorrected={() => void refresh(undefined, true)}
+              />
             ))}
           </div>
         </section>

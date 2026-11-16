@@ -212,6 +212,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{project_id}/clips/{clip_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Correct Clip
+         * @description Fix a clip the AI got wrong, and rebuild just that one.
+         *
+         *     Not charged: the viewer already paid to process this video, and billing them to correct
+         *     our own bad cut would be a tax on our mistakes.
+         */
+        patch: operations["correct_clip_projects__project_id__clips__clip_id__patch"];
+        trace?: never;
+    };
     "/projects/{project_id}/share": {
         parameters: {
             query?: never;
@@ -443,6 +466,16 @@ export interface components {
             history: components["schemas"]["UsageRecordOut"][];
             /** Plans */
             plans: components["schemas"]["PlanOut"][];
+        };
+        /**
+         * ClipCorrectionIn
+         * @description A viewer's correction to one clip. Every field is optional; at least one is required.
+         */
+        ClipCorrectionIn: {
+            /** Start Seconds */
+            start_seconds?: number | null;
+            /** End Seconds */
+            end_seconds?: number | null;
         };
         /**
          * ClipOut
@@ -1377,6 +1410,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClipOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    correct_clip_projects__project_id__clips__clip_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                project_id: string;
+                clip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClipCorrectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Validation Error */

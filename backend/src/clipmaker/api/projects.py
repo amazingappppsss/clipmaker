@@ -8,6 +8,7 @@ from fastapi import APIRouter, Query, Response, status
 
 from clipmaker.api.deps import AppSettings, CurrentUser, DbSession, Importer, JobQueue, Storage
 from clipmaker.schemas import (
+    ClipCorrectionIn,
     ClipOut,
     ImportRequest,
     JobStatusOut,
@@ -19,6 +20,7 @@ from clipmaker.schemas import (
     UploadRequest,
     UploadTicket,
 )
+from clipmaker.services import corrections as corrections_service
 from clipmaker.services import imports as import_service
 from clipmaker.services import processing as processing_service
 from clipmaker.services import projects as project_service
@@ -151,6 +153,28 @@ def get_clips(
     """Selected clips for the project, best first, with links to the finished videos."""
     project = project_service.get_owned_project(db, user, project_id)
     return processing_service.list_clips(db, project, storage)
+
+
+@router.patch("/{project_id}/clips/{clip_id}", status_code=status.HTTP_202_ACCEPTED)
+def correct_clip(
+    project_id: uuid.UUID,
+    clip_id: uuid.UUID,
+    payload: ClipCorrectionIn,
+    user: CurrentUser,
+    db: DbSession,
+    storage: Storage,
+    queue: JobQueue,
+) -> dict[str, str]:
+    """Fix a clip the AI got wrong, and rebuild just that one.
+
+    Not charged: the viewer already paid to process this video, and billing them to correct
+    our own bad cut would be a tax on our mistakes.
+    """
+    project = project_service.get_owned_project(db, user, project_id)
+    clip = corrections_service.get_clip(db, project, clip_id)
+    job = corrections_service.correct(db, project, clip, payload.changes(), storage)
+    queue(job.id)
+    return {"status": "rebuilding"}
 
 
 @router.post("/{project_id}/share")

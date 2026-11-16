@@ -6,6 +6,8 @@
  * teaser first. Title, hook, why-it-works and copy-ready post text below.
  */
 import { Check, Copy, Download } from "lucide-react";
+
+import { TrimControls } from "@/components/app/trim-controls";
 import { useRef, useState } from "react";
 
 import { initialPlayback, nextPlayback, type Phase } from "@/lib/teaser";
@@ -36,7 +38,17 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
-export function MomentCard({ clip, sourceUrl }: { clip: Clip; sourceUrl: string | null }) {
+export function MomentCard({
+  clip,
+  sourceUrl,
+  projectId,
+  onCorrected,
+}: {
+  clip: Clip;
+  sourceUrl: string | null;
+  projectId?: string;
+  onCorrected?: () => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const start = clip.start_seconds ?? 0;
   const end = clip.end_seconds ?? start;
@@ -211,6 +223,15 @@ export function MomentCard({ clip, sourceUrl }: { clip: Clip; sourceUrl: string 
           ) : null}
           {post ? <CopyButton text={post} label="Copy post text" /> : null}
           {clip.title ? <CopyButton text={clip.title} label="Copy title" /> : null}
+          {projectId && clip.start_seconds != null && clip.end_seconds != null ? (
+            <TrimControls
+              projectId={projectId}
+              clipId={clip.id}
+              start={clip.start_seconds}
+              end={clip.end_seconds}
+              onQueued={onCorrected}
+            />
+          ) : null}
         </div>
       </div>
     </article>

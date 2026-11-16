@@ -31,7 +31,7 @@ export function setTokenGetter(getter: TokenGetter): void {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   /** Skip the Authorization header (public endpoints). */
   anonymous?: boolean;
