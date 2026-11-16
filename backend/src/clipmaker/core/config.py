@@ -103,6 +103,10 @@ class Settings(BaseSettings):
     llm_fast_effort: str = "low"
     # Server-side refusal fallback for the smart model (on by default; set false to disable).
     llm_refusal_fallback: bool = True
+    # Parts of a long transcript hunted for candidates at once. Raising it mostly helps long
+    # episodes, where the parts are otherwise forced well over their intended size. Bounded
+    # by the provider's rate limits rather than by this machine.
+    llm_parallel_parts: int = 8
 
     # --- Email ----------------------------------------------------------------------------
     # "resend" needs RESEND_API_KEY and a verified EMAIL_FROM domain. Anything else (or a

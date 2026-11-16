@@ -528,3 +528,47 @@ def test_a_dead_run_frees_its_downloaded_video(
     monkeypatch.setitem(runner.handlers, ProjectState.INGESTING, boom)
     assert runner.run()[0] == Outcome.FAILED
     assert store.head(f"u/{pid}/source/original.mp4") is None  # freed
+
+
+def test_a_long_episode_is_split_into_parts_of_the_intended_size() -> None:
+    """The cap of 4 silently tripled the work per part on exactly the videos we are built for."""
+    from clipmaker.pipeline.stages.common import (
+        PARALLEL_TARGET_CHARS,
+        parallel_parts,
+        split_for_parallel,
+    )
+    from clipmaker.pipeline.transcript import Segment
+    from clipmaker.providers.transcription.base import Word
+
+    # Roughly a two-hour podcast: 600 segments of ~170 characters.
+    segments = [
+        Segment(
+            idx=i,
+            start=i * 12.0,
+            end=i * 12.0 + 12.0,
+            speaker="A",
+            words=[Word("word", i * 12.0, i * 12.0 + 1.0)] * 30,
+        )
+        for i in range(600)
+    ]
+    lengths = [len(seg.text) for seg in segments]
+
+    spans = split_for_parallel(segments, lengths, parallel_parts(None))
+    assert len(spans) >= 8, f"only {len(spans)} parts for a two-hour episode"
+
+    biggest = max(sum(lengths[a : b + 1]) for a, b in spans)
+    assert biggest <= PARALLEL_TARGET_CHARS * 2, (
+        f"a part carries {biggest} chars against a target of {PARALLEL_TARGET_CHARS}"
+    )
+    # Every segment is still covered: splitting faster must not lose the end of the episode.
+    assert spans[0][0] == 0
+    assert spans[-1][1] == len(segments) - 1
+
+
+def test_the_part_count_can_be_tuned_without_a_deploy() -> None:
+    from clipmaker.core.config import Settings
+    from clipmaker.pipeline.stages.common import MAX_PARALLEL_PARTS, parallel_parts
+
+    assert parallel_parts(None) == MAX_PARALLEL_PARTS
+    assert parallel_parts(Settings(llm_parallel_parts=12)) == 12
+    assert parallel_parts(Settings(llm_parallel_parts=0)) == MAX_PARALLEL_PARTS

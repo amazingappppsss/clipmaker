@@ -31,7 +31,12 @@ from clipmaker.pipeline.selection import (
     pick_teaser,
     select_clips,
 )
-from clipmaker.pipeline.stages.common import load_segments, run_parallel, split_for_parallel
+from clipmaker.pipeline.stages.common import (
+    load_segments,
+    parallel_parts,
+    run_parallel,
+    split_for_parallel,
+)
 from clipmaker.pipeline.transcript import Segment, render_for_llm
 from clipmaker.providers.llm.base import LLMError, LLMRequest
 
@@ -127,7 +132,8 @@ def run(ctx: StageContext) -> StageOutput:
 
     # 1) Candidate proposals from the smart model, per window (same cached transcript prefix).
     lengths = [len(render_for_llm([seg])) + 1 for seg in segments]
-    spans = split_for_parallel(segments, lengths)
+    parts = parallel_parts(ctx.settings)
+    spans = split_for_parallel(segments, lengths, parts)
     per_part = min(MAX_PROPOSALS_PER_CALL, max(3, (target * 2 + 2) // len(spans) + 1))
 
     def hunt(span: tuple[int, int]) -> tuple[dict[str, Any], Decimal]:
@@ -153,7 +159,7 @@ def run(ctx: StageContext) -> StageOutput:
     # slowest step in the pipeline, and each part is judged with the same whole-video analysis.
     proposals: list[Proposal] = []
     cost = Decimal(0)
-    for data, c in run_parallel([partial(hunt, span) for span in spans]):
+    for data, c in run_parallel([partial(hunt, span) for span in spans], workers=parts):
         proposals.extend(parse_proposals(data, len(segments)))
         cost += c
     if not proposals:

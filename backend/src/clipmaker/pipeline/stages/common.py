@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 
 from clipmaker.db.models import Transcript
 from clipmaker.pipeline.context import StageContext
@@ -52,7 +53,17 @@ def load_segments(ctx: StageContext) -> list[Segment]:
 # anyway (the whole-video analysis it also gets supplies the context).
 PARALLEL_TARGET_CHARS = 9_000  # ~3 minutes of talk per part
 MIN_PARALLEL_CHARS = 7_000  # below this, one call is already quick
-MAX_PARALLEL_PARTS = 4
+#: How many parts of a transcript are hunted at once.
+#:
+#: This was 4, which quietly punished exactly the videos we are built for. The parts are
+#: sized to PARALLEL_TARGET_CHARS, so a long episode wants more of them — a two-hour podcast
+#: wants about twelve. Capping at four did not make it cheaper, it made each part three times
+#: the intended size, and selection ran three times longer than it needed to.
+#:
+#: These calls wait on the network, not the CPU, so more of them at once costs no machine.
+#: The ceiling exists for the provider's rate limits, and is settings-backed so it can be
+#: tuned against a real job without a deploy.
+MAX_PARALLEL_PARTS = 8
 PART_OVERLAP_SEGMENTS = 6
 
 
@@ -72,6 +83,12 @@ def split_for_parallel(
         if end > start:
             spans.append((start, end))
     return spans or [(0, len(segments) - 1)]
+
+
+def parallel_parts(settings: Any | None = None) -> int:
+    """How many parts to hunt at once, from settings when we have them."""
+    value = getattr(settings, "llm_parallel_parts", None) if settings else None
+    return max(1, int(value)) if value else MAX_PARALLEL_PARTS
 
 
 def run_parallel[T](tasks: list[Callable[[], T]], workers: int = MAX_PARALLEL_PARTS) -> list[T]:
