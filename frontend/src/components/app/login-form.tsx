@@ -43,6 +43,12 @@ export function LoginForm() {
     if (status === "signed_in") router.replace(next);
   }, [status, router, next]);
 
+  // Supabase answers "no such account" and "wrong password" with one deliberately vague
+  // message, so it cannot be used to discover who has an account. That is right, but handing
+  // it to someone straight is our version of page 93 of the manual: the fix is a tab away on
+  // this very page and the error never says so.
+  const isUnknownLogin = (message: string): boolean => /invalid login credentials/i.test(message);
+
   const run = async (action: () => Promise<void>): Promise<void> => {
     setError(null);
     setNotice(null);
@@ -50,7 +56,12 @@ export function LoginForm() {
     try {
       await action();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign-in failed.");
+      const message = err instanceof Error ? err.message : "Sign-in failed.";
+      setError(
+        isUnknownLogin(message)
+          ? "That email and password don't match an account. If you haven't made one yet, create an account below — it takes a second."
+          : message,
+      );
     } finally {
       setBusy(false);
     }
@@ -221,6 +232,18 @@ export function LoginForm() {
         {error ? (
           <div className="mt-4">
             <Alert tone="error">{error}</Alert>
+            {tab === "sign_in" && isUnknownLogin(error) ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("sign_up");
+                  setError(null);
+                }}
+                className="mt-2 text-sm font-bold text-blue underline underline-offset-2"
+              >
+                Create an account with this email
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>
