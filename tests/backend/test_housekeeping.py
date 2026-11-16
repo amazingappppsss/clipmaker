@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+import shutil
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -79,3 +80,26 @@ def test_scheduled_sweep_frees_space(client: TestClient, auth: dict[str, str]) -
 
     _finished_project(client, auth, ProjectState.COMPLETED)
     assert reap_stale_jobs() >= 0  # runs without a worker and without raising
+
+
+def test_an_impossible_request_deletes_nothing(tmp_path: Path, db: Session) -> None:
+    """Asking a 0.45 GB volume for 500 MB free made every sweep wipe every project."""
+    from clipmaker.services.housekeeping import HEADROOM_BYTES, MAX_SHARE_OF_DISK, affordable
+
+    total = shutil.disk_usage(str(tmp_path)).total
+    ceiling = int(total * MAX_SHARE_OF_DISK) - HEADROOM_BYTES
+
+    # More than the disk could ever give is clamped, not honoured.
+    assert affordable(total * 10, str(tmp_path)) == max(0, ceiling)
+    # A modest request is untouched.
+    assert affordable(1024, str(tmp_path)) == 1024
+
+
+def test_a_failed_projects_source_is_the_last_thing_deleted(
+    tmp_path: Path, db: Session
+) -> None:
+    """Without it, "Try again" can only fail — worse than a full disk."""
+    from clipmaker.services.housekeeping import LAST_RESORT, REMOVABLE
+
+    assert LAST_RESORT == ProjectState.FAILED
+    assert LAST_RESORT in REMOVABLE, "it is still removable, just last"

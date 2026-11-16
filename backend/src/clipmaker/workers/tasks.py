@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 STALE_AFTER = timedelta(minutes=10)
 # Keep at least this much room ready for the next import.
+#: What the sweep tries to keep free. Clamped to the disk by `affordable`, so a value larger
+#: than the volume cannot turn the sweep into "delete everything, every time".
 KEEP_FREE_BYTES = 500 * 1024 * 1024
 
 

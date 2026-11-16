@@ -23,8 +23,37 @@ logger = logging.getLogger(__name__)
 
 # Keep this much free after making room, so the next step has somewhere to work.
 HEADROOM_BYTES = 300 * 1024 * 1024
+#: Never ask for more than this share of the disk. A request that cannot be satisfied makes
+#: the loop delete everything it is allowed to and still "fail" — which is what happened on a
+#: 0.45 GB volume asked to free 500 MB: every sweep wiped every removable project, forever.
+MAX_SHARE_OF_DISK = 0.6
 # Never touch a project that is still running or waiting to be looked at.
 REMOVABLE = (ProjectState.COMPLETED, ProjectState.FAILED, ProjectState.CANCELLED)
+#: Deleted last. A failed project is the one most likely to be run again, and without its
+#: source "Try again" can only fail — which is a worse outcome than a full disk.
+LAST_RESORT = ProjectState.FAILED
+
+
+def disk_total(path: str) -> int | None:
+    """Total bytes of the disk holding `path`, or None when it isn't a local disk."""
+    try:
+        target = path if Path(path).exists() else str(Path(path).parent or "/")
+        return shutil.disk_usage(target).total
+    except OSError:
+        return None
+
+
+def affordable(needed_bytes: int, local_dir: str) -> int:
+    """`needed_bytes`, clamped to something this disk could actually provide (pure enough).
+
+    Asking for more than the disk holds is not a stricter request, it is an unsatisfiable
+    one: the loop then deletes every project it may touch and still comes up short.
+    """
+    total = disk_total(local_dir)
+    if total is None:
+        return needed_bytes
+    ceiling = int(total * MAX_SHARE_OF_DISK) - HEADROOM_BYTES
+    return max(0, min(needed_bytes, ceiling))
 
 
 def free_bytes(path: str) -> int | None:
@@ -43,16 +72,21 @@ def make_room(db: Session, storage: ObjectStorage, local_dir: str | None, needed
     """
     if not local_dir:
         return 0
+    needed_bytes = affordable(needed_bytes, local_dir)
     free = free_bytes(local_dir)
-    if free is None or free >= needed_bytes + HEADROOM_BYTES:
+    if free is None or needed_bytes <= 0 or free >= needed_bytes + HEADROOM_BYTES:
         return 0
 
     removed = 0
-    projects = db.scalars(
+    rows = db.scalars(
         select(Project)
         .where(Project.state.in_(REMOVABLE), Project.deleted_at.is_(None))
         .order_by(Project.updated_at.asc())
     ).all()
+    # Oldest first, but failed projects last: their source is what "Try again" needs.
+    projects = [p for p in rows if p.state != LAST_RESORT] + [
+        p for p in rows if p.state == LAST_RESORT
+    ]
     for project in projects:
         prefix = project_prefix(str(project.user_id), str(project.id))
         try:
