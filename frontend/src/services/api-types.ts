@@ -43,3 +43,24 @@ export interface WaitlistStats {
   spots_left: number;
   places_per_referral: number;
 }
+
+/** One scored moment, shipped or not (backend/src/clipmaker/services/moments.py). */
+export interface Moment {
+  id: string;
+  start_seconds: number;
+  end_seconds: number;
+  score: number;
+  selected: boolean;
+  rejected_reason: string | null;
+  why: string;
+  hook_type: string | null;
+  transcript: string | null;
+  can_promote: boolean;
+}
+
+/** Every moment we looked at, with the headline counts. */
+export interface Moments {
+  scanned: number;
+  shipped: number;
+  moments: Moment[];
+}

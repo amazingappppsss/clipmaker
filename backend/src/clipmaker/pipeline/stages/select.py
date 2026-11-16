@@ -215,6 +215,16 @@ def run(ctx: StageContext) -> StageOutput:
                     "hook_type": cand.proposal.hook_type,
                 },
                 total_score=cand.total_score,
+                plan={
+                    "start": cand.start_seconds,
+                    "end": cand.end_seconds,
+                    "start_segment": cand.start_segment,
+                    "end_segment": cand.end_segment,
+                    "transcript": _clip_text(segments, cand),
+                    "hook_line": cand.proposal.hook_line,
+                    "notes": cand.notes,
+                    "teaser": _teaser_plan(segments, cand),
+                },
                 selected=cand.selected,
                 rejected_reason=cand.rejected_reason,
             )

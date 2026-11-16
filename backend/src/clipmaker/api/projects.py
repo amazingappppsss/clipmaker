@@ -12,6 +12,7 @@ from clipmaker.schemas import (
     ClipOut,
     ImportRequest,
     JobStatusOut,
+    MomentsOut,
     ProjectCreate,
     ProjectList,
     ProjectOut,
@@ -22,6 +23,7 @@ from clipmaker.schemas import (
 )
 from clipmaker.services import corrections as corrections_service
 from clipmaker.services import imports as import_service
+from clipmaker.services import moments as moments_service
 from clipmaker.services import processing as processing_service
 from clipmaker.services import projects as project_service
 from clipmaker.services import sharing
@@ -153,6 +155,28 @@ def get_clips(
     """Selected clips for the project, best first, with links to the finished videos."""
     project = project_service.get_owned_project(db, user, project_id)
     return processing_service.list_clips(db, project, storage)
+
+
+@router.get("/{project_id}/moments")
+def get_moments(project_id: uuid.UUID, user: CurrentUser, db: DbSession) -> MomentsOut:
+    """Every moment we scored, including the ones we didn't ship, and why each missed."""
+    project = project_service.get_owned_project(db, user, project_id)
+    return moments_service.as_output(db, project)
+
+
+@router.post("/{project_id}/moments/{candidate_id}/promote", status_code=status.HTTP_202_ACCEPTED)
+def promote_moment(
+    project_id: uuid.UUID,
+    candidate_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    queue: JobQueue,
+) -> dict[str, str]:
+    """Turn a moment we rejected into a real clip. Not charged — the episode was paid for."""
+    project = project_service.get_owned_project(db, user, project_id)
+    job = moments_service.promote(db, project, candidate_id)
+    queue(job.id)
+    return {"status": "rendering"}
 
 
 @router.patch("/{project_id}/clips/{clip_id}", status_code=status.HTTP_202_ACCEPTED)

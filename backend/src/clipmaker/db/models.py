@@ -274,6 +274,9 @@ class Candidate(TimestampMixin, Base):
     total_score: Mapped[float] = mapped_column(Float, nullable=False)  # weighted 0..100
     selected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     rejected_reason: Mapped[str | None] = mapped_column(String(200))
+    # Everything needed to build this moment into a clip later, kept for the ones we did not
+    # ship as well: a moment the AI ranked 9th is still a moment, and the viewer may want it.
+    plan: Mapped[JsonDict] = mapped_column(default=dict, nullable=False)
 
 
 # --- 8. clips ---------------------------------------------------------------------------

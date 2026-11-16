@@ -206,6 +206,29 @@ class UsageRecordOut(ApiModel):
     created_at: datetime
 
 
+class MomentOut(BaseModel):
+    """One scored moment, shipped or not. The rejected ones are the point."""
+
+    id: uuid.UUID
+    start_seconds: float
+    end_seconds: float
+    score: int
+    selected: bool
+    rejected_reason: str | None
+    why: str
+    hook_type: str | None
+    transcript: str | None
+    can_promote: bool
+
+
+class MomentsOut(BaseModel):
+    """Every moment we looked at, with the headline counts."""
+
+    scanned: int
+    shipped: int
+    moments: list[MomentOut]
+
+
 class ClipCorrectionIn(BaseModel):
     """A viewer's correction to one clip. Every field is optional; at least one is required."""
 

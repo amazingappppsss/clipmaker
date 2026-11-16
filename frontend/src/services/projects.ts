@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 import { apiRequest } from "@/services/api-client";
 import type {
   Clip,
+  Moments,
   ImportRequest,
   JobStatus,
   Project,
@@ -84,5 +85,17 @@ export function correctClip(
   return apiRequest<{ status: string }>(`/projects/${projectId}/clips/${clipId}`, {
     method: "PATCH",
     body: changes,
+  });
+}
+
+/** Every moment we scored for this project, shipped or not. */
+export function getMoments(projectId: string, signal?: AbortSignal): Promise<Moments> {
+  return apiRequest<Moments>(`/projects/${projectId}/moments`, { signal });
+}
+
+/** Turn a moment we rejected into a real clip (not charged). */
+export function promoteMoment(projectId: string, momentId: string): Promise<{ status: string }> {
+  return apiRequest<{ status: string }>(`/projects/${projectId}/moments/${momentId}/promote`, {
+    method: "POST",
   });
 }

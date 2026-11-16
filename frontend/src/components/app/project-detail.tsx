@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { FailurePanel } from "@/components/app/failure-panel";
 import { MomentCard } from "@/components/app/moment-card";
+import { MomentVault } from "@/components/app/moment-vault";
 import { MomentPlaceholders, ProcessingHero, WhileYouWait } from "@/components/app/processing-hero";
 import { StageTimeline } from "@/components/app/stage-timeline";
 import { StateBadge } from "@/components/app/state-badge";
@@ -23,11 +24,12 @@ import { Spinner } from "@/components/ui/spinner";
 import { formatBytes, formatDate, formatDuration } from "@/lib/format";
 import { isProcessing, stepStatuses, stepStatusesFromJob } from "@/lib/project-state";
 import { ApiError } from "@/services/api-client";
-import type { Clip, JobStatus, Project } from "@/services/api-types";
+import type { Clip, JobStatus, Moments, Project } from "@/services/api-types";
 import {
   cancelProcessing,
   deleteProject,
   getClips,
+  getMoments,
   getProject,
   getStatus,
   shareProject,
@@ -58,6 +60,7 @@ export function ProjectDetail() {
   const [project, setProject] = useState<Project | null>(null);
   const [status, setStatus] = useState<JobStatus | null>(null);
   const [clips, setClips] = useState<Clip[]>([]);
+  const [moments, setMoments] = useState<Moments | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"start" | "delete" | "share" | "cancel" | null>(null);
@@ -70,7 +73,12 @@ export function ProjectDetail() {
         setProject(p);
         setStatus(s);
         if (quiet) setError(null);
-        if (CLIP_STATES.has(p.state)) setClips(await getClips(id, signal));
+        if (CLIP_STATES.has(p.state)) {
+          setClips(await getClips(id, signal));
+          // Best-effort: the clips are the point, and an older project may have none
+          // of these scored rows at all.
+          setMoments(await getMoments(id, signal).catch(() => null));
+        }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (err instanceof ApiError && err.code === "not_found") setNotFound(true);
@@ -381,6 +389,14 @@ export function ProjectDetail() {
             ))}
           </div>
         </section>
+      ) : null}
+
+      {!processing && moments ? (
+        <MomentVault
+          data={moments}
+          projectId={id}
+          onPromoted={() => void refresh(undefined, true)}
+        />
       ) : null}
     </div>
   );

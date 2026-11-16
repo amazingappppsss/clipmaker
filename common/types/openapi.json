@@ -736,6 +736,140 @@
         }
       }
     },
+    "/projects/{project_id}/moments": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Get Moments",
+        "description": "Every moment we scored, including the ones we didn't ship, and why each missed.",
+        "operationId": "get_moments_projects__project_id__moments_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MomentsOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/moments/{candidate_id}/promote": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Promote Moment",
+        "description": "Turn a moment we rejected into a real clip. Not charged \u2014 the episode was paid for.",
+        "operationId": "promote_moment_projects__project_id__moments__candidate_id__promote_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "candidate_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Candidate Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Promote Moment Projects  Project Id  Moments  Candidate Id  Promote Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{project_id}/clips/{clip_id}": {
       "patch": {
         "tags": [
@@ -2099,6 +2233,114 @@
         ],
         "title": "JobStatusOut",
         "description": "GET /projects/{id}/status \u2014 real progress, never simulated."
+      },
+      "MomentOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "start_seconds": {
+            "type": "number",
+            "title": "Start Seconds"
+          },
+          "end_seconds": {
+            "type": "number",
+            "title": "End Seconds"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected"
+          },
+          "rejected_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected Reason"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why"
+          },
+          "hook_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hook Type"
+          },
+          "transcript": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcript"
+          },
+          "can_promote": {
+            "type": "boolean",
+            "title": "Can Promote"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "start_seconds",
+          "end_seconds",
+          "score",
+          "selected",
+          "rejected_reason",
+          "why",
+          "hook_type",
+          "transcript",
+          "can_promote"
+        ],
+        "title": "MomentOut",
+        "description": "One scored moment, shipped or not. The rejected ones are the point."
+      },
+      "MomentsOut": {
+        "properties": {
+          "scanned": {
+            "type": "integer",
+            "title": "Scanned"
+          },
+          "shipped": {
+            "type": "integer",
+            "title": "Shipped"
+          },
+          "moments": {
+            "items": {
+              "$ref": "#/components/schemas/MomentOut"
+            },
+            "type": "array",
+            "title": "Moments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scanned",
+          "shipped",
+          "moments"
+        ],
+        "title": "MomentsOut",
+        "description": "Every moment we looked at, with the headline counts."
       },
       "Plan": {
         "type": "string",

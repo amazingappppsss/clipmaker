@@ -212,6 +212,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{project_id}/moments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Moments
+         * @description Every moment we scored, including the ones we didn't ship, and why each missed.
+         */
+        get: operations["get_moments_projects__project_id__moments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{project_id}/moments/{candidate_id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Promote Moment
+         * @description Turn a moment we rejected into a real clip. Not charged — the episode was paid for.
+         */
+        post: operations["promote_moment_projects__project_id__moments__candidate_id__promote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{project_id}/clips/{clip_id}": {
         parameters: {
             query?: never;
@@ -699,6 +739,47 @@ export interface components {
             started_at: string | null;
             /** Completed At */
             completed_at: string | null;
+        };
+        /**
+         * MomentOut
+         * @description One scored moment, shipped or not. The rejected ones are the point.
+         */
+        MomentOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Start Seconds */
+            start_seconds: number;
+            /** End Seconds */
+            end_seconds: number;
+            /** Score */
+            score: number;
+            /** Selected */
+            selected: boolean;
+            /** Rejected Reason */
+            rejected_reason: string | null;
+            /** Why */
+            why: string;
+            /** Hook Type */
+            hook_type: string | null;
+            /** Transcript */
+            transcript: string | null;
+            /** Can Promote */
+            can_promote: boolean;
+        };
+        /**
+         * MomentsOut
+         * @description Every moment we looked at, with the headline counts.
+         */
+        MomentsOut: {
+            /** Scanned */
+            scanned: number;
+            /** Shipped */
+            shipped: number;
+            /** Moments */
+            moments: components["schemas"]["MomentOut"][];
         };
         /**
          * Plan
@@ -1410,6 +1491,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClipOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_moments_projects__project_id__moments_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MomentsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    promote_moment_projects__project_id__moments__candidate_id__promote_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                project_id: string;
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Validation Error */
