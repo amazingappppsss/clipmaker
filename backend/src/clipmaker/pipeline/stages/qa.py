@@ -1,7 +1,13 @@
 """QUALITY_CHECK: verify every rendered file before anyone can download it.
 
-A clip is published (asset `is_final`) only if the file is a real 1080x1920 video with audio
-and the expected length. Anything else is marked failed with the reason — never shown broken.
+A clip is published (asset `is_final`) only if the file is a real vertical video with audio
+and the expected length, and only if it actually shows and plays something. Anything else is
+marked failed with the reason — never shown broken.
+
+That last part is not theoretical: a misplaced `fade` once whited out every frame of a clip,
+and the file was a perfectly valid 1080x1920 H.264 video of the right length with an audio
+track. Every check here passed it. So the picture and the sound are now sampled, not just
+described.
 """
 
 from __future__ import annotations
@@ -12,7 +18,14 @@ from typing import Any
 from clipmaker.core.enums import AssetKind, ClipStatus
 from clipmaker.db.models import Clip, SourceVideo
 from clipmaker.editing.render import SIZES
-from clipmaker.media.probe import ProbeError, probe_media
+from clipmaker.media.probe import (
+    BLANK_STDDEV,
+    SILENT_DBFS,
+    ProbeError,
+    frame_variation,
+    mean_volume_dbfs,
+    probe_media,
+)
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError
 
@@ -39,7 +52,14 @@ def verify(
         meta = probe_media(ctx.storage.media_source(storage_key))
     except ProbeError as exc:
         return Verdict(["unreadable file"], {"problems": [str(exc)]}, 0.0)
-    problems = check(meta, expected, size)
+    source = ctx.storage.media_source(storage_key)
+    # Three frames spread across the clip: a blank opening is as bad as a blank middle, and
+    # sampling is cheap next to the render that produced the file.
+    length = meta.duration_seconds or expected or 0.0
+    variations = [frame_variation(source, at) for at in (length * 0.1, length * 0.5, length * 0.9)]
+    volume = mean_volume_dbfs(source) if meta.has_audio else None
+
+    problems = check(meta, expected, size, variations, volume)
     return Verdict(
         problems,
         {
@@ -47,13 +67,31 @@ def verify(
             "height": meta.height,
             "duration": meta.duration_seconds,
             "has_audio": meta.has_audio,
+            "frame_variation": [round(v, 2) if v is not None else None for v in variations],
+            "mean_volume_dbfs": round(volume, 1) if volume is not None else None,
             "problems": problems,
         },
         meta.duration_seconds,
     )
 
 
-def check(meta: Any, expected: float, size: tuple[int, int] | None = None) -> list[str]:
+def looks_blank(variations: list[float | None]) -> bool:
+    """Whether every frame we could measure was a flat colour (pure).
+
+    Measured frames only: if none could be measured we say nothing rather than failing a clip
+    over a missing tool.
+    """
+    measured = [v for v in variations if v is not None]
+    return bool(measured) and all(v < BLANK_STDDEV for v in measured)
+
+
+def check(
+    meta: Any,
+    expected: float,
+    size: tuple[int, int] | None = None,
+    variations: list[float | None] | None = None,
+    volume_dbfs: float | None = None,
+) -> list[str]:
     """Problems with a rendered file (pure). Empty list = passed."""
     problems = []
     if size is not None and (meta.width, meta.height) != size:
@@ -67,6 +105,10 @@ def check(meta: Any, expected: float, size: tuple[int, int] | None = None) -> li
         problems.append(f"length {meta.duration_seconds:.1f}s, expected {expected:.1f}s")
     if meta.duration_seconds < 3:
         problems.append("too short")
+    if variations is not None and looks_blank(variations):
+        problems.append("every sampled frame is a flat colour — the picture is blank")
+    if volume_dbfs is not None and volume_dbfs <= SILENT_DBFS:
+        problems.append(f"audio is silent ({volume_dbfs:.0f} dBFS)")
     return problems
 
 

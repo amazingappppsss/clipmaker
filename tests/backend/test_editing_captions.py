@@ -70,3 +70,49 @@ def test_caption_events_never_overlap() -> None:
     assert len(times) == len(words)
     for (_, ends), (starts, _) in itertools.pairwise(times):
         assert ends <= starts  # each caption is gone before the next appears
+
+
+def test_the_payoff_line_is_lit_up_not_just_numbers_and_names() -> None:
+    """The clip exists for that line; leaving it plain makes it look like every other line."""
+    from clipmaker.editing.captions import payoff_words
+
+    words = [
+        Word("I", 0.0, 0.2),
+        Word("walked", 0.2, 0.5),
+        Word("out", 0.5, 0.7),
+        Word("and", 0.7, 0.9),
+        Word("never", 0.9, 1.2),
+        Word("looked", 1.2, 1.5),
+        Word("back.", 1.5, 1.9),
+    ]
+    assert payoff_words(words, "never looked back") == {4, 5, 6}
+    assert payoff_words(words, None) == set()
+    assert payoff_words(words, "something else entirely") == set()
+
+
+def test_a_payoff_quote_that_lost_a_word_to_filler_removal_still_lands() -> None:
+    """The quote rarely survives the cut intact, and a partial hit is still the right line."""
+    from clipmaker.editing.captions import payoff_words
+
+    words = [
+        Word("and", 0.0, 0.2),
+        Word("I", 0.2, 0.4),
+        Word("never", 0.4, 0.7),
+        Word("looked", 0.7, 1.0),
+        Word("back.", 1.0, 1.4),
+    ]
+    # "um" was between "I" and "never" in the source and has been cut.
+    assert payoff_words(words, "I um never looked back") >= {2, 3, 4}
+
+
+def test_the_payoff_words_actually_reach_the_subtitle_file() -> None:
+    words = [
+        Word("I", 0.0, 0.3),
+        Word("never", 0.3, 0.7),
+        Word("looked", 0.7, 1.0),
+        Word("back.", 1.0, 1.4),
+    ]
+    plain = build_ass(words)
+    lit = build_ass(words, moment="never looked back")
+    assert lit != plain, "the payoff made no difference to the captions"
+    assert lit.count(LIME) > plain.count(LIME)

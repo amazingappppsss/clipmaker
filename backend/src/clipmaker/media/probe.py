@@ -7,6 +7,7 @@ ffprobe only reads the container header, so verifying a multi-GB upload is fast.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from dataclasses import dataclass
 from typing import Any
@@ -114,3 +115,63 @@ def probe_media(source: str) -> VideoMetadata:
     except json.JSONDecodeError as exc:
         raise ProbeError("Unreadable probe output") from exc
     return parse_probe_output(raw)
+
+
+#: A frame flatter than this has essentially no detail: a solid colour, not a picture.
+BLANK_STDDEV = 2.5
+#: Audio quieter than this over a whole clip is silence, whatever the track header says.
+SILENT_DBFS = -60.0
+
+
+def frame_variation(source: str, at_seconds: float) -> float | None:
+    """How much the luma spreads across one frame, or None if it can't be measured.
+
+    A solid white or black frame — what a mis-built filtergraph produces — spreads by zero.
+    The file is a perfectly valid video, so nothing else in the quality check can see that it
+    shows nothing.
+
+    Measured as YMAX-YMIN rather than a standard deviation: not every ffmpeg build reports
+    YSTD, and the spread is the plainer question anyway. `metadata=print` writes to a file
+    handle rather than the log, so it is read from stdout instead of stderr.
+    """
+    try:
+        argv = [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-ss",
+            f"{max(0.0, at_seconds):.3f}",
+            "-i",
+            source,
+            "-frames:v",
+            "1",
+            "-vf",
+            "signalstats,metadata=print:file=-",
+            "-f",
+            "null",
+            "-",
+        ]
+        result = subprocess.run(  # noqa: S603 - fixed argv, no shell
+            argv, capture_output=True, text=True, timeout=30, check=False
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    stats = result.stdout or ""
+    low = re.search(r"signalstats\.YMIN=([0-9.]+)", stats)
+    high = re.search(r"signalstats\.YMAX=([0-9.]+)", stats)
+    if not low or not high:
+        return None
+    return float(high.group(1)) - float(low.group(1))
+
+
+def mean_volume_dbfs(source: str) -> float | None:
+    """Mean loudness of the whole file, or None if it can't be measured."""
+    try:
+        argv = ["ffmpeg", "-v", "error", "-i", source, "-af", "volumedetect", "-f", "null", "-"]
+        result = subprocess.run(  # noqa: S603 - fixed argv, no shell
+            argv, capture_output=True, text=True, timeout=120, check=False
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    match = re.search(r"mean_volume:\s*(-?[0-9.]+) dB", result.stderr or "")
+    return float(match.group(1)) if match else None

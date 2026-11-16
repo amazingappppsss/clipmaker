@@ -123,6 +123,9 @@ def plan_clip(
         "duration": round(offset + total_duration(main), 3),
         "teaser_seconds": offset,
         "faces_found": sum(1 for s in samples if s.faces),
+        # Carried into the render so the captions can light up the payoff; the quote is on
+        # the output timeline's words, which is where the caption builder looks for it.
+        "moment": moment,
     }
 
 

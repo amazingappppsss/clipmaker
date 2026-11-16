@@ -49,6 +49,38 @@ def _clean(text: str) -> str:
     return _escape(text.strip().rstrip(",.;:").upper())
 
 
+def payoff_words(words: list[Word], moment: str | None) -> set[int]:
+    """Indexes of the words that make up the five-second moment (pure).
+
+    The framework says to light up the payoff, and we already know where it is — the model
+    quotes it for every clip. Lighting only numbers and names leaves the one line the clip
+    exists for looking like every other line.
+    """
+    if not moment:
+        return set()
+    wanted = [_bare_word(t) for t in moment.split()]
+    wanted = [t for t in wanted if t]
+    if len(wanted) < 2:
+        return set()
+    bare = [_bare_word(w.text) for w in words]
+    for start in range(len(bare) - len(wanted) + 1):
+        if bare[start : start + len(wanted)] == wanted:
+            return set(range(start, start + len(wanted)))
+    # The quote rarely survives filler removal intact, so fall back to the longest run of it
+    # that does appear. A partial hit still lands on the right line.
+    for size in range(len(wanted) - 1, 2, -1):
+        for offset in range(len(wanted) - size + 1):
+            needle = wanted[offset : offset + size]
+            for start in range(len(bare) - size + 1):
+                if bare[start : start + size] == needle:
+                    return set(range(start, start + size))
+    return set()
+
+
+def _bare_word(text: str) -> str:
+    return "".join(c for c in text.lower() if c.isalnum())
+
+
 def is_keyword(word: Word, previous: Word | None) -> bool:
     """Numbers and money always; capitalised words that don't start a sentence (names)."""
     text = word.text.strip()
@@ -113,8 +145,12 @@ def build_ass(
     title_seconds: float = TITLE_SECONDS,
     font: str = "Montserrat Black",
     window: tuple[float, float] | None = None,
+    moment: str | None = None,
 ) -> str:
     """ASS document for words already on the output timeline.
+
+    `moment` is the clip's five-second moment; those words are lit like keywords, because the
+    payoff is the line the clip exists for.
 
     `window` limits it to one rendered piece: only captions overlapping [start, end) are kept,
     and their times are shifted so the piece starts at zero. That lets captions be burned in
@@ -137,9 +173,10 @@ def build_ass(
         if event:
             lines.append(f"Dialogue: 1,{event}")
     previous: Word | None = None
+    payoff = payoff_words(words, moment)
     keywords: dict[int, bool] = {}
     for i, w in enumerate(words):
-        keywords[i] = is_keyword(w, previous)
+        keywords[i] = i in payoff or is_keyword(w, previous)
         previous = w
     # Build every caption event first, then make sure none overlaps the next one. Two events
     # alive at the same instant are drawn on top of each other (libass stacks them), which is

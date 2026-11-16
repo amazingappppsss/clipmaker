@@ -56,11 +56,13 @@ def _size_of(plan: dict[str, Any]) -> tuple[int, int] | None:
     return (int(value[0]), int(value[1])) if isinstance(value, list) and len(value) == 2 else None
 
 
-def _captions_for(words: list[Word], title: str | None, font: str) -> CaptionsFor:
+def _captions_for(
+    words: list[Word], title: str | None, font: str, moment: str | None = None
+) -> CaptionsFor:
     """Captions for one rendered piece, so each piece is encoded with its own text burned in."""
 
     def build(start: float, end: float) -> str:
-        return build_ass(words, title=title, font=font, window=(start, end))
+        return build_ass(words, title=title, font=font, window=(start, end), moment=moment)
 
     return build
 
@@ -113,7 +115,7 @@ def run(ctx: StageContext) -> StageOutput:
                 preset=ctx.settings.render_preset,
                 crf=ctx.settings.render_crf,
                 size=_size_of(plan),
-                captions=_captions_for(words, title, ctx.settings.caption_font),
+                captions=_captions_for(words, title, ctx.settings.caption_font, plan.get("moment")),
             )
             make_thumbnail(str(out), thumb, at_seconds=min(1.0, float(plan.get("duration", 2)) / 2))
         except MediaError as exc:
