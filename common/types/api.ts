@@ -573,6 +573,8 @@ export interface components {
             download_url?: string | null;
             /** Thumbnail Url */
             thumbnail_url?: string | null;
+            /** Edit Notes */
+            edit_notes?: components["schemas"]["EditNote"][];
             /** Error Message */
             error_message?: string | null;
         };
@@ -608,6 +610,16 @@ export interface components {
         DevTokenRequest: {
             /** Email */
             email: string;
+        };
+        /**
+         * EditNote
+         * @description One thing the editor measured and did not like about a finished clip.
+         */
+        EditNote: {
+            /** Key */
+            key: string;
+            /** Note */
+            note: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {

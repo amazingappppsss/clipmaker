@@ -18,6 +18,7 @@ from typing import Any
 from clipmaker.core.enums import AssetKind, ClipStatus
 from clipmaker.db.models import Clip, SourceVideo
 from clipmaker.editing.render import SIZES
+from clipmaker.editing.report import report, summarise
 from clipmaker.media.probe import (
     BLANK_STDDEV,
     SILENT_DBFS,
@@ -127,18 +128,22 @@ def run(ctx: StageContext) -> StageOutput:
     passed = 0
     for clip_id, key, expected in todo:
         verdict = verify(ctx, key, expected)
-        problems, report = verdict.problems, verdict.report
+        problems, verdict_report = verdict.problems, verdict.report
         with ctx.sessions() as db:
             clip = db.get(Clip, clip_id)
             if clip is None:
                 continue
-            clip.qa_report = report
+            # The file is sound; now measure the edit itself against the framework. This is
+            # feedback, not a gate: a clip that drags is still a clip, and the viewer can see
+            # what we think is wrong with it and trim it themselves.
+            card = summarise(report(dict(clip.edit_plan.get("render") or {})))
+            clip.qa_report = {**verdict_report, "card": card}
             if problems:
                 clip.status = ClipStatus.FAILED
                 clip.error_message = "This clip failed the quality check."
             else:
                 clip.status = ClipStatus.READY
-                clip.duration_seconds = round(float(report["duration"]), 2)
+                clip.duration_seconds = round(float(verdict_report["duration"]), 2)
                 for a in clip.assets:
                     a.is_final = True
                 passed += 1

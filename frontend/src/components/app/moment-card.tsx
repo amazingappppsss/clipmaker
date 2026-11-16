@@ -208,6 +208,20 @@ export function MomentCard({
             {clip.alt_titles.join(" · ")}
           </p>
         ) : null}
+        {clip.edit_notes?.length ? (
+          <div className="rounded-2xl bg-warning-soft p-3">
+            <p className="text-xs font-bold tracking-wide text-warning uppercase">
+              What we&rsquo;d fix
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {clip.edit_notes.map((note) => (
+                <li key={note.key} className="text-sm text-ink-soft">
+                  {note.note}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         {clip.status === "failed" && clip.error_message ? (
           <p className="rounded-2xl bg-danger-soft p-3 text-sm text-danger">{clip.error_message}</p>
         ) : null}

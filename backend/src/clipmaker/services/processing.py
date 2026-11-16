@@ -27,7 +27,7 @@ from clipmaker.core.enums import (
 from clipmaker.core.errors import ConflictError
 from clipmaker.db.models import Candidate, Clip, ProcessingJob, Project, User
 from clipmaker.pipeline.selection import strengths
-from clipmaker.schemas import ClipOut, JobStatusOut, StageStatusOut
+from clipmaker.schemas import ClipOut, EditNote, JobStatusOut, StageStatusOut
 from clipmaker.services.billing import (
     credits_for_duration,
     debit_credits,
@@ -240,6 +240,10 @@ def list_clips(
                 teaser_text=teaser.get("text") if teaser else None,
                 teaser_start_seconds=teaser.get("start") if teaser else None,
                 teaser_end_seconds=teaser.get("end") if teaser else None,
+                edit_notes=[
+                    EditNote(key=str(m.get("key")), note=str(m.get("note")))
+                    for m in ((c.qa_report or {}).get("card") or {}).get("missed") or []
+                ],
                 error_message=c.error_message,
                 **_final_urls(c, storage, c.rank, c.title),
             )

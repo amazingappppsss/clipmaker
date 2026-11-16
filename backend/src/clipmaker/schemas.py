@@ -162,6 +162,8 @@ class ClipOut(ApiModel):
     video_url: str | None = None
     download_url: str | None = None
     thumbnail_url: str | None = None
+    #: What the editor measured and did not like. Feedback, not a gate.
+    edit_notes: list[EditNote] = Field(default_factory=list)
     error_message: str | None = None
 
 
@@ -204,6 +206,13 @@ class UsageRecordOut(ApiModel):
     description: str
     project_id: uuid.UUID | None
     created_at: datetime
+
+
+class EditNote(BaseModel):
+    """One thing the editor measured and did not like about a finished clip."""
+
+    key: str
+    note: str
 
 
 class MomentOut(BaseModel):

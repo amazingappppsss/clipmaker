@@ -1838,6 +1838,13 @@
             ],
             "title": "Thumbnail Url"
           },
+          "edit_notes": {
+            "items": {
+              "$ref": "#/components/schemas/EditNote"
+            },
+            "type": "array",
+            "title": "Edit Notes"
+          },
           "error_message": {
             "anyOf": [
               {
@@ -1926,6 +1933,25 @@
         ],
         "title": "DevTokenRequest",
         "description": "POST /dev/token body (development only)."
+      },
+      "EditNote": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "note"
+        ],
+        "title": "EditNote",
+        "description": "One thing the editor measured and did not like about a finished clip."
       },
       "HTTPValidationError": {
         "properties": {
