@@ -75,16 +75,18 @@ const SPEAKER: Sprite = {
 
 const PHONE: Sprite = {
   label: "vertical clip",
+  // A play triangle on a white screen: at 12px the shape has to be the whole idea, so the
+  // earlier version (an empty frame with a dot) read as a smudge.
   rows: [
     "............",
-    "...kkkkkk...",
     "...kkkkkk...",
     "...kwwwwk...",
     "...kwlwwk...",
     "...kwllwk...",
+    "...kwlllk...",
+    "...kwllwk...",
     "...kwlwwk...",
     "...kwwwwk...",
-    "...kkkkkk...",
     "...kkkkkk...",
     "............",
     "............",

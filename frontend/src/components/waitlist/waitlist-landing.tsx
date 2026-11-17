@@ -43,13 +43,14 @@ export function WaitlistLanding() {
                 are the only ornament on the page, so they carry the personality. */}
             <h1 className="headline text-[clamp(2.2rem,6vw,4.4rem)] text-ink">
               your <PixelSprite name="controller" className="size-[0.85em]" /> stream has 30
-              clips in it. you posted 2.
+              clips in it.{" "}
+              <span className="whitespace-nowrap">you posted 2.</span>
             </h1>
 
             <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-ink-soft">
               Clip2Easy listens to the whole stream — the screaming and the gunfire, not just
               the talking — and hands back vertical clips{" "}
-              <PixelSprite name="phone" className="size-[1.05em]" /> with the captions burned in.
+              <PixelSprite name="phone" className="size-[1.25em]" /> with the captions burned in.
             </p>
 
             <p className="mx-auto mt-3 flex max-w-2xl flex-wrap items-center justify-center gap-x-2 gap-y-2 text-base text-muted">
