@@ -87,6 +87,11 @@ class UrlImporter(Protocol):
         """Whether this importer can fetch this link at all."""
         ...
 
+    @property
+    def cheap_inspect(self) -> bool:
+        """Whether `inspect` is cheap enough to run inside an API request."""
+        ...
+
 
 def _classify(message: str) -> UrlImportError:
     """Map yt-dlp error text to a stable, user-readable error (pure; unit-tested)."""
@@ -152,6 +157,11 @@ class YtDlpImporter:
         """Every allow-listed host: yt-dlp speaks YouTube and Twitch alike."""
         return True
 
+    @property
+    def cheap_inspect(self) -> bool:
+        """Reading a page of metadata takes a second or two and costs nothing."""
+        return True
+
     def download(self, url: str, dest_dir: Path, heartbeat: Callable[[], None]) -> Path:
         import yt_dlp
 
@@ -209,12 +219,14 @@ class ApifyImporter:
         client: Any = None,
         run_timeout_seconds: int = 240,
         download_client: Any = None,
+        inspect_timeout_seconds: int = 30,
     ) -> None:
         import httpx
 
         self._actor = actor
         self._format = video_format
         self._run_timeout = run_timeout_seconds
+        self._inspect_timeout = min(inspect_timeout_seconds, run_timeout_seconds)
         self._client = client or httpx.Client(
             base_url=base_url,
             headers={"Authorization": f"Bearer {token}"},
@@ -226,14 +238,16 @@ class ApifyImporter:
             timeout=httpx.Timeout(600.0, connect=15.0), follow_redirects=True
         )
 
-    def _run(self, url: str) -> dict[str, Any]:
+    def _run(self, url: str, timeout: int | None = None) -> dict[str, Any]:
         import httpx
 
+        budget = timeout or self._run_timeout
         try:
             response = self._client.post(
                 f"/v2/acts/{self._actor}/run-sync-get-dataset-items",
-                params={"timeout": self._run_timeout},
+                params={"timeout": budget},
                 json={"urls": [url], "format": self._format},
+                timeout=budget + 30,
             )
         except httpx.HTTPError as exc:
             raise UrlImportError(
@@ -264,7 +278,9 @@ class ApifyImporter:
         return item
 
     def inspect(self, url: str) -> RemoteVideo:
-        item = self._run(url)
+        # Short budget: this runs inside an API request, with somebody watching a spinner.
+        # The actor's run *is* the download preparation, so a long video can take minutes.
+        item = self._run(url, timeout=self._inspect_timeout)
         filename = str(item.get("filename") or "YouTube video")
         title = _QUALITY_SUFFIX.sub("", filename).strip() or "YouTube video"
         return RemoteVideo(
@@ -279,6 +295,11 @@ class ApifyImporter:
         """YouTube only. The configured actor downloads YouTube videos; given a Twitch VOD it
         burns a run and a few minutes before failing, so it is skipped rather than tried."""
         return not is_twitch(url)
+
+    @property
+    def cheap_inspect(self) -> bool:
+        """No: the actor fetches the whole video to answer, which costs a run and minutes."""
+        return False
 
     def download(self, url: str, dest_dir: Path, heartbeat: Callable[[], None]) -> Path:
         import httpx
@@ -319,7 +340,14 @@ _FINAL_CODES = frozenset(
 
 
 class FallbackImporter:
-    """Tries importers in order; moves on when one is blocked or broken."""
+    """Tries importers in order; moves on when one is blocked or broken.
+
+    Downloading and looking up are ordered differently on purpose. For a *download* the
+    managed service goes first: YouTube blocks data-centre IPs, so yt-dlp alone fails on a
+    server. For a *lookup* it goes last, because the managed actor answers by fetching the
+    whole video — minutes of waiting and a paid run, inside the API request that somebody is
+    watching a spinner through, before the download then pays for it a second time.
+    """
 
     def __init__(self, importers: list[UrlImporter]) -> None:
         if not importers:
@@ -329,9 +357,22 @@ class FallbackImporter:
     def handles(self, url: str) -> bool:
         return any(i.handles(url) for i in self._importers)
 
-    def _attempt(self, url: str, call: Callable[[UrlImporter], Any]) -> Any:
+    @property
+    def cheap_inspect(self) -> bool:
+        return any(i.cheap_inspect for i in self._importers)
+
+    def _order(self, for_inspect: bool) -> list[UrlImporter]:
+        if not for_inspect:
+            return self._importers
+        return [i for i in self._importers if i.cheap_inspect] + [
+            i for i in self._importers if not i.cheap_inspect
+        ]
+
+    def _attempt(
+        self, url: str, call: Callable[[UrlImporter], Any], *, for_inspect: bool = False
+    ) -> Any:
         last: UrlImportError | None = None
-        for importer in self._importers:
+        for importer in self._order(for_inspect):
             if not importer.handles(url):
                 continue
             try:
@@ -349,7 +390,7 @@ class FallbackImporter:
         raise last
 
     def inspect(self, url: str) -> RemoteVideo:
-        result: RemoteVideo = self._attempt(url, lambda i: i.inspect(url))
+        result: RemoteVideo = self._attempt(url, lambda i: i.inspect(url), for_inspect=True)
         return result
 
     def download(self, url: str, dest_dir: Path, heartbeat: Callable[[], None]) -> Path:
@@ -367,7 +408,10 @@ def build_url_importer(settings: Any) -> UrlImporter:
             if token:
                 chain.append(
                     ApifyImporter(
-                        token, settings.apify_youtube_actor, f"{settings.url_import_max_height}p"
+                        token,
+                        settings.apify_youtube_actor,
+                        f"{settings.url_import_max_height}p",
+                        inspect_timeout_seconds=settings.url_import_timeout_seconds,
                     )
                 )
         elif name == "ytdlp":

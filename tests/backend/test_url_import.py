@@ -95,6 +95,10 @@ class FakeImporter:
     def handles(self, url: str) -> bool:
         return True
 
+    @property
+    def cheap_inspect(self) -> bool:
+        return True
+
     def inspect(self, url: str) -> RemoteVideo:
         if self.fail and self.fail.code != "source_blocked":
             raise self.fail
@@ -339,12 +343,24 @@ def test_apify_expired_link_is_retryable(tmp_path: Path) -> None:
 
 
 class _Stub:
-    def __init__(self, error: UrlImportError | None, title: str, *, takes: bool = True) -> None:
+    def __init__(
+        self,
+        error: UrlImportError | None,
+        title: str,
+        *,
+        takes: bool = True,
+        cheap: bool = True,
+    ) -> None:
         self.error, self.title, self.calls = error, title, 0
         self._takes = takes
+        self._cheap = cheap
 
     def handles(self, url: str) -> bool:
         return self._takes
+
+    @property
+    def cheap_inspect(self) -> bool:
+        return self._cheap
 
     def inspect(self, url: str) -> RemoteVideo:
         self.calls += 1
@@ -389,6 +405,30 @@ def test_a_link_no_provider_can_take_says_so_rather_than_failing_a_download() ->
         chain.inspect(TWITCH)
     assert err.value.code == "unsupported_url"
     assert only.calls == 0
+
+
+def test_a_lookup_asks_the_cheap_provider_first_however_the_chain_is_ordered() -> None:
+    """The managed actor answers a lookup by fetching the whole video: minutes, and a paid run,
+    inside the API request somebody is watching — and the download then pays for it again."""
+    expensive = _Stub(None, "apify", cheap=False)
+    cheap = _Stub(None, "ytdlp", cheap=True)
+    chain = FallbackImporter([expensive, cheap])  # download order: managed service first
+
+    assert chain.inspect(YT).title == "ytdlp"
+    assert expensive.calls == 0
+
+    # Still a fallback: if the cheap one is blocked, the expensive one answers.
+    blocked = _Stub(_classify("Sign in to confirm you're not a bot"), "ytdlp", cheap=True)
+    assert FallbackImporter([expensive, blocked]).inspect(YT).title == "apify"
+    assert expensive.calls == 1
+
+
+def test_the_managed_lookup_is_capped_by_the_metadata_budget() -> None:
+    """Whatever the download budget is, a lookup cannot hang an API request for minutes."""
+    importer = ApifyImporter("tok", "actor", run_timeout_seconds=240, inspect_timeout_seconds=25)
+    assert importer._inspect_timeout == 25
+    # Never longer than the run budget itself.
+    assert ApifyImporter("tok", "a", run_timeout_seconds=10)._inspect_timeout == 10
 
 
 def test_apify_skips_twitch_and_takes_youtube() -> None:

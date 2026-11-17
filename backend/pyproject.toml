@@ -24,7 +24,7 @@ dependencies = [
   "python-multipart>=0.0.12",  # raw body handling for the local-storage signed upload endpoint
   "anthropic==2.3.*",          # Claude API (full-video understanding, clip selection)
   "httpx>=0.28",               # AssemblyAI REST client
-  "yt-dlp[default,deno]==2026.10.21",  # link import (YouTube); deno = JS runtime YouTube needs
+  "yt-dlp[default,deno]==2026.10.26",  # link import (YouTube); deno = JS runtime YouTube needs
   "opencv-python-headless==5.0.0.93",  # face detection (YuNet) for speaker-following 9:16 crops
 ]
 
