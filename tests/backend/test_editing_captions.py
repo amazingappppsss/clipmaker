@@ -116,3 +116,61 @@ def test_the_payoff_words_actually_reach_the_subtitle_file() -> None:
     lit = build_ass(words, moment="never looked back")
     assert lit != plain, "the payoff made no difference to the captions"
     assert lit.count(LIME) > plain.count(LIME)
+
+
+def _even(text: str, rate: float = 0.3) -> list[Word]:
+    """A sentence spoken at a steady pace, with no pauses to break on."""
+    out, t = [], 0.0
+    for token in text.split():
+        out.append(Word(token, round(t, 2), round(t + rate * 0.9, 2)))
+        t += rate
+    return out
+
+
+def test_a_caption_line_does_not_end_on_a_dangling_word() -> None:
+    """"BECAUSE THEY ARE" and "ARE YOU TAKING" read as a glitch, not as speech."""
+    from clipmaker.editing.captions import HANGING_WORDS, chunk_words
+
+    def bare(word: Word) -> str:
+        return "".join(c for c in word.text.lower() if c.isalnum())
+
+    for line in (
+        "none of the crazy things people do",
+        "I promise you because they are watching",
+        "what are you taking from this",
+        "doing that you will react to that",
+    ):
+        chunks = chunk_words(_even(line))
+        # The last chunk has nothing to hand its tail to, so it is exempt.
+        for chunk in chunks[:-1]:
+            if all(bare(w) in HANGING_WORDS for w in chunk):
+                continue  # nowhere left to move it to
+            assert bare(chunk[-1]) not in HANGING_WORDS, (
+                f"line ends on {chunk[-1].text!r}: {' '.join(w.text for w in chunk)}"
+            )
+
+
+def test_a_complete_short_thought_is_left_alone() -> None:
+    """"I PROMISE YOU" was already a good caption; pronouns must not be treated as dangling."""
+    from clipmaker.editing.captions import chunk_words
+
+    first = chunk_words(_even("I promise you because they are watching"))[0]
+    assert [w.text for w in first] == ["I", "promise", "you"]
+
+
+def test_no_word_is_lost_or_duplicated_by_the_rebalancing() -> None:
+    from clipmaker.editing.captions import chunk_words
+
+    words = _even("none of the crazy things that people really do when they are angry")
+    flat = [w.text for chunk in chunk_words(words) for w in chunk]
+    assert flat == [w.text for w in words]
+
+
+def test_a_real_pause_still_breaks_the_line() -> None:
+    """A dangling word is not reason enough to run through an actual silence."""
+    from clipmaker.editing.captions import chunk_words
+
+    words = [Word("goes", 0.0, 0.3), Word("to", 0.3, 0.5), Word("Paris", 2.0, 2.4)]
+    chunks = chunk_words(words)
+    assert len(chunks) == 2
+    assert [w.text for w in chunks[0]] == ["goes", "to"]

@@ -30,6 +30,9 @@ SAMPLE_FPS = 2.0  # twice a second is plenty to follow a speaker, and halves the
 DETECT_WIDTH = 640
 MIN_FACE_SCORE = 0.7
 TRACK_MATCH = 0.12  # max horizontal distance (fraction of width) to call it the same face
+#: Below this many sightings a track's average motion is half-trusted: one lucky frame of a
+#: listener mid-nod should not outrank the person who is actually speaking.
+MIN_TRACK_SAMPLES = 3
 MIN_SHOT_SECONDS = 1.2  # don't switch speakers faster than this
 # A real editor does not cut away for a two-word interjection, and does not re-frame every
 # few seconds for no reason: both read as "machine made". These are the broadcast-style
@@ -158,7 +161,16 @@ def _steady(samples: list[Sample], t0: float, t1: float) -> tuple[float, float, 
                 tracks.append([f])
     if not tracks:
         return None
-    best = max(tracks, key=lambda tr: (sum(f.motion for f in tr), len(tr)))
+
+    # Mean motion, not the sum: a sum rewards whoever is on screen longest, so a listener
+    # who is simply visible for more of the clip outranks the person actually talking. A
+    # track still has to be seen a few times before its average is worth believing.
+    def talkativeness(track: list[Face]) -> tuple[float, int]:
+        seen = len(track)
+        mean = sum(f.motion for f in track) / seen
+        return (mean if seen >= MIN_TRACK_SAMPLES else mean * 0.5, seen)
+
+    best = max(tracks, key=talkativeness)
     return (
         statistics.median(f.cx for f in best),
         statistics.median(f.cy for f in best),
@@ -166,11 +178,29 @@ def _steady(samples: list[Sample], t0: float, t1: float) -> tuple[float, float, 
     )
 
 
+#: Where to point when a moment has no detectable face and the clip has none either. Dead
+#: centre of a 16:9 frame is a guess about geometry, not about people.
+BLIND_CENTRE = (0.5, 0.45, 0.0)
+
+
+def fallback_place(samples: list[Sample]) -> tuple[float, float, float]:
+    """Where the people are across the whole clip (pure).
+
+    Used whenever a given moment has no face to follow. The old answer was the centre of the
+    frame, which is only right if the subject happens to sit there — in an interview they do
+    not, so the clip cut to a wall with the speaker sliced off the edge. The clip's own faces
+    are a far better guess than the middle of a frame that was composed for 16:9.
+    """
+    everywhere = _steady(samples, float("-inf"), float("inf"))
+    return everywhere or BLIND_CENTRE
+
+
 def plan_shots(
     samples: list[Sample], intervals: list[Interval], words: list[Any] | None = None
 ) -> list[Shot]:
     """Framing for each kept interval: follow the speaker, punch in on long shots (pure)."""
     turns = turns_from_words(words) if words else []
+    blind = fallback_place(samples)
     positions = speaker_positions(samples, turns) if turns else {}
     shots: list[Shot] = []
     for iv in intervals:
@@ -183,7 +213,7 @@ def plan_shots(
                     continue
                 place = positions.get(turn.speaker)
                 if place is None:
-                    place = _steady(samples, start, end) or (0.5, 0.45, 0.0)
+                    place = _steady(samples, start, end) or blind
                 if blocks and abs(float(blocks[-1][2]) - place[0]) < TRACK_MATCH:
                     blocks[-1][1] = end
                 else:
@@ -201,7 +231,7 @@ def plan_shots(
                 place = _steady(samples, t, t1) or (
                     (float(blocks[-1][2]), float(blocks[-1][3]), float(blocks[-1][4]))
                     if blocks
-                    else (0.5, 0.45, 0.0)
+                    else blind
                 )
                 if blocks and abs(float(blocks[-1][2]) - place[0]) < TRACK_MATCH:
                     blocks[-1][1] = t1

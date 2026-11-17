@@ -117,3 +117,36 @@ def test_head_is_never_cut_off() -> None:
     _, y, _, _unused = crop_box(1920, 1080, tall)
     head_top = (tall.cy - tall.face_h * 1.05) * 1080
     assert y <= head_top  # the crop starts above the top of the head
+
+
+def test_the_fallback_points_at_the_people_not_the_middle_of_the_frame() -> None:
+    """Dead centre sliced the speaker off the edge and showed a wall instead."""
+    from clipmaker.editing.framing import BLIND_CENTRE, fallback_place
+
+    # An interview: the speaker sits right of centre, nobody is at 0.5.
+    seen = [
+        Sample(t=float(i), faces=[Face(cx=0.68, cy=0.42, w=0.18, h=0.3, motion=5.0)])
+        for i in range(6)
+    ]
+    cx, _, _ = fallback_place(seen)
+    assert cx > 0.6, f"fell back to {cx}, which is not where the person is"
+
+    # With nothing to go on at all, centre is the only honest answer.
+    assert fallback_place([]) == BLIND_CENTRE
+    assert fallback_place([Sample(t=0.0, faces=[])]) == BLIND_CENTRE
+
+
+def test_the_talker_wins_over_whoever_is_merely_on_screen_longest() -> None:
+    """Summed motion rewarded the listener who happened to be visible for more of the clip."""
+    from clipmaker.editing.framing import _steady
+
+    samples = []
+    # A quiet listener, visible the whole time.
+    for i in range(20):
+        samples.append(Sample(t=float(i), faces=[Face(cx=0.25, cy=0.4, w=0.15, motion=1.0)]))
+    # The speaker, visible less often but clearly talking.
+    for i in range(0, 20, 2):
+        samples[i].faces.append(Face(cx=0.72, cy=0.4, w=0.15, motion=12.0))
+
+    cx, _, _ = _steady(samples, 0.0, 20.0) or (0.0, 0.0, 0.0)
+    assert cx > 0.6, f"framed {cx}, the listener, instead of the speaker"

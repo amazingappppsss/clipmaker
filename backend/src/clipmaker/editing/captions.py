@@ -17,6 +17,75 @@ WHITE = "&H00FFFFFF&"
 MAX_WORDS_PER_CHUNK = 3
 MAX_CHARS_PER_CHUNK = 18
 CHUNK_BREAK_GAP = 0.35  # a pause this long starts a new caption
+#: Words that cannot end a caption line. Breaking after them leaves a fragment dangling —
+#: "OF THE CRAZY", "BECAUSE THEY ARE" — which reads as a glitch rather than as speech.
+#: They are carried into the next line instead.
+HANGING_WORDS = frozenset(
+    {
+        # Articles and determiners.
+        "a",
+        "an",
+        "the",
+        "this",
+        "these",
+        "those",
+        "my",
+        "your",
+        "his",
+        "her",
+        "its",
+        "our",
+        "their",
+        # Conjunctions and subordinators.
+        "and",
+        "but",
+        "or",
+        "nor",
+        "so",
+        "yet",
+        "because",
+        "as",
+        "than",
+        "if",
+        "when",
+        "while",
+        "that",
+        # Prepositions.
+        "of",
+        "to",
+        "in",
+        "on",
+        "at",
+        "by",
+        "for",
+        "with",
+        "from",
+        "into",
+        "onto",
+        "about",
+        "over",
+        "under",
+        # Auxiliaries: "they are" is not a line, "they are watching" is. Pronouns are
+        # deliberately absent — "I promise you" ends perfectly well.
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "am",
+        "will",
+        "would",
+        "can",
+        "could",
+        "has",
+        "have",
+        "had",
+        "do",
+        "does",
+        "did",
+    }
+)
 TITLE_SECONDS = 3.0
 CAPTION_HOLD = 0.12  # how long the last word of a line stays up before the next line
 
@@ -93,6 +162,12 @@ def is_keyword(word: Word, previous: Word | None) -> bool:
     )
 
 
+def _hangs(word: Word) -> bool:
+    """Whether a line ending on this word would leave the phrase dangling (pure)."""
+    bare = "".join(c for c in word.text.lower() if c.isalnum())
+    return bool(bare) and bare in HANGING_WORDS and not _SENTENCE_END.search(word.text.strip())
+
+
 def chunk_words(words: list[Word]) -> list[list[Word]]:
     """Group words into short caption lines (1-3 words, breaking on pauses and sentences)."""
     chunks: list[list[Word]] = []
@@ -101,13 +176,30 @@ def chunk_words(words: list[Word]) -> list[list[Word]]:
         if cur:
             prev = cur[-1]
             chars = sum(len(x.text) + 1 for x in cur) + len(w.text)
-            if (
+            wants_break = (
                 len(cur) >= MAX_WORDS_PER_CHUNK
                 or chars > MAX_CHARS_PER_CHUNK
                 or w.start - prev.end > CHUNK_BREAK_GAP
                 or _SENTENCE_END.search(prev.text.strip())
                 or w.speaker != prev.speaker
-            ):
+            )
+            # A real pause or a new speaker is a real break, whatever the last word was. A
+            # break only because the line got long is moved earlier instead of orphaning the
+            # word that leads into the next phrase.
+            forced = (
+                w.start - prev.end > CHUNK_BREAK_GAP
+                or bool(_SENTENCE_END.search(prev.text.strip()))
+                or w.speaker != prev.speaker
+            )
+            carry = 0
+            while wants_break and not forced and len(cur) - carry > 1 and _hangs(cur[-1 - carry]):
+                carry += 1
+            if carry:
+                # "none of | the crazy" rather than "none of the | crazy": every trailing
+                # word that leads into the next phrase moves with it, not just the last one.
+                chunks.append(cur[:-carry])
+                cur = cur[-carry:]
+            elif wants_break:
                 chunks.append(cur)
                 cur = []
         cur.append(w)
