@@ -16,6 +16,8 @@ from clipmaker.db.models import Clip, ClipAsset, SourceVideo
 from clipmaker.editing.captions import build_ass
 from clipmaker.editing.framing import Shot, crop_box
 from clipmaker.editing.render import CaptionsFor, Piece, render
+from clipmaker.editing.report import report as measure_clip
+from clipmaker.editing.report import summarise
 from clipmaker.media.audio import MediaError, make_thumbnail
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError, RetryableStageError
@@ -161,7 +163,10 @@ def run(ctx: StageContext) -> StageOutput:
                 )
             )
             clip.attempts += 1
-            clip.qa_report = problems.report
+            # The report card belongs here, not only in the QUALITY_CHECK sweep: clips are
+            # checked as they finish, so the sweep usually has nothing left to do and the
+            # card was silently never written.
+            clip.qa_report = {**problems.report, "card": summarise(measure_clip(plan))}
             if problems.problems:
                 logger.warning(
                     "clip_failed_quality_check",

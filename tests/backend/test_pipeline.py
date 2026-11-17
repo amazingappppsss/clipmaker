@@ -413,6 +413,30 @@ def test_full_pipeline_renders_finished_vertical_shorts(
         (first["teaser_end_seconds"] or 0) - (first["teaser_start_seconds"] or 0)
     )
 
+    # And finally: look at what we made, not only at its dimensions.
+    #
+    # Every assertion above this line is metadata — size, length, a URL existing. That is the
+    # same blind spot the quality check had when it passed a clip whose every frame was white.
+    # Each quality bug this project has shipped was found by a person watching a video,
+    # because nothing here ever read the output. The report card does, so it is asserted here.
+    from clipmaker.editing.report import report, summarise
+
+    with get_session_factory()() as db:
+        clip_row = db.scalars(select(Clip).where(Clip.id == uuid.UUID(first["id"]))).one()
+        plan = dict(clip_row.edit_plan.get("render") or {})
+        card = clip_row.qa_report.get("card") or {}
+
+    assert plan, "the clip kept no render plan, so nothing can be measured"
+    fresh = summarise(report(plan))
+    assert card.get("checks") == fresh["checks"], "QA did not store a report card"
+
+    missed = {m["key"] for m in fresh["missed"]}
+    # The failures that make a clip unusable rather than merely imperfect. Pacing and length
+    # are left out: the fixture is a few seconds of synthetic speech, not a real episode.
+    assert "filler" not in missed, "filler survived the cut"
+    assert "ending" not in missed, "the clip stops mid-sentence"
+    assert "captions" not in missed, "the clip plays with no words on screen"
+
 
 def test_remote_storage_sources_are_downloaded_once(tmp_path: Path) -> None:
     """With cloud storage (R2/S3) the video is fetched to the job's work dir before editing."""
