@@ -144,6 +144,38 @@ def media_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 @pytest.fixture(scope="session")
+def loud_video(media_dir: Path) -> Path:
+    """30 s of quiet with one loud burst 3 s in — a crash, as far as our ears go."""
+    out = media_dir / "loud.mp4"
+    _ffmpeg(
+        [
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=size=1280x720:rate=30:duration=30",
+            "-f",
+            "lavfi",
+            "-i",
+            (
+                "sine=frequency=200:duration=30,"
+                # -30 dB everywhere except 3-5 s, where it runs at full scale.
+                "volume=enable='between(t,3,5)':volume=1:eval=frame,"
+                "volume=enable='not(between(t,3,5))':volume=-30dB:eval=frame"
+            ),
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-c:a",
+            "aac",
+            "-shortest",
+            str(out),
+        ]
+    )
+    return out
+
+
+@pytest.fixture(scope="session")
 def sample_video(media_dir: Path) -> Path:
     """A 12 s 1280x720 MP4 with a tone audio track."""
     out = media_dir / "sample.mp4"

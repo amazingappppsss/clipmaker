@@ -13,10 +13,15 @@ from functools import partial
 from typing import Any
 
 from clipmaker.core.enums import ClipStatus, VideoStyle
-from clipmaker.db.models import Candidate, Clip, Project, VideoAnalysis
+from clipmaker.db.models import Candidate, Clip, Project, SourceVideo, VideoAnalysis
+from clipmaker.editing.energy import loud_moments
+from clipmaker.media.probe import ProbeError, probe_media
+from clipmaker.pipeline.action import ActionRange, action_ranges
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError, RetryableStageError
 from clipmaker.pipeline.prompts import (
+    ACTION_INSTRUCTION,
+    ACTION_SCHEMA,
     CANDIDATES_INSTRUCTION,
     CANDIDATES_SCHEMA,
     METADATA_INSTRUCTION,
@@ -24,9 +29,11 @@ from clipmaker.pipeline.prompts import (
     SYSTEM_EDITOR,
 )
 from clipmaker.pipeline.selection import (
+    ACTION,
     Proposal,
     ScoredCandidate,
     auto_clip_count,
+    gate_failure,
     parse_weights,
     pick_teaser,
     select_clips,
@@ -110,6 +117,116 @@ def _clip_text(segments: list[Segment], c: ScoredCandidate) -> str:
     return " ".join(s.text for s in segments[c.start_segment : c.end_segment + 1])
 
 
+def energy_source(ctx: StageContext) -> str | None:
+    """Something FFmpeg can measure the loudness of, cheapest first, or None.
+
+    The extracted audio track is a fraction of the video to read, and transcription already
+    produced it for most projects.
+    """
+    local = ctx.work_dir / "audio.mp3"
+    if local.is_file():
+        return str(local)
+    audio_key = f"{ctx.prefix}work/audio.mp3"
+    if ctx.storage.head(audio_key):
+        return ctx.storage.media_source(audio_key)
+    with ctx.sessions() as db:
+        src = db.query(SourceVideo).filter_by(project_id=ctx.project_id).one_or_none()
+        key = src.storage_key if src else None
+    return ctx.storage.media_source(key) if key else None
+
+
+def parse_action_scores(data: dict[str, Any], count: int) -> dict[int, dict[str, Any]]:
+    """Model output keyed by the index we gave it (pure). Bad entries are skipped."""
+    out: dict[int, dict[str, Any]] = {}
+    for row in data.get("moments", []):
+        if not isinstance(row, dict):
+            continue
+        try:
+            index = int(row["index"])
+            scores = {k: float(v) for k, v in dict(row["scores"]).items()}
+        except (KeyError, TypeError, ValueError):
+            continue
+        if 0 <= index < count:
+            out[index] = {
+                "scores": scores,
+                "title": str(row.get("title") or "")[:200],
+                "what_happens": str(row.get("what_happens") or "")[:500],
+            }
+    return out
+
+
+def describe_moments(ranges: list[ActionRange]) -> str:
+    """The moments as the model sees them (pure)."""
+    return "\n\n".join(
+        f"[{i}] +{r.above_median_db:.0f} dB over the baseline. "
+        f"Said over it: {r.text.strip() or '(nothing)'}"
+        for i, r in enumerate(ranges)
+    )
+
+
+def action_proposals(
+    ctx: StageContext,
+    segments: list[Segment],
+    proposed: list[tuple[float, float]],
+) -> tuple[list[Proposal], Decimal]:
+    """Candidates found by sound rather than by words, scored by the fast model.
+
+    Returns ([], 0) whenever there is nothing to add — no audio, no spikes, every spike
+    already proposed, or the scoring call failing. Gameplay is a bonus source here, never a
+    reason for the stage to fail.
+    """
+    source = energy_source(ctx)
+    if source is None:
+        return [], Decimal(0)
+    # The media's own length, not the transcript's: loudness windows are timed against it, and
+    # a transcript ends where the talking stops, which is not where the file does.
+    try:
+        duration = probe_media(source).duration_seconds
+    except ProbeError:
+        return [], Decimal(0)
+    if duration <= 0:
+        return [], Decimal(0)
+    moments = loud_moments(source, duration)
+    ctx.heartbeat()
+    ranges = action_ranges(
+        moments, segments, proposed, ctx.settings.min_clip_seconds, ctx.settings.max_clip_seconds
+    )
+    if not ranges:
+        return [], Decimal(0)
+    try:
+        data, cost = _llm_call(
+            ctx,
+            LLMRequest(
+                tier="fast",
+                system=SYSTEM_EDITOR,
+                context=render_for_llm(segments),
+                instruction=ACTION_INSTRUCTION.format(moments=describe_moments(ranges)),
+                schema=ACTION_SCHEMA,
+            ),
+            "action_scoring_failed",
+        )
+    except (RetryableStageError, PermanentStageError):
+        return [], Decimal(0)
+    scored = parse_action_scores(data, len(ranges))
+    out = []
+    for i, r in enumerate(ranges):
+        judged = scored.get(i)
+        if judged is None:
+            continue
+        out.append(
+            Proposal(
+                start_segment=r.start_segment,
+                end_segment=r.end_segment,
+                category="funny",
+                rationale=str(judged["what_happens"]),
+                hook_line=str(judged["title"]),
+                scores=dict(judged["scores"]),
+                kind=ACTION,
+            )
+        )
+    return out, cost
+
+
 def run(ctx: StageContext) -> StageOutput:
     with ctx.sessions() as db:
         if db.query(Clip).filter_by(project_id=ctx.project_id).count() > 0:
@@ -165,6 +282,25 @@ def run(ctx: StageContext) -> StageOutput:
     if not proposals:
         raise RetryableStageError("no_candidates", "The model proposed no usable moments.")
 
+    # 1b) Moments found by sound. Every signal above reads a transcript, so a crash, a clutch
+    # or a jumpscare is invisible to the hunter however clippable it is.
+    action_count = 0
+    if s.enable_action_moments:
+        # Only moments the hunter proposed *and* would ship: a loud moment sitting under a
+        # proposal that fails its own gates has had no chance yet, and judged as action it
+        # may well pass.
+        proposed_spans = [
+            (segments[p.start_segment].start, segments[p.end_segment].end)
+            for p in proposals
+            if 0 <= p.start_segment < len(segments)
+            and 0 <= p.end_segment < len(segments)
+            and gate_failure(p.scores, p.kind) is None
+        ]
+        found, action_cost = action_proposals(ctx, segments, proposed_spans)
+        proposals.extend(found)
+        cost += action_cost
+        action_count = len(found)
+
     # 2) Deterministic scoring, validation, dedupe and top-N.
     scored = select_clips(
         proposals,
@@ -219,6 +355,7 @@ def run(ctx: StageContext) -> StageOutput:
                     "adjusted": cand.adjusted,
                     "story": cand.proposal.story,
                     "hook_type": cand.proposal.hook_type,
+                    "kind": cand.proposal.kind,
                 },
                 total_score=cand.total_score,
                 plan={
@@ -266,5 +403,11 @@ def run(ctx: StageContext) -> StageOutput:
             )
         db.commit()
     return StageOutput(
-        {"candidates": len(scored), "selected": len(chosen), "target": target}, cost_usd=cost
+        {
+            "candidates": len(scored),
+            "selected": len(chosen),
+            "target": target,
+            "action_candidates": action_count,
+        },
+        cost_usd=cost,
     )

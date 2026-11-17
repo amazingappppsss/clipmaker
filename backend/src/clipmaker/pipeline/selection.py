@@ -63,6 +63,19 @@ GATES: dict[str, tuple[float, str]] = {
     "payoff": (4.0, "ends without a payoff"),
     "hook": (3.0, "opening won't stop the scroll"),
 }
+#: Gates for a moment found by sound rather than by speech — a crash, a clutch, a jumpscare.
+#:
+#: The gates above all ask a question about words, which is why a gameplay moment scoring 9 for
+#: emotion was still rejected for "needing outside context": nobody narrated it. For an action
+#: clip the picture is the payoff and the reaction is the hook, and neither is in the transcript.
+#: What we can still insist on is that something actually happened and that there is a reason to
+#: send it on — the two things a loud moment can be wrong about.
+ACTION_GATES: dict[str, tuple[float, str]] = {
+    "emotion": (5.0, "loud, but nothing happens worth reacting to"),
+    "share_trigger": (4.0, "no reason anybody would send it on"),
+}
+#: Candidate kinds. "speech" clips are judged on what is said, "action" on what happens.
+SPEECH, ACTION = "speech", "action"
 # When fewer clips clear the quality bar, still show up to this many if they're close to it.
 MIN_SHOWN = 3
 NEAR_BAR_MARGIN = 15.0
@@ -88,6 +101,9 @@ class Proposal:
     teaser_segment: int = -1
     teaser_reason: str = ""
     hook_type: str = "none"
+    #: SPEECH (proposed from the transcript) or ACTION (found by sound). Decides which gates
+    #: apply: see ACTION_GATES.
+    kind: str = SPEECH
 
 
 @dataclass(slots=True)
@@ -145,9 +161,13 @@ def auto_clip_count(duration_seconds: float) -> int:
     return int(min(12, max(3, round(duration_seconds / 90))))
 
 
-def gate_failure(scores: dict[str, float]) -> str | None:
-    """The first hard gate a clip fails, or None."""
-    for signal, (minimum, reason) in GATES.items():
+def gate_failure(scores: dict[str, float], kind: str = SPEECH) -> str | None:
+    """The first hard gate a clip fails, or None.
+
+    Which gates apply depends on where the moment came from: see ACTION_GATES.
+    """
+    gates = ACTION_GATES if kind == ACTION else GATES
+    for signal, (minimum, reason) in gates.items():
         if float(scores.get(signal, 0.0)) < minimum:
             return reason
     return None
@@ -298,7 +318,7 @@ def select_clips(
             segments, p.start_segment, p.end_segment, min_s, max_s
         )
         if reason is None:
-            reason = gate_failure(p.scores)
+            reason = gate_failure(p.scores, p.kind)
         if reason is None:
             e = include_reaction(segments, s, e, max_s)
         if reason is None:

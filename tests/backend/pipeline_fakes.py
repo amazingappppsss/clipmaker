@@ -12,7 +12,12 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from clipmaker.pipeline.prompts import ANALYSIS_SCHEMA, CANDIDATES_SCHEMA, METADATA_SCHEMA
+from clipmaker.pipeline.prompts import (
+    ACTION_SCHEMA,
+    ANALYSIS_SCHEMA,
+    CANDIDATES_SCHEMA,
+    METADATA_SCHEMA,
+)
 from clipmaker.providers.llm.base import LLMError, LLMRequest, LLMResult, LLMUsage
 from clipmaker.providers.transcription.base import (
     TranscriptionError,
@@ -121,6 +126,8 @@ class FakeLLM:
             data = self._analysis(request.context)
         elif request.schema is CANDIDATES_SCHEMA:
             data = self._candidates(request.context)
+        elif request.schema is ACTION_SCHEMA:
+            data = self._action(request.instruction)
         elif request.schema is METADATA_SCHEMA:
             data = self._metadata(request.context)
         else:  # pragma: no cover - guards against unknown schemas
@@ -213,6 +220,34 @@ class FakeLLM:
             }
         )
         return {"candidates": cands}
+
+    def _action(self, instruction: str) -> dict[str, Any]:
+        """Score each loud moment we were handed, as the real model is asked to."""
+        indexes = [int(m) for m in re.findall(r"^\[(\d+)\]", instruction, re.MULTILINE)]
+        return {
+            "moments": [
+                {
+                    "index": i,
+                    "title": f"That went badly #{i + 1}",
+                    "what_happens": "Everything goes wrong at once and nobody recovers.",
+                    "scores": {
+                        "hook": 6.0,
+                        "curiosity_gap": 5.0,
+                        "stakes": 6.0,
+                        "specificity": 4.0,
+                        "momentum": 8.0,
+                        "emotion": 9.0,
+                        "transformation": 2.0,
+                        "causality": 3.0,
+                        # A gameplay moment has no spoken payoff and cannot stand on its words.
+                        "payoff": 2.0,
+                        "share_trigger": 7.0,
+                        "standalone": 2.0,
+                    },
+                }
+                for i in indexes
+            ]
+        }
 
     def _metadata(self, context: str) -> dict[str, Any]:
         count = len(re.findall(r"^Clip \d+", context, re.MULTILINE))

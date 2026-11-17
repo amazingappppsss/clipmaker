@@ -160,6 +160,9 @@ class Settings(BaseSettings):
     max_clip_seconds: float = 75.0
     # Clips longer than this lose points per extra second; they must earn their length.
     ideal_max_clip_seconds: float = 45.0
+    # Look for moments by sound as well as by words (editing/energy.py). Without it a crash,
+    # a clutch or a jumpscare is invisible to us: every other signal reads a transcript.
+    enable_action_moments: bool = True
 
     # --- Rendering (Milestone 3) ------------------------------------------------------------
     caption_font: str = "Montserrat Black"  # bundled in editing/fonts (SIL OFL)

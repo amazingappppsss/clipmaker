@@ -31,6 +31,7 @@ from clipmaker.db.models import (
 from clipmaker.db.session import get_session_factory
 from clipmaker.pipeline import runner as runner_module
 from clipmaker.pipeline.runner import NOT_YET_AVAILABLE_MESSAGE, JobRunner, Outcome
+from clipmaker.pipeline.selection import ACTION_GATES, GATES
 from clipmaker.providers.llm.base import LLMError
 from clipmaker.storage.factory import get_storage
 from conftest import upload_project
@@ -596,3 +597,32 @@ def test_the_part_count_can_be_tuned_without_a_deploy() -> None:
     assert parallel_parts(None) == MAX_PARALLEL_PARTS
     assert parallel_parts(Settings(llm_parallel_parts=12)) == 12
     assert parallel_parts(Settings(llm_parallel_parts=0)) == MAX_PARALLEL_PARTS
+
+
+def test_a_loud_moment_becomes_a_clip_the_transcript_never_proposed(
+    client: TestClient, auth: dict[str, str], loud_video: Path, queued: list[uuid.UUID]
+) -> None:
+    """The gameplay path, run for real: ffmpeg measures it, the stage proposes it, gates pass.
+
+    The hunter only reads words, so a crash with nothing quotable in it was invisible to us —
+    and when one was scored anyway it was rejected for "needing outside context".
+    """
+    pid = upload_project(client, auth, loud_video)
+    assert client.post(f"/projects/{pid}/process", headers=auth).status_code == 202
+    llm, tx = FakeLLM(), FakeTranscriber()
+    make_runner(queued[-1], llm, tx).run()
+
+    with get_session_factory()() as db:
+        rows = db.scalars(select(Candidate).where(Candidate.project_id == uuid.UUID(pid))).all()
+    action = [r for r in rows if r.scores.get("kind") == "action"]
+    assert action, "the burst at 3 s produced no candidate"
+    moment = action[0]
+    assert moment.start_seconds <= 5.0 <= moment.end_seconds, (
+        moment.start_seconds,
+        moment.end_seconds,
+    )
+    # It may still lose on score to a stronger moment — that is ranking, and fine. What must
+    # never happen again is it being thrown out for having no spoken context or payoff.
+    gate_reasons = {reason for _, reason in (*GATES.values(), *ACTION_GATES.values())}
+    assert moment.rejected_reason not in gate_reasons, moment.rejected_reason
+    assert moment.scores["emotion"] >= 5.0

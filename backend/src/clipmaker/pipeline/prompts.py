@@ -337,3 +337,63 @@ METADATA_SCHEMA = _obj(
         }
     }
 )
+
+
+# --- action moments (found by sound, not by words) ------------------------------------------
+# A crash, a clutch or a jumpscare is loud and has nothing quotable in it. The clip hunter
+# reads a transcript, so it never proposes these; measured loudness does. This asks for the
+# same scores over moments we hand it, with the words (if any) that were shouted over them.
+ACTION_INSTRUCTION = """These moments were found by sound, not by reading the transcript: each
+is a point where the recording got much louder than its own baseline — a crash, a kill, a
+jumpscare, a burst of laughter. Gameplay and reaction content carries its payoff in the
+picture, so expect the words to be thin or missing. That is normal here, not a fault.
+
+Score each one as a potential short. Judge it as a viewer scrolling past would:
+- emotion: how strong the reaction is. Screaming, losing it, genuine shock score high; a loud
+  noise with a flat reaction scores low. This is the signal that decides whether it ships.
+- share_trigger: would somebody send this to a friend with no explanation?
+- momentum, stakes, hook, curiosity_gap: as usual.
+- payoff and standalone: score what you can see, and do not punish a moment for having no
+  spoken conclusion — the thing that happened IS the conclusion.
+
+Be hard on emotion. A loud moment where nobody actually reacts is not a clip, and shipping it
+wastes the creator's time. Use the whole 0-10 range.
+
+Return one entry per moment, in the order given, with the index you were given.
+
+Moments:
+{moments}
+"""
+
+ACTION_SCHEMA = _obj(
+    {
+        "moments": {
+            "type": "array",
+            "items": _obj(
+                {
+                    "index": _INT,
+                    "title": _STR,
+                    "what_happens": _STR,
+                    "scores": _obj(
+                        {
+                            s: _NUM
+                            for s in (
+                                "hook",
+                                "curiosity_gap",
+                                "stakes",
+                                "specificity",
+                                "momentum",
+                                "emotion",
+                                "transformation",
+                                "causality",
+                                "payoff",
+                                "share_trigger",
+                                "standalone",
+                            )
+                        }
+                    ),
+                }
+            ),
+        }
+    }
+)
