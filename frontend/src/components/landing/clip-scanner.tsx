@@ -14,6 +14,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 
+import { MiniClip } from "@/components/landing/mini-clip";
 import { PixelSprite } from "@/components/landing/pixel-sprite";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
@@ -28,6 +29,9 @@ interface Find {
   title: string;
   note: string;
   seconds: number;
+  caption: string[];
+  lit: number;
+  tone: "night" | "ember" | "deep";
 }
 
 const FINDS: Find[] = [
@@ -38,6 +42,9 @@ const FINDS: Find[] = [
     title: "the 1v4 nobody called",
     note: "Loud for 6s, +14 dB over your baseline. Nothing quotable was said — the clip is what happened.",
     seconds: 38,
+    caption: ["NO", "WAY", "THAT", "WORKED"],
+    lit: 2,
+    tone: "night",
   },
   {
     at: 0.46,
@@ -46,6 +53,9 @@ const FINDS: Find[] = [
     title: "“i have never seen that happen”",
     note: "Opens on a full sentence, lands on the reaction. Caption coverage 94%.",
     seconds: 52,
+    caption: ["I", "HAVE", "NEVER", "SEEN", "THAT"],
+    lit: 3,
+    tone: "deep",
   },
   {
     at: 0.72,
@@ -54,6 +64,9 @@ const FINDS: Find[] = [
     title: "the crash, and the ten seconds after",
     note: "The wind-up and the laughing are both in it. That part is the clip, not the impact.",
     seconds: 41,
+    caption: ["OH", "MY", "GOD"],
+    lit: 1,
+    tone: "ember",
   },
 ];
 
@@ -75,11 +88,13 @@ export function ClipScanner() {
   const still = usePrefersReducedMotion();
   const [progress, setProgress] = useState(still ? 1 : 0);
   const [picked, setPicked] = useState<number | null>(still ? 0 : null);
+  // Set for good the moment somebody clicks: the sweep and the auto-walk both stop.
+  const [taken, setTaken] = useState(false);
   const frame = useRef<number | null>(null);
 
   // The sweep stops for good once somebody clicks: they are reading, not watching.
   useEffect(() => {
-    if (still || picked !== null) return;
+    if (still || taken) return;
     const started = performance.now();
     const tick = (now: number) => {
       const next = Math.min(1, (now - started) / SWEEP_MS);
@@ -90,7 +105,28 @@ export function ClipScanner() {
     return () => {
       if (frame.current !== null) cancelAnimationFrame(frame.current);
     };
-  }, [still, picked]);
+  }, [still, taken]);
+
+  // Once the sweep finishes, walk the finds by itself: everyone should see what comes back,
+  // not only the people who guess that the timestamps are buttons. `taken` ends it for good
+  // the moment somebody clicks — at that point they are reading, not watching.
+  useEffect(() => {
+    if (progress < 1 || taken || still) return;
+    const id = window.setInterval(
+      () => setPicked((current) => (current === null ? 0 : (current + 1) % FINDS.length)),
+      3800,
+    );
+    const first = window.setTimeout(() => setPicked(0), 600);
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(first);
+    };
+  }, [progress, taken, still]);
+
+  const choose = (index: number) => {
+    setTaken(true);
+    setPicked(index);
+  };
 
   const found = FINDS.filter((f) => f.at <= progress);
   const open = picked === null ? null : FINDS[picked];
@@ -115,8 +151,14 @@ export function ClipScanner() {
 
         <div className="px-4 pt-6 pb-5 sm:px-7">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="text-sm font-semibold text-ink">
-              {found.length} moment{found.length === 1 ? "" : "s"} worth clipping
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              {progress < 1 ? (
+                <span className="size-2 animate-pulse rounded-full bg-magenta" aria-hidden />
+              ) : null}
+              <span key={found.length} className="animate-pop inline-block tabular-nums">
+                {found.length}
+              </span>
+              moment{found.length === 1 ? "" : "s"} worth clipping
             </p>
             <p className="text-xs text-muted">click a spike</p>
           </div>
@@ -158,7 +200,7 @@ export function ClipScanner() {
                 <button
                   key={f.time}
                   type="button"
-                  onClick={() => setPicked(i)}
+                  onClick={() => choose(i)}
                   style={{ left: `${f.at * 100}%` }}
                   className={`animate-pop absolute -top-3 -translate-x-1/2 rounded-full border-2 px-2.5 py-1 font-mono text-[0.65rem] whitespace-nowrap transition-transform hover:scale-105 ${
                     picked === i
@@ -175,7 +217,16 @@ export function ClipScanner() {
           {/* What was found there. */}
           <div className="mt-6 min-h-[8.5rem] rounded-2xl bg-sunken p-4 sm:p-5">
             {open ? (
-              <div className="animate-pop">
+              <div className="animate-pop flex gap-4 sm:gap-5">
+                <MiniClip
+                  caption={open.caption}
+                  lit={open.lit}
+                  seconds={open.seconds}
+                  sprite={open.kind === "sound" ? "speaker" : "clapper"}
+                  tone={open.tone}
+                  className="w-24 shrink-0 shadow-card sm:w-28"
+                />
+                <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-ink px-2.5 py-1 text-[0.7rem] font-bold text-white uppercase">
                     <PixelSprite
@@ -193,6 +244,7 @@ export function ClipScanner() {
                 </div>
                 <p className="mt-3 text-lg leading-snug font-semibold text-ink">{open.title}</p>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted">{open.note}</p>
+                </div>
               </div>
             ) : (
               <div className="flex h-full flex-col justify-center">

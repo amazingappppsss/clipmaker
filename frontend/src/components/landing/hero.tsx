@@ -25,12 +25,12 @@ export function Hero() {
       <div className="relative mx-auto max-w-6xl px-4 pt-8 text-center sm:px-8 sm:pt-12">
         <p className="animate-pop mx-auto inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold tracking-wide text-white ring-1 ring-white/30 uppercase">
           <span className="size-2 animate-pulse rounded-full bg-lime" />
-          AI clip editor for podcasts &amp; interviews
+          AI clip editor for streams, podcasts &amp; interviews
         </p>
         <h1 className="display-heavy animate-pop mt-6 text-[clamp(1.55rem,7.2vw,4.4rem)] text-white">
-          <span className="block whitespace-nowrap">One episode.</span>
+          <span className="block whitespace-nowrap">One stream.</span>
           <span className="block whitespace-nowrap">
-            <span className="text-lime">10</span> viral shorts.
+            <span className="text-lime">30</span> vertical clips.
           </span>
           <span className="block whitespace-nowrap">
             Zero <span className="rounded-2xl bg-lime px-3 text-ink">editing.</span>
@@ -62,8 +62,9 @@ export function Hero() {
         <SpinBadge className="absolute right-[2%] bottom-[-3.5rem] hidden sm:grid lg:right-[6%]" />
 
         <p className="animate-pop mx-auto mt-10 max-w-2xl text-lg leading-snug font-semibold text-white [text-shadow:0_1px_2px_rgb(5_10_60/0.35)] [animation-delay:120ms] sm:text-xl md:text-2xl">
-          Paste a YouTube link. Clip2Easy finds the moments people actually stop scrolling for, then
-          cuts, captions and frames them into vertical shorts you can post today.
+          Paste a Twitch or YouTube link. Clip2Easy finds the moments people actually stop
+          scrolling for — including the ones nobody narrated — then cuts, captions and frames
+          them into vertical clips you can post today.
         </p>
         <div className="animate-pop mx-auto mt-8 max-w-xl text-left [animation-delay:200ms]">
           <LinkBar onError={setError} />
