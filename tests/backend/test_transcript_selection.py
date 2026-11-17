@@ -258,3 +258,48 @@ def test_parallel_runner_keeps_order_and_raises() -> None:
 
     with _pytest.raises(ValueError, match="nope"):
         run_parallel([lambda: 1, boom])
+
+
+def _sentence_seg(idx: int, start: float, end: float, text: str) -> Segment:
+    """A segment whose words carry real punctuation, so sentence ends can be seen."""
+    words = [
+        Word(tok, start + i * 0.3, start + i * 0.3 + 0.25) for i, tok in enumerate(text.split())
+    ]
+    return Segment(idx=idx, start=start, end=end, speaker="A", words=words)
+
+
+def test_a_clip_is_extended_to_the_end_of_the_sentence() -> None:
+    """A clip ended on "the joy of" and simply stopped: a pause is not a full stop."""
+    from clipmaker.pipeline.selection import ends_sentence, snap_to_sentence
+
+    segments = [
+        _sentence_seg(0, 0.0, 6.0, "People ask me what drug I am on."),
+        _sentence_seg(1, 6.0, 12.0, "And I tell them it is"),  # split on a pause, mid-sentence
+        _sentence_seg(2, 12.0, 18.0, "the joy of"),  # still mid-sentence
+        _sentence_seg(3, 18.0, 24.0, "doing work that matters."),
+    ]
+    assert ends_sentence(segments, 0) is True
+    assert ends_sentence(segments, 2) is False
+
+    end, moved = snap_to_sentence(segments, 0, 2, max_s=30.0)
+    assert moved is True
+    assert end == 3, "should run on to the full stop"
+
+
+def test_a_clip_that_already_lands_on_a_full_stop_is_left_alone() -> None:
+    from clipmaker.pipeline.selection import snap_to_sentence
+
+    segments = [_sentence_seg(0, 0.0, 6.0, "That changed everything for me."), _sentence_seg(1, 6.0, 12.0, "Anyway.")]
+    assert snap_to_sentence(segments, 0, 0, max_s=30.0) == (0, False)
+
+
+def test_it_gives_up_rather_than_run_a_clip_minutes_long() -> None:
+    """Ending mid-sentence is bad; overrunning to find a full stop is worse."""
+    from clipmaker.pipeline.selection import snap_to_sentence
+
+    segments = [_sentence_seg(0, 0.0, 10.0, "it is")] + [
+        _sentence_seg(i, i * 10.0, i * 10.0 + 10.0, "and on and on") for i in range(1, 12)
+    ]
+    end, moved = snap_to_sentence(segments, 0, 0, max_s=20.0)
+    assert moved is False
+    assert end == 0

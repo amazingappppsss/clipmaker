@@ -157,6 +157,45 @@ def _span(segments: list[Segment], start: int, end: int) -> float:
     return segments[end].end - segments[start].start
 
 
+#: A clip may run this much past its length limit to reach the end of a sentence. Landing on
+#: the payoff is worth a few seconds; stopping before it costs the whole clip.
+SENTENCE_GRACE_SECONDS = 6.0
+
+_SENTENCE_END_CHARS = (".", "?", "!", "\u2026", '."', '?"', '!"')
+
+
+def ends_sentence(segments: list[Segment], index: int) -> bool:
+    """Whether this segment finishes a sentence, rather than a pause or a word limit (pure).
+
+    Segments are split on sentence punctuation *and* on a 1.2s pause *and* at 45 words, so a
+    segment boundary is not a sentence boundary. Conversational speech pauses mid-thought
+    constantly, which is how a clip came to end on "the joy of" and simply stop.
+    """
+    if not 0 <= index < len(segments):
+        return False
+    words = segments[index].words
+    return bool(words) and words[-1].text.strip().endswith(_SENTENCE_END_CHARS)
+
+
+def snap_to_sentence(
+    segments: list[Segment], start: int, end: int, max_s: float
+) -> tuple[int, bool]:
+    """Extend `end` to the next segment that finishes a sentence (pure).
+
+    Returns (end, moved). Gives up rather than overrun: a clip that ends mid-sentence is bad,
+    one that runs a minute long to find a full stop is worse.
+    """
+    if ends_sentence(segments, end):
+        return end, False
+    limit = max_s + SENTENCE_GRACE_SECONDS
+    for candidate in range(end + 1, len(segments)):
+        if _span(segments, start, candidate) > limit:
+            break
+        if ends_sentence(segments, candidate):
+            return candidate, True
+    return end, False
+
+
 def normalise_range(
     segments: list[Segment], start: int, end: int, min_s: float, max_s: float
 ) -> tuple[int, int, bool, str | None]:
@@ -194,7 +233,10 @@ def normalise_range(
         adjusted = True
     if _span(segments, start, end) < min_s:
         return start, end, adjusted, "too short to stand alone"
-    return start, end, adjusted, None
+    # Last: land on a full stop. The payoff is the reason the clip exists, and the length
+    # limits are a guideline next to finishing the thought.
+    end, moved = snap_to_sentence(segments, start, end, max_s)
+    return start, end, adjusted or moved, None
 
 
 REACTION_MAX_SECONDS = 3.5
