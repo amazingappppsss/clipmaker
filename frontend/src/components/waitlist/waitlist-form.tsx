@@ -119,7 +119,7 @@ export function WaitlistForm({ source = "waitlist" }: { source?: string }) {
 
   return (
     <form onSubmit={submit} noValidate>
-      <div className="flex flex-col gap-2 rounded-[1.75rem] bg-white p-2 shadow-float sm:flex-row sm:rounded-full">
+      <div className="flex flex-col gap-2 rounded-[1.5rem] border border-line-strong bg-white p-2 shadow-card sm:flex-row sm:rounded-full">
         <label className="sr-only" htmlFor="waitlist-email">
           Email address
         </label>

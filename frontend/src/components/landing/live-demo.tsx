@@ -94,7 +94,7 @@ export function LiveDemo() {
         <p className="text-center text-xs font-bold tracking-widest text-blue uppercase">
           Try it right here
         </p>
-        <h2 id="demo-heading" className="display-heavy mt-3 text-center text-4xl sm:text-6xl">
+        <h2 id="demo-heading" className="headline mt-3 text-center text-[clamp(1.9rem,4.4vw,3.2rem)]">
           A 1-hour episode <span className="text-blue">→</span> 4 bangers
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-center text-muted">
@@ -176,7 +176,7 @@ export function LiveDemo() {
                   from {m.time} · {m.length} long
                 </span>
               </div>
-              <h3 className="display-heavy mt-4 text-3xl">{m.title}</h3>
+              <h3 className="text-2xl font-semibold tracking-[-0.02em]">{m.title}</h3>
               <div className="mt-5 rounded-2xl bg-blue-soft p-4">
                 <p className="text-[0.7rem] font-bold tracking-widest text-blue uppercase">
                   Why it works

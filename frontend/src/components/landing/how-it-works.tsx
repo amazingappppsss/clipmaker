@@ -23,7 +23,7 @@ export function HowItWorks() {
       <ol className="relative grid gap-4 md:grid-cols-3 md:gap-8">
         <Step
           title="Paste a link"
-          body="YouTube link or upload. Podcasts, interviews, lessons, up to 4 hours."
+          body="Twitch or YouTube link, or upload a file. Streams, podcasts, interviews, lessons."
         >
           <span className="inline-flex items-center gap-2 rounded-full bg-blue py-2 pr-2 pl-4 text-sm font-semibold text-white">
             <Film className="size-4" aria-hidden />
