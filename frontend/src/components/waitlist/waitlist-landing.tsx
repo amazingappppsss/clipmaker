@@ -11,7 +11,9 @@
 import { Suspense } from "react";
 
 import { AiReads } from "@/components/landing/ai-reads";
+import { BluePoster } from "@/components/landing/blue-poster";
 import { ClipScanner } from "@/components/landing/clip-scanner";
+import { Squiggle } from "@/components/landing/squiggle";
 import { PixelSprite } from "@/components/landing/pixel-sprite";
 import { Capabilities } from "@/components/landing/capabilities";
 import { LiveDemo } from "@/components/landing/live-demo";
@@ -40,8 +42,8 @@ export function WaitlistLanding() {
             {/* Lowercase, light, tight: the headline is a sentence, not a shout. The sprites
                 are the only ornament on the page, so they carry the personality. */}
             <h1 className="headline text-[clamp(2.2rem,6vw,4.4rem)] text-ink">
-              your <PixelSprite name="controller" className="size-[0.85em]" /> vod has 30 clips
-              in it. you posted 2.
+              your <PixelSprite name="controller" className="size-[0.85em]" /> stream has 30
+              clips in it. you posted 2.
             </h1>
 
             <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-ink-soft">
@@ -53,7 +55,7 @@ export function WaitlistLanding() {
             <p className="mx-auto mt-3 flex max-w-2xl flex-wrap items-center justify-center gap-x-2 gap-y-2 text-base text-muted">
               works on
               <span className="inline-flex items-center gap-1.5 rounded-lg bg-sunken px-2.5 py-1 font-semibold text-ink">
-                twitch vods
+                twitch streams
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-lg bg-sunken px-2.5 py-1 font-semibold text-ink">
                 youtube links
@@ -63,12 +65,22 @@ export function WaitlistLanding() {
               </span>
             </p>
 
-            <div className="mx-auto mt-9 max-w-xl">
+            <div className="relative mx-auto mt-9 max-w-xl">
+              {/* One hand-drawn arrow and one sticker: enough energy to stop the page reading
+                  as a template, not so much that the calm is gone. */}
+              <Squiggle
+                className="pointer-events-none absolute -top-10 -left-16 hidden size-20 -scale-x-100 text-lime sm:block"
+                variant={2}
+                aria-hidden
+              />
+              <span className="absolute -top-7 -right-6 z-10 hidden rotate-[8deg] rounded-full border-2 border-ink bg-lime px-3 py-1.5 text-xs font-black text-ink uppercase shadow-[4px_4px_0_0_var(--color-ink)] sm:block">
+                first one free
+              </span>
               <Suspense fallback={<div className="h-16" />}>
                 <WaitlistForm source="waitlist-hero" />
               </Suspense>
               <p className="mt-3 text-sm text-muted">
-                No card, no account. We cut your first VOD by hand, free, before launch.
+                No card, no account. We cut your first stream by hand, free, before launch.
               </p>
             </div>
 
@@ -82,6 +94,8 @@ export function WaitlistLanding() {
             <ClipScanner />
           </div>
         </section>
+
+        <BluePoster />
 
         {/* Proof first: watch it reject lines, then poke at a real example yourself. */}
         <AiReads />

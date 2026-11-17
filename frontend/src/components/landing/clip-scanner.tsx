@@ -106,7 +106,7 @@ export function ClipScanner() {
             <span className="size-2.5 rounded-full bg-[#28c840]" />
           </span>
           <p className="truncate font-mono text-xs text-muted">
-            stream_vod_final.mp4 · 4:12:33
+            saturday_stream.mp4 · 4:12:33
           </p>
           <span className="ml-auto hidden font-mono text-[0.7rem] text-muted sm:block">
             {progress < 1 ? "listening…" : "done"}
