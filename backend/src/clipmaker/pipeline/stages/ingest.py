@@ -16,14 +16,16 @@ from clipmaker.core.enums import UploadStatus
 from clipmaker.core.errors import InsufficientCreditsError
 from clipmaker.db.models import Project, SourceVideo, User
 from clipmaker.media.audio import MediaError, make_streamable, make_thumbnail
+from clipmaker.media.budget import expected_bytes, import_height, too_long_message
 from clipmaker.media.probe import ProbeError, probe_media
 from clipmaker.media.url_import import UrlImportError
 from clipmaker.pipeline.context import StageContext, StageOutput
 from clipmaker.pipeline.errors import PermanentStageError, RetryableStageError
 from clipmaker.services.billing import credits_for_duration, debit_credits, project_net_charge
-from clipmaker.services.housekeeping import make_room
+from clipmaker.services.housekeeping import budget_bytes, make_room
 
-# A 720p import of a long talk is usually well under this; it only sizes the clean-up.
+#: Used only when the length is unknown (some download services don't report one), to size
+#: the clean-up before the download. Where the length is known, media/budget.py estimates it.
 EXPECTED_DOWNLOAD_BYTES = 400 * 1024 * 1024
 
 _CONTENT_TYPES = {
@@ -38,13 +40,26 @@ def _fetch_from_link(ctx: StageContext, src: SourceVideo) -> dict[str, Any]:
     """Download a link import into storage and verify it. Returns fields to save on the row."""
     if not src.source_url:
         raise PermanentStageError("no_source", "This project has no video link.")
-    # Make room before the download rather than failing halfway through it.
+    # How big a download this disk can take, and therefore what size to ask for. A four-hour
+    # stream at 720p is 2.5-4 GB; asking for it on a 0.45 GB volume filled the disk halfway
+    # through, after the user had waited and been charged.
     settings = ctx.settings
-    if settings.storage_backend.value == "local":
+    local = settings.storage_backend.value == "local"
+    budget = budget_bytes(settings.local_storage_dir) if local else None
+    duration = float(src.duration_seconds or 0.0)
+    height = import_height(duration, budget, settings.url_import_max_height)
+    if height is None:
+        raise PermanentStageError("too_long_to_download", too_long_message(duration, budget))
+    if height != settings.url_import_max_height:
+        # Pydantic settings are frozen in spirit: a copy keeps this decision to this download.
+        settings = settings.model_copy(update={"url_import_max_height": height})
+    if local:
+        needed = expected_bytes(duration, height) if duration > 0 else EXPECTED_DOWNLOAD_BYTES
         with ctx.sessions() as db:
-            make_room(db, ctx.storage, settings.local_storage_dir, EXPECTED_DOWNLOAD_BYTES)
+            make_room(db, ctx.storage, settings.local_storage_dir, needed)
     try:
-        path = ctx.importer().download(src.source_url, ctx.work_dir / "download", ctx.heartbeat)
+        importer = ctx.importer_factory(settings)
+        path = importer.download(src.source_url, ctx.work_dir / "download", ctx.heartbeat)
     except UrlImportError as exc:
         error = RetryableStageError if exc.retryable else PermanentStageError
         raise error(exc.code, exc.message) from exc

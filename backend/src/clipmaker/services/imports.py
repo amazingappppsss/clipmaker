@@ -15,8 +15,10 @@ from clipmaker.core.config import Settings
 from clipmaker.core.enums import ProjectState, UploadStatus
 from clipmaker.core.errors import AppError, ValidationFailedError
 from clipmaker.db.models import Project, SourceVideo, User
+from clipmaker.media.budget import import_height, too_long_message
 from clipmaker.media.url_import import UrlImporter, UrlImportError, validate_url
 from clipmaker.schemas import ImportRequest
+from clipmaker.services.housekeeping import budget_bytes
 from clipmaker.storage.base import project_prefix
 
 logger = logging.getLogger(__name__)
@@ -72,6 +74,14 @@ def import_from_url(
             f"Video is too long (maximum {_minutes(settings.max_video_duration_seconds)}).",
             code="too_long",
         )
+    # Refuse here, while they are still watching, rather than in the worker halfway through a
+    # download that cannot fit on the disk. The worker checks again with its own disk.
+    if known and settings.storage_backend.value == "local":
+        budget = budget_bytes(settings.local_storage_dir)
+        if import_height(remote.duration_seconds, budget, settings.url_import_max_height) is None:
+            raise ValidationFailedError(
+                too_long_message(remote.duration_seconds, budget), code="too_long_to_download"
+            )
 
     project = Project(
         user_id=user.id,

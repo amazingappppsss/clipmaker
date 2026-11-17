@@ -43,16 +43,27 @@ def disk_total(path: str) -> int | None:
         return None
 
 
+def budget_bytes(local_dir: str) -> int | None:
+    """The most this disk can be asked to free, or None when it isn't a local disk.
+
+    This is the real size limit on anything we download: whatever we fetch has to fit here
+    after the clean-up has deleted everything it is allowed to.
+    """
+    total = disk_total(local_dir)
+    if total is None:
+        return None
+    return max(0, int(total * MAX_SHARE_OF_DISK) - HEADROOM_BYTES)
+
+
 def affordable(needed_bytes: int, local_dir: str) -> int:
     """`needed_bytes`, clamped to something this disk could actually provide (pure enough).
 
     Asking for more than the disk holds is not a stricter request, it is an unsatisfiable
     one: the loop then deletes every project it may touch and still comes up short.
     """
-    total = disk_total(local_dir)
-    if total is None:
+    ceiling = budget_bytes(local_dir)
+    if ceiling is None:
         return needed_bytes
-    ceiling = int(total * MAX_SHARE_OF_DISK) - HEADROOM_BYTES
     return max(0, min(needed_bytes, ceiling))
 
 
