@@ -1,5 +1,5 @@
 /** What the editing engine does (PRD §5). */
-import { Brain, Captions, Crop, Scissors, ShieldCheck, Zap } from "lucide-react";
+import { Activity, Brain, Captions, Crop, Scissors, ShieldCheck } from "lucide-react";
 
 const ITEMS = [
   {
@@ -8,9 +8,9 @@ const ITEMS = [
     body: "Understands the full conversation, so every clip has context, a turn and a payoff. Not random sentences.",
   },
   {
-    Icon: Zap,
-    title: "Flash-forward hooks",
-    body: "The most curious line plays first, then it rewinds to the start, so viewers stay to see how it gets there.",
+    Icon: Activity,
+    title: "Finds moments by sound too",
+    body: "A crash, a clutch or a jumpscare has no quotable line in it. We measure the sound of the recording, so the moments nobody narrated still get found.",
   },
   {
     Icon: Crop,

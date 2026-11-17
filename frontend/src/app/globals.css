@@ -8,6 +8,8 @@
 @theme {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Archivo Variable", "Inter Variable", ui-sans-serif, sans-serif;
+  /* 8-bit type, used only for HUD labels — never for anything you have to read a lot of. */
+  --font-pixel: "Press Start 2P", ui-monospace, monospace;
 
   --color-canvas: #f3f4f8;
   --color-surface: #ffffff;
@@ -31,6 +33,14 @@
   --color-danger: #e0243a;
   --color-danger-soft: #ffe8eb;
   --color-info-soft: #e6eaff;
+
+  /* Neon sunset — the clipper-facing panels. Dark, hot, 1 a.m. editing-at-the-desk colours,
+     against which a vertical clip and a lime button both read instantly. */
+  --color-night: #0a0618;
+  --color-night-soft: #150c2e;
+  --color-magenta: #ff2d8d;
+  --color-orange: #ff7a1a;
+  --color-teal: #19e3c2;
 
   --radius-card: 1.75rem;
   --shadow-card: 0 1px 2px rgb(11 11 18 / 0.05), 0 16px 32px -20px rgb(11 11 18 / 0.25);
@@ -132,6 +142,81 @@
       linear-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1px),
       linear-gradient(90deg, rgb(255 255 255 / 0.09) 1px, transparent 1px);
     background-size: 64px 64px;
+  }
+
+  /* Pixel type, for HUD labels. Tiny by nature: never set it below 10px on a phone. */
+  .pixel {
+    font-family: var(--font-pixel);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+    text-transform: uppercase;
+  }
+
+  /* A HUD panel: hard edges, chunky offset shadow, no soft radius anywhere. */
+  .pixel-panel {
+    background: rgb(10 6 24 / 0.72);
+    border: 2px solid rgb(255 255 255 / 0.18);
+    box-shadow: 4px 4px 0 0 rgb(255 45 141 / 0.55);
+    backdrop-filter: blur(2px);
+  }
+
+  /* Chunky offset shadow for cards and buttons — the poster look, square. */
+  .pixel-shadow {
+    box-shadow: 6px 6px 0 0 var(--color-ink);
+  }
+  .pixel-shadow-magenta {
+    box-shadow: 6px 6px 0 0 var(--color-magenta);
+  }
+
+  /* CRT scanlines over the hero. Decorative, and cheap: one repeating gradient. */
+  .scanlines::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      180deg,
+      rgb(0 0 0 / 0.1) 0 1px,
+      transparent 1px 4px
+    );
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  /* Keeps blown-up pixel art crisp instead of blurring it back into a gradient. */
+  .crisp {
+    image-rendering: pixelated;
+  }
+
+  /* Neon sunset panel: deep night, a horizon glow and a receding grid. The clipper half of
+     the site lives on this — it is the room they are in at 1 a.m., not a SaaS hero. */
+  .sunset-grid {
+    position: relative;
+    background-color: var(--color-night);
+    background-image:
+      radial-gradient(120% 80% at 50% 100%, rgb(255 45 141 / 0.45) 0%, transparent 60%),
+      radial-gradient(90% 60% at 80% 100%, rgb(255 122 26 / 0.35) 0%, transparent 55%),
+      radial-gradient(70% 50% at 15% 0%, rgb(25 227 194 / 0.18) 0%, transparent 60%),
+      linear-gradient(180deg, var(--color-night) 0%, var(--color-night-soft) 100%);
+  }
+  /* The grid itself, laid over the glow and fading out towards the horizon. */
+  .sunset-grid::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.07) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: linear-gradient(180deg, transparent 0%, black 45%, transparent 92%);
+    pointer-events: none;
+  }
+  /* Hot neon text, used once per screen. */
+  .neon {
+    color: #fff;
+    text-shadow:
+      0 0 12px rgb(255 45 141 / 0.65),
+      0 0 40px rgb(255 45 141 / 0.35);
   }
 
   /* Moving diagonal stripes for the active progress segment. */

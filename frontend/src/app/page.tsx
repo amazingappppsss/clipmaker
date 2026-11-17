@@ -9,9 +9,9 @@ import type { Metadata } from "next";
 import { WaitlistLanding } from "@/components/waitlist/waitlist-landing";
 
 export const metadata: Metadata = {
-  title: "Clip2Easy — one episode, ten viral shorts",
+  title: "Clip2Easy — your VOD, clipped",
   description:
-    "Join the first 100. We clip your first episode by hand before launch, free, and lock your price at half off for life.",
+    "Vertical clips from your stream or episode, found by sound as well as by words. Join the first 100: we cut your first VOD by hand before launch, free, and lock your price at half off for life.",
 };
 
 export default function HomePage() {

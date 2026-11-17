@@ -16,8 +16,8 @@ export interface OfferItem {
 export const OFFER: OfferItem[] = [
   {
     kicker: "Before launch",
-    title: "We clip your first episode by hand",
-    body: "Send one link after you join. We run it ourselves, check every cut, and email you the shorts. No account, no card, nothing to install.",
+    title: "We clip your first VOD by hand",
+    body: "Send one link after you join — Twitch VOD, YouTube upload, whatever you have. We run it ourselves, check every cut, and email you the vertical clips. If it is a five-hour stream, tell us which hour matters and we start there.",
     worth: "What an editor charges: $20–50 a clip",
   },
   {
@@ -29,13 +29,13 @@ export const OFFER: OfferItem[] = [
   {
     kicker: "At launch",
     title: "100 free minutes, not 15",
-    body: "Everyone else starts with 15 minutes of video. Founding members start with 100, so you can run a couple of full episodes before you ever think about paying.",
+    body: "Everyone else starts with 15 minutes of video. Founding members start with 100, so you can run a few sessions through it before you ever think about paying.",
     worth: "6× the free tier",
   },
   {
     kicker: "Your say",
     title: "You help build it",
-    body: "Founding members get a direct line to us. Tell us what your clips need and it goes to the top of the list — that's the whole reason we're doing this before launch.",
+    body: "Founding members get a direct line to us. Tell us what your clips need — the game you play, the moments it keeps missing — and it goes to the top of the list. That is the whole reason we are doing this before launch.",
     worth: "Shape the product",
   },
 ];

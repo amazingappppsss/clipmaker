@@ -11,6 +11,9 @@
 import { Suspense } from "react";
 
 import { AiReads } from "@/components/landing/ai-reads";
+import { ForClippers } from "@/components/landing/for-clippers";
+import { PixelCity } from "@/components/landing/pixel-city";
+import { VodHud } from "@/components/landing/vod-hud";
 import { PhoneClip } from "@/components/landing/phone-clip";
 import { Capabilities } from "@/components/landing/capabilities";
 import { LiveDemo } from "@/components/landing/live-demo";
@@ -25,67 +28,108 @@ export function WaitlistLanding() {
   return (
     <>
       <main>
-        <section className="blue-grid relative mx-2 mt-2 overflow-hidden rounded-[2rem] px-4 pt-10 pb-16 sm:mx-4 sm:mt-4 sm:rounded-[2.75rem] sm:px-8 sm:pt-14 sm:pb-20">
-          <div className="relative mx-auto mb-4 flex max-w-6xl items-center justify-between">
+        <section className="scanlines relative mx-2 mt-2 overflow-hidden rounded-[2rem] bg-night px-4 pt-8 pb-14 sm:mx-4 sm:mt-4 sm:rounded-[2.75rem] sm:px-8 sm:pt-10 sm:pb-20">
+          {/* Pixel sunset behind everything, pinned to the bottom like a horizon. */}
+          <PixelCity className="crisp pointer-events-none absolute inset-x-0 bottom-0 h-[62%] w-full" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-night via-night/80 to-night/20" />
+
+          <div className="relative mx-auto mb-6 flex max-w-6xl items-center justify-between">
             <Logo tone="light" />
-            <span className="text-xs font-semibold text-white/80">Launching soon</span>
+            <span className="pixel text-[0.5rem] text-white/70 sm:text-[0.6rem]">
+              Launching soon
+            </span>
           </div>
 
-          <div className="relative mx-auto grid max-w-6xl items-center gap-10 text-center lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-14 lg:text-left">
-            <div className="min-w-0">
-              <p className="animate-pop inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold tracking-wide text-white uppercase ring-1 ring-white/30">
-                <span className="size-2 animate-pulse rounded-full bg-lime" />
-                Not launched yet · first {FOUNDING_SPOTS} only
-              </p>
-
-              <h1 className="display-heavy animate-pop mt-6 text-[clamp(2rem,5vw,3.6rem)] leading-[0.95] text-white">
-                <span className="block">Send us one episode.</span>
-                <span className="block">
-                  We&rsquo;ll clip it{" "}
-                  <span className="rounded-2xl bg-lime px-3 text-ink">by hand.</span>
+          <div className="relative mx-auto max-w-6xl">
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <VodHud className="animate-pop" />
+              <span className="pixel-panel animate-pop px-4 py-3">
+                <span className="pixel text-[0.5rem] text-white sm:text-[0.6rem]">
+                  First {FOUNDING_SPOTS} only
                 </span>
-              </h1>
-
-              <p className="animate-pop mx-auto mt-6 max-w-2xl text-lg leading-snug font-semibold text-white [text-shadow:0_1px_2px_rgb(5_10_60/0.35)] [animation-delay:120ms] sm:text-xl">
-                Clip2Easy isn&rsquo;t open to everyone yet. The first {FOUNDING_SPOTS} people get
-                their first episode cut for free before launch, and half off for life after it.
-              </p>
-
-              <div className="animate-pop mx-auto mt-9 max-w-xl text-left [animation-delay:200ms] lg:mx-0">
-                <Suspense fallback={<div className="h-16" />}>
-                  <WaitlistForm source="waitlist-hero" />
-                </Suspense>
-                <p className="mt-4 text-center text-sm font-semibold text-white/90 lg:text-left">
-                  No card. No account. One email when your spot opens.
-                </p>
-              </div>
-
-              <SpotsLeft />
+              </span>
             </div>
 
-            {/* A real short, playing itself, so something is moving the moment the page lands.
-                Made by scripts/make-demo-clip.py: the picture is synthetic because we own no
-                footage, but the captions are burned in by the same engine that captions real
-                clips. Labelled below so nobody reads it as a customer's episode. */}
-            <div className="mx-auto">
-              <PhoneClip
-                className="animate-float"
-                size="lg"
-                src="/demo/podcast-reframe.mp4"
-                tone="video-tone-1"
-                title="Auto-cropped to 9:16"
-                caption={["Follows", "whoever", "is", "talking"]}
-                score={94}
-                hook="Speaker-tracked"
-              />
-              <p className="mt-2 text-center text-xs font-medium text-white/70">
-                Licensed stock footage · real re-framing, demo captions
-              </p>
+            {/* The poster: type big enough to crop, with the clip cards sitting on top of it. */}
+            <div className="relative mt-8">
+              <h1 className="display-heavy animate-pop text-center text-[clamp(2.1rem,6.4vw,5.2rem)] leading-[0.86] text-white">
+                <span className="block">
+                  Your VOD has
+                </span>
+                <span className="block">
+                  <span className="text-lime">30 clips</span> in it.
+                </span>
+                <span className="block text-white/55">You posted 2.</span>
+              </h1>
+
+              {/* Cards break the type line, the way a poster would. Hidden on phones, where
+                  the headline needs the whole width. */}
+              <div className="pointer-events-none absolute -top-2 -left-2 hidden rotate-[-7deg] lg:block">
+                <div className="pixel-shadow-magenta border-2 border-white/80 bg-night/85 px-4 py-3">
+                  <p className="pixel text-[0.55rem] text-magenta">Loud at 02:41:08</p>
+                  <p className="mt-2 max-w-[13rem] text-sm font-semibold text-white">
+                    Nobody said a word here. It is still the clip.
+                  </p>
+                </div>
+              </div>
+              <div className="pointer-events-none absolute -right-2 bottom-4 hidden rotate-[6deg] lg:block">
+                <div className="pixel-shadow border-2 border-ink bg-lime px-4 py-3">
+                  <p className="pixel text-[0.55rem] text-ink">Report card</p>
+                  <p className="mt-2 max-w-[11rem] text-sm font-black text-ink">
+                    8/8 checks passed
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative mt-10 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-14">
+              <div className="min-w-0">
+                <p className="animate-pop max-w-xl text-lg leading-snug font-semibold text-white/85 [animation-delay:120ms] sm:text-xl">
+                  Clip2Easy watches the whole thing — the screaming and the gunfire, not just the
+                  talking — and hands back vertical clips with the captions burned in. You pick
+                  what goes out.
+                </p>
+
+                <p className="animate-pop mt-4 max-w-xl text-base leading-snug font-semibold text-teal [animation-delay:160ms]">
+                  Not open yet. Send one VOD and we cut it by hand, free, before launch.
+                </p>
+
+                <div className="animate-pop mt-8 max-w-xl [animation-delay:200ms]">
+                  <Suspense fallback={<div className="h-16" />}>
+                    <WaitlistForm source="waitlist-hero" />
+                  </Suspense>
+                  <p className="mt-4 text-sm font-semibold text-white/60">
+                    No card. No account. One email when your spot opens.
+                  </p>
+                </div>
+
+                <SpotsLeft />
+              </div>
+
+              {/* A real short, playing itself, so something is moving the moment the page lands.
+                  Made by scripts/make-demo-clip.py: the picture is licensed stock because we own
+                  no footage, but the re-framing and captions are this engine's. */}
+              <div className="mx-auto">
+                <PhoneClip
+                  className="animate-float"
+                  size="lg"
+                  src="/demo/podcast-reframe.mp4"
+                  tone="video-tone-1"
+                  title="Auto-cropped to 9:16"
+                  caption={["Follows", "whoever", "is", "talking"]}
+                  score={94}
+                  hook="Speaker-tracked"
+                />
+                <p className="pixel mt-3 text-center text-[0.5rem] text-white/50">
+                  Licensed stock · real re-framing
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Proof first: watch it reject lines, then poke at a real example yourself. */}
+        {/* The argument, then the proof: why a clipper should care, then watch it work. */}
+        <ForClippers />
         <AiReads />
         <LiveDemo />
 

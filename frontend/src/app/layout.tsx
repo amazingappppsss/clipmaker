@@ -1,5 +1,6 @@
 import "@fontsource-variable/inter";
 import "@fontsource-variable/archivo/wdth.css";
+import "@fontsource/press-start-2p";
 import "./globals.css";
 
 import type { Metadata, Viewport } from "next";
