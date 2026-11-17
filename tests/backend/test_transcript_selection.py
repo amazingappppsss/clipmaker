@@ -289,7 +289,10 @@ def test_a_clip_is_extended_to_the_end_of_the_sentence() -> None:
 def test_a_clip_that_already_lands_on_a_full_stop_is_left_alone() -> None:
     from clipmaker.pipeline.selection import snap_to_sentence
 
-    segments = [_sentence_seg(0, 0.0, 6.0, "That changed everything for me."), _sentence_seg(1, 6.0, 12.0, "Anyway.")]
+    segments = [
+        _sentence_seg(0, 0.0, 6.0, "That changed everything for me."),
+        _sentence_seg(1, 6.0, 12.0, "Anyway."),
+    ]
     assert snap_to_sentence(segments, 0, 0, max_s=30.0) == (0, False)
 
 

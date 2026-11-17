@@ -17,9 +17,13 @@ from pathlib import Path
 from typing import Any, Protocol
 from urllib.parse import urlparse
 
-ALLOWED_HOSTS = frozenset(
+YOUTUBE_HOSTS = frozenset(
     {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}
 )
+#: Twitch VODs and clips. Where stream clippers actually work — a gaming clipper has a Twitch
+#: link, not a YouTube one, and refusing it made the whole audience unreachable.
+TWITCH_HOSTS = frozenset({"twitch.tv", "www.twitch.tv", "m.twitch.tv", "clips.twitch.tv"})
+ALLOWED_HOSTS = YOUTUBE_HOSTS | TWITCH_HOSTS
 
 
 class UrlImportError(Exception):
@@ -47,7 +51,7 @@ def validate_url(url: str) -> str:
     """Normalise and allow-list a link (pure; unit-tested).
 
     Raises:
-        UrlImportError("unsupported_url"): anything that is not an https YouTube link.
+        UrlImportError("unsupported_url"): anything that is not an https YouTube or Twitch link.
     """
     candidate = url.strip()
     if "://" not in candidate:
@@ -55,10 +59,17 @@ def validate_url(url: str) -> str:
     parsed = urlparse(candidate)
     host = (parsed.hostname or "").lower()
     if parsed.scheme != "https" or host not in ALLOWED_HOSTS:
-        raise UrlImportError("unsupported_url", "Paste a YouTube link (youtube.com or youtu.be).")
+        raise UrlImportError(
+            "unsupported_url", "Paste a YouTube or Twitch link (a video, a VOD or a clip)."
+        )
     if parsed.username or parsed.password or parsed.port not in (None, 443):
         raise UrlImportError("unsupported_url", "That link format isn't supported.")
     return candidate
+
+
+def is_twitch(url: str) -> bool:
+    """Whether this link is Twitch (pure). Apify's actor is YouTube-only, so it is skipped."""
+    return (urlparse(url).hostname or "").lower() in TWITCH_HOSTS
 
 
 class UrlImporter(Protocol):
@@ -70,6 +81,10 @@ class UrlImporter(Protocol):
 
     def download(self, url: str, dest_dir: Path, heartbeat: Callable[[], None]) -> Path:
         """Download the video (with audio) as an MP4 into `dest_dir` and return its path."""
+        ...
+
+    def handles(self, url: str) -> bool:
+        """Whether this importer can fetch this link at all."""
         ...
 
 
@@ -132,6 +147,10 @@ class YtDlpImporter:
             thumbnail_url=info.get("thumbnail"),
             is_live=bool(info.get("is_live")),
         )
+
+    def handles(self, url: str) -> bool:
+        """Every allow-listed host: yt-dlp speaks YouTube and Twitch alike."""
+        return True
 
     def download(self, url: str, dest_dir: Path, heartbeat: Callable[[], None]) -> Path:
         import yt_dlp
@@ -256,6 +275,11 @@ class ApifyImporter:
             is_live=False,
         )
 
+    def handles(self, url: str) -> bool:
+        """YouTube only. The configured actor downloads YouTube videos; given a Twitch VOD it
+        burns a run and a few minutes before failing, so it is skipped rather than tried."""
+        return not is_twitch(url)
+
     def download(self, url: str, dest_dir: Path, heartbeat: Callable[[], None]) -> Path:
         import httpx
 
@@ -302,24 +326,34 @@ class FallbackImporter:
             raise ValueError("FallbackImporter needs at least one importer")
         self._importers = importers
 
-    def _attempt(self, call: Callable[[UrlImporter], Any]) -> Any:
+    def handles(self, url: str) -> bool:
+        return any(i.handles(url) for i in self._importers)
+
+    def _attempt(self, url: str, call: Callable[[UrlImporter], Any]) -> Any:
         last: UrlImportError | None = None
         for importer in self._importers:
+            if not importer.handles(url):
+                continue
             try:
                 return call(importer)
             except UrlImportError as exc:
                 if exc.code in _FINAL_CODES:
                     raise
                 last = exc
-        assert last is not None
+        if last is None:
+            # Every provider sat this one out: the link is allowed but nothing configured can
+            # fetch it. Say so, rather than reporting a download failure that never happened.
+            raise UrlImportError(
+                "unsupported_url", "We can't import that link yet. Upload the file instead."
+            )
         raise last
 
     def inspect(self, url: str) -> RemoteVideo:
-        result: RemoteVideo = self._attempt(lambda i: i.inspect(url))
+        result: RemoteVideo = self._attempt(url, lambda i: i.inspect(url))
         return result
 
     def download(self, url: str, dest_dir: Path, heartbeat: Callable[[], None]) -> Path:
-        result: Path = self._attempt(lambda i: i.download(url, dest_dir, heartbeat))
+        result: Path = self._attempt(url, lambda i: i.download(url, dest_dir, heartbeat))
         return result
 
 
@@ -340,7 +374,9 @@ def build_url_importer(settings: Any) -> UrlImporter:
             chain.append(
                 YtDlpImporter(settings.url_import_max_height, settings.url_import_timeout_seconds)
             )
-    if not chain:
+    # yt-dlp is the only provider that handles Twitch, so a chain without it would refuse
+    # every VOD. Always keep it as the last resort.
+    if not any(isinstance(i, YtDlpImporter) for i in chain):
         chain.append(
             YtDlpImporter(settings.url_import_max_height, settings.url_import_timeout_seconds)
         )

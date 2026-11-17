@@ -86,19 +86,51 @@ def test_it_finds_a_real_shout_in_a_real_file(tmp_path: Path) -> None:
     shout = tmp_path / "shout.wav"
     whole = tmp_path / "whole.wav"
     subprocess.run(
-        ["ffmpeg", "-y", "-v", "error", "-f", "lavfi",
-         "-i", "sine=frequency=200:duration=4:sample_rate=44100",
-         "-af", "volume=-30dB", str(quiet)],
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=200:duration=4:sample_rate=44100",
+            "-af",
+            "volume=-30dB",
+            str(quiet),
+        ],
         check=True,
     )
     subprocess.run(
-        ["ffmpeg", "-y", "-v", "error", "-f", "lavfi",
-         "-i", "sine=frequency=800:duration=2:sample_rate=44100", str(shout)],
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=800:duration=2:sample_rate=44100",
+            str(shout),
+        ],
         check=True,
     )
     subprocess.run(
-        ["ffmpeg", "-y", "-v", "error", "-i", str(quiet), "-i", str(shout), "-i", str(quiet),
-         "-filter_complex", "[0:a][1:a][2:a]concat=n=3:v=0:a=1", str(whole)],
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            str(quiet),
+            "-i",
+            str(shout),
+            "-i",
+            str(quiet),
+            "-filter_complex",
+            "[0:a][1:a][2:a]concat=n=3:v=0:a=1",
+            str(whole),
+        ],
         check=True,
     )
 

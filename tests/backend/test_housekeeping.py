@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import uuid
 import shutil
+import uuid
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from clipmaker.core.enums import ProjectState
 from clipmaker.db.models import Clip, ClipAsset, Project
@@ -95,9 +96,7 @@ def test_an_impossible_request_deletes_nothing(tmp_path: Path, db: Session) -> N
     assert affordable(1024, str(tmp_path)) == 1024
 
 
-def test_a_failed_projects_source_is_the_last_thing_deleted(
-    tmp_path: Path, db: Session
-) -> None:
+def test_a_failed_projects_source_is_the_last_thing_deleted(tmp_path: Path, db: Session) -> None:
     """Without it, "Try again" can only fail — worse than a full disk."""
     from clipmaker.services.housekeeping import LAST_RESORT, REMOVABLE
 

@@ -17,7 +17,6 @@ from sqlalchemy.orm import Session
 from clipmaker.core.enums import AssetKind, ClipStatus, ProjectState
 from clipmaker.db.models import Clip, ClipAsset, ProcessingJob, Project, User
 from clipmaker.pipeline.stages.edit import MIN_CLIP_SECONDS, TRIM_LIMIT, apply_trim
-from clipmaker.services import corrections
 
 PLAN = {"start": 100.0, "end": 140.0, "start_segment": 0, "end_segment": 3}
 
@@ -63,9 +62,7 @@ def finished_clip(db: Session, auth: dict[str, str]) -> tuple[Project, Clip]:
     """A completed project with one rendered clip, owned by Alice."""
     user = User(id=uuid.uuid5(uuid.NAMESPACE_URL, "alice@example.com"), email="alice@example.com")
     db.add(user)
-    project = Project(
-        user_id=user.id, title="Episode", state=ProjectState.COMPLETED, settings={}
-    )
+    project = Project(user_id=user.id, title="Episode", state=ProjectState.COMPLETED, settings={})
     db.add(project)
     db.flush()
     clip = Clip(
@@ -86,11 +83,17 @@ def finished_clip(db: Session, auth: dict[str, str]) -> tuple[Project, Clip]:
             is_final=True,
         )
     )
-    db.add(ProcessingJob(project_id=project.id, state=ProjectState.COMPLETED, stages={
-        "TRANSCRIBING": {"status": "done"},
-        "EDITING": {"status": "done"},
-        "RENDERING": {"status": "done"},
-    }))
+    db.add(
+        ProcessingJob(
+            project_id=project.id,
+            state=ProjectState.COMPLETED,
+            stages={
+                "TRANSCRIBING": {"status": "done"},
+                "EDITING": {"status": "done"},
+                "RENDERING": {"status": "done"},
+            },
+        )
+    )
     db.commit()
     return project, clip
 

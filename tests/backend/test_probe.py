@@ -82,14 +82,40 @@ def test_a_blank_render_is_caught_even_though_the_file_is_valid(tmp_path: Path) 
 
     flat = tmp_path / "white.mp4"
     subprocess.run(
-        ["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "color=c=white:s=320x568:d=2",
-         "-c:v", "libx264", "-pix_fmt", "yuv420p", str(flat)],
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=white:s=320x568:d=2",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(flat),
+        ],
         check=True,
     )
     busy = tmp_path / "busy.mp4"
     subprocess.run(
-        ["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "testsrc=s=320x568:d=2",
-         "-c:v", "libx264", "-pix_fmt", "yuv420p", str(busy)],
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=s=320x568:d=2",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(busy),
+        ],
         check=True,
     )
 

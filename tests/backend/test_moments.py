@@ -38,9 +38,7 @@ def scored_project(db: Session) -> tuple[Project, Candidate, Candidate]:
     """A finished project: one moment shipped, one rejected but promotable."""
     user = User(id=uuid.uuid5(uuid.NAMESPACE_URL, "alice@example.com"), email="alice@example.com")
     db.add(user)
-    project = Project(
-        user_id=user.id, title="Episode", state=ProjectState.COMPLETED, settings={}
-    )
+    project = Project(user_id=user.id, title="Episode", state=ProjectState.COMPLETED, settings={})
     db.add(project)
     db.flush()
 
@@ -78,10 +76,16 @@ def scored_project(db: Session) -> tuple[Project, Candidate, Candidate]:
             edit_plan=_plan(10.0, 40.0),
         )
     )
-    db.add(ProcessingJob(project_id=project.id, state=ProjectState.COMPLETED, stages={
-        "TRANSCRIBING": {"status": "done"},
-        "RENDERING": {"status": "done"},
-    }))
+    db.add(
+        ProcessingJob(
+            project_id=project.id,
+            state=ProjectState.COMPLETED,
+            stages={
+                "TRANSCRIBING": {"status": "done"},
+                "RENDERING": {"status": "done"},
+            },
+        )
+    )
     db.commit()
     return project, shipped, missed
 

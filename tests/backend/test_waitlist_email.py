@@ -5,19 +5,17 @@ from __future__ import annotations
 import json
 
 import pytest
-from conftest import settings_patched
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from clipmaker.core.config import Settings
-from pydantic import SecretStr
 from clipmaker.providers.email.base import Email, EmailError, NullSender
 from clipmaker.providers.email.factory import build_email_sender
 from clipmaker.services.waitlist import WaitlistPlace
 from clipmaker.services.waitlist_email import send_welcome, welcome_html, welcome_text
+from conftest import settings_patched
 
-PLACE = WaitlistPlace(
-    position=7, referral_code="abc123", referrals=2, total=40, is_new=True
-)
+PLACE = WaitlistPlace(position=7, referral_code="abc123", referrals=2, total=40, is_new=True)
 
 
 class Recorder:
@@ -119,9 +117,7 @@ def test_removing_a_referrer_leaves_their_referrals_in_place(
     assert client.get("/waitlist/stats").json()["total"] == 1
 
 
-@pytest.mark.parametrize(
-    "name", ["RESEND_API_KEY", "RESEND_KEY", "RESEND_TOKEN", "EMAIL_API_KEY"]
-)
+@pytest.mark.parametrize("name", ["RESEND_API_KEY", "RESEND_KEY", "RESEND_TOKEN", "EMAIL_API_KEY"])
 def test_the_key_is_found_under_any_of_the_obvious_names(
     name: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -151,22 +147,27 @@ def test_health_hides_internals_from_the_public_and_never_leaks_values(
 
     with settings_patched(diagnostics_token=SecretStr("s3cret-token")):
         # Wrong token is treated exactly like no token.
-        assert client.get("/health", headers={"x-diagnostics-token": "wrong"}).json()[
-            "email_env_seen"
-        ] == []
+        assert (
+            client.get("/health", headers={"x-diagnostics-token": "wrong"}).json()["email_env_seen"]
+            == []
+        )
 
         body = client.get("/health", headers={"x-diagnostics-token": "s3cret-token"}).json()
         assert "RESEND_API_KEY" in body["email_env_seen"]
         assert "EMAIL_FROM" in body["email_env_seen"]
         # Even for us, names only — never the key itself.
         assert "re_supersecret" not in json.dumps(body)
+
+
 def test_send_outcomes_are_recorded_without_the_address() -> None:
     """A swallowed failure is invisible otherwise — but the reason must not name who."""
     from clipmaker.services.waitlist_email import RECENT
 
     RECENT.clear()
     send_welcome(Recorder(), "ada@example.com", PLACE, "https://x.app")
-    send_welcome(Recorder(fail=EmailError("domain not verified")), "bob@example.com", PLACE, "https://x.app")
+    send_welcome(
+        Recorder(fail=EmailError("domain not verified")), "bob@example.com", PLACE, "https://x.app"
+    )
 
     assert [r["ok"] for r in RECENT] == [False, True]
     assert "domain not verified" in str(RECENT[0]["reason"])

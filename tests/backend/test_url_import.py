@@ -30,6 +30,30 @@ def test_youtube_urls_accepted(url: str) -> None:
 @pytest.mark.parametrize(
     "url",
     [
+        "https://www.twitch.tv/videos/123456789",
+        "https://twitch.tv/somestreamer/clip/FunnyCrashHere",
+        "clips.twitch.tv/FunnyCrashHere",
+        "https://m.twitch.tv/videos/123456789",
+    ],
+)
+def test_twitch_vods_and_clips_accepted(url: str) -> None:
+    """Gaming clippers work on Twitch. Refusing their links made the audience unreachable."""
+    assert validate_url(url).startswith("https://")
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["https://twitch.tv.evil.com/x", "http://twitch.tv/videos/1", "https://notwitch.tv/videos/1"],
+)
+def test_twitch_lookalikes_rejected(url: str) -> None:
+    with pytest.raises(UrlImportError) as err:
+        validate_url(url)
+    assert err.value.code == "unsupported_url"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
         "http://www.youtube.com/watch?v=abc",
         "https://evil.com/watch?v=youtube.com",
         "https://youtube.com.evil.com/x",
@@ -67,6 +91,9 @@ class FakeImporter:
     ) -> None:
         self.video, self.duration, self.fail = video, duration, fail
         self.downloads = 0
+
+    def handles(self, url: str) -> bool:
+        return True
 
     def inspect(self, url: str) -> RemoteVideo:
         if self.fail and self.fail.code != "source_blocked":
@@ -222,10 +249,12 @@ import httpx  # noqa: E402
 from clipmaker.media.url_import import (  # noqa: E402
     ApifyImporter,
     FallbackImporter,
+    YtDlpImporter,
     build_url_importer,
 )
 
 YT = "https://www.youtube.com/watch?v=abc123"
+TWITCH = "https://www.twitch.tv/videos/123456789"
 
 
 def _apify(
@@ -310,8 +339,12 @@ def test_apify_expired_link_is_retryable(tmp_path: Path) -> None:
 
 
 class _Stub:
-    def __init__(self, error: UrlImportError | None, title: str) -> None:
+    def __init__(self, error: UrlImportError | None, title: str, *, takes: bool = True) -> None:
         self.error, self.title, self.calls = error, title, 0
+        self._takes = takes
+
+    def handles(self, url: str) -> bool:
+        return self._takes
 
     def inspect(self, url: str) -> RemoteVideo:
         self.calls += 1
@@ -340,18 +373,46 @@ def test_fallback_stops_on_video_problems() -> None:
     assert never.calls == 0
 
 
+def test_an_importer_that_cannot_take_the_link_is_not_even_tried() -> None:
+    """Apify's actor is YouTube-only: handing it a Twitch VOD burns a paid run to fail."""
+    wrong_provider = _Stub(None, "apify", takes=False)
+    right = _Stub(None, "ytdlp")
+    assert FallbackImporter([wrong_provider, right]).inspect(TWITCH).title == "ytdlp"
+    assert wrong_provider.calls == 0
+
+
+def test_a_link_no_provider_can_take_says_so_rather_than_failing_a_download() -> None:
+    only = _Stub(None, "apify", takes=False)
+    chain = FallbackImporter([only])
+    assert chain.handles(TWITCH) is False
+    with pytest.raises(UrlImportError) as err:
+        chain.inspect(TWITCH)
+    assert err.value.code == "unsupported_url"
+    assert only.calls == 0
+
+
+def test_apify_skips_twitch_and_takes_youtube() -> None:
+    importer = ApifyImporter("tok", "coder2077~youtube-video-downloader")
+    assert importer.handles(TWITCH) is False
+    assert importer.handles(YT) is True
+    assert YtDlpImporter().handles(TWITCH) is True
+
+
 def test_build_chain_from_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     from pydantic import SecretStr
 
     from clipmaker.core.config import get_settings
-    from clipmaker.media.url_import import YtDlpImporter
 
     s = get_settings()
     assert isinstance(build_url_importer(s), YtDlpImporter)  # no APIFY_TOKEN → yt-dlp only
     monkeypatch.setattr(s, "apify_token", SecretStr("tok"))
     assert isinstance(build_url_importer(s), FallbackImporter)
+    # yt-dlp is the only provider that speaks Twitch, so it stays in the chain even when
+    # only Apify is configured — otherwise every VOD would be refused.
     monkeypatch.setattr(s, "url_import_providers", "apify")
-    assert isinstance(build_url_importer(s), ApifyImporter)
+    chain = build_url_importer(s)
+    assert isinstance(chain, FallbackImporter)
+    assert chain.handles(TWITCH) is True
 
 
 # --- unknown length (download services that report duration: null) ---------------------------

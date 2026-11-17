@@ -128,7 +128,7 @@ def _even(text: str, rate: float = 0.3) -> list[Word]:
 
 
 def test_a_caption_line_does_not_end_on_a_dangling_word() -> None:
-    """"BECAUSE THEY ARE" and "ARE YOU TAKING" read as a glitch, not as speech."""
+    """ "BECAUSE THEY ARE" and "ARE YOU TAKING" read as a glitch, not as speech."""
     from clipmaker.editing.captions import HANGING_WORDS, chunk_words
 
     def bare(word: Word) -> str:
@@ -151,7 +151,7 @@ def test_a_caption_line_does_not_end_on_a_dangling_word() -> None:
 
 
 def test_a_complete_short_thought_is_left_alone() -> None:
-    """"I PROMISE YOU" was already a good caption; pronouns must not be treated as dangling."""
+    """ "I PROMISE YOU" was already a good caption; pronouns must not be treated as dangling."""
     from clipmaker.editing.captions import chunk_words
 
     first = chunk_words(_even("I promise you because they are watching"))[0]

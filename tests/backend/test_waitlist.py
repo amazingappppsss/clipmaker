@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from conftest import settings_patched
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from clipmaker.db.models import WaitlistSignup
 from clipmaker.services import waitlist
+from conftest import settings_patched
 
 
 def _join(client: TestClient, email: str, **extra: object) -> dict:
@@ -75,9 +75,7 @@ def test_the_honeypot_writes_nothing(client: TestClient, db: Session) -> None:
 def test_bad_addresses_and_unknown_fields_are_rejected(client: TestClient) -> None:
     assert client.post("/waitlist", json={"email": "not-an-email"}).status_code == 422
     assert client.post("/waitlist", json={}).status_code == 422
-    assert (
-        client.post("/waitlist", json={"email": "a@b.com", "is_admin": True}).status_code == 422
-    )
+    assert client.post("/waitlist", json={"email": "a@b.com", "is_admin": True}).status_code == 422
 
 
 def test_signups_from_one_machine_are_capped(client: TestClient) -> None:

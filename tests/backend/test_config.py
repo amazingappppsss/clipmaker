@@ -112,7 +112,7 @@ def test_a_placeholder_api_url_loses_to_the_platforms_own_domain(
 
 
 def test_a_relative_api_url_is_deliberate_and_survives(monkeypatch: pytest.MonkeyPatch) -> None:
-    """"/api" behind the dev proxy is a choice, not an unfinished value."""
+    """ "/api" behind the dev proxy is a choice, not an unfinished value."""
     monkeypatch.setenv("RAILWAY_PUBLIC_DOMAIN", "something.up.railway.app")
     assert Settings(api_public_url="/api").public_api_url == "/api"
 

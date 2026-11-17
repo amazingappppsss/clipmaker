@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Link tab of New Project: paste a YouTube link → confirm rights → (optional) settings →
+ * Link tab of New Project: paste a YouTube or Twitch link → confirm rights → (optional) settings →
  * "Get clips" imports the link and starts processing in one step.
  * The download itself happens in the background worker, so this returns in seconds.
  */
@@ -12,7 +12,7 @@ import { useState, type FormEvent } from "react";
 import { DEFAULT_SETTINGS, SettingsBar } from "@/components/upload/settings-bar";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { looksLikeYouTubeUrl } from "@/lib/youtube";
+import { looksLikeSourceUrl } from "@/lib/youtube";
 import { ApiError } from "@/services/api-client";
 import type { ProjectSettings } from "@/services/api-types";
 import { importFromUrl, startProcessing } from "@/services/projects";
@@ -28,8 +28,8 @@ export function LinkFlow({ initialUrl = "" }: { initialUrl?: string }) {
   const submit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     setError(null);
-    if (!looksLikeYouTubeUrl(url)) {
-      setError("Paste a YouTube link (youtube.com or youtu.be).");
+    if (!looksLikeSourceUrl(url)) {
+      setError("Paste a YouTube or Twitch link (a video, a VOD or a clip).");
       return;
     }
     if (!rights) {
@@ -56,14 +56,14 @@ export function LinkFlow({ initialUrl = "" }: { initialUrl?: string }) {
     <form onSubmit={(e) => void submit(e)} className="mx-auto flex w-full max-w-2xl flex-col gap-5">
       <label className="flex items-center gap-3 rounded-full border-2 border-ink bg-white p-2 pl-5 shadow-[6px_6px_0_0_var(--color-ink)]">
         <Link2 className="size-5 shrink-0 text-blue" aria-hidden />
-        <span className="sr-only">YouTube link</span>
+        <span className="sr-only">Video link</span>
         <input
           type="url"
           inputMode="url"
           autoComplete="off"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="Paste a YouTube link…"
+          placeholder="Paste a YouTube or Twitch link…"
           className="min-w-0 flex-1 bg-transparent py-2 font-semibold outline-none placeholder:font-normal placeholder:text-muted"
         />
       </label>

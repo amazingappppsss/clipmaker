@@ -5,13 +5,13 @@ from __future__ import annotations
 import itertools
 
 from clipmaker.editing.cuts import (
-    is_filler,
-    strip_filler,
     HOURGLASS_GAP,
     Interval,
+    is_filler,
     keep_intervals,
     map_time,
     map_words,
+    strip_filler,
     total_duration,
 )
 from clipmaker.providers.transcription.base import Word
@@ -82,17 +82,13 @@ def test_a_word_that_merely_contains_a_filler_is_kept() -> None:
 
 
 def test_an_immediate_stammer_loses_the_repeat_not_the_word() -> None:
-    kept, _ = strip_filler(
-        [Word("I", 0.0, 0.1), Word("I", 0.15, 0.25), Word("think", 0.3, 0.6)]
-    )
+    kept, _ = strip_filler([Word("I", 0.0, 0.1), Word("I", 0.15, 0.25), Word("think", 0.3, 0.6)])
     assert [w.text for w in kept] == ["I", "think"]
 
 
 def test_deliberate_repetition_survives() -> None:
-    """"No. No. No." said slowly is a performance, not a stammer."""
-    kept, _ = strip_filler(
-        [Word("No.", 0.0, 0.3), Word("No.", 1.0, 1.3), Word("No.", 2.0, 2.3)]
-    )
+    """ "No. No. No." said slowly is a performance, not a stammer."""
+    kept, _ = strip_filler([Word("No.", 0.0, 0.3), Word("No.", 1.0, 1.3), Word("No.", 2.0, 2.3)])
     assert len(kept) == 3
 
 

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Landing hero input (Opus Clip style): paste a YouTube link → GET CLIPS, or upload a file.
+ * Landing hero input (Opus Clip style): paste a YouTube or Twitch link → GET CLIPS, or upload a file.
  * Both hand off to /new (through sign-in when needed): the link via localStorage (survives the
  * magic-link redirect), the file in memory.
  */
@@ -11,7 +11,7 @@ import { useRef, useState, type FormEvent } from "react";
 
 import { useAuth } from "@/lib/auth/auth-provider";
 import { setPendingLink, setPendingUpload } from "@/lib/pending-upload";
-import { looksLikeYouTubeUrl } from "@/lib/youtube";
+import { looksLikeSourceUrl } from "@/lib/youtube";
 import { ACCEPTED_VIDEO_TYPES, resolveContentType } from "@/services/upload";
 
 const ACCEPT_ATTR = [
@@ -28,8 +28,8 @@ export function LinkBar({ onError }: { onError: (message: string | null) => void
 
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    if (!looksLikeYouTubeUrl(url)) {
-      onError("Paste a YouTube link (youtube.com or youtu.be), or upload a file.");
+    if (!looksLikeSourceUrl(url)) {
+      onError("Paste a YouTube or Twitch link, or upload a file.");
       return;
     }
     onError(null);
@@ -56,7 +56,7 @@ export function LinkBar({ onError }: { onError: (message: string | null) => void
       >
         <Link2 className="size-5 shrink-0 text-blue" aria-hidden />
         <label className="sr-only" htmlFor="hero-link">
-          YouTube link
+          Video link
         </label>
         <input
           id="hero-link"
@@ -65,7 +65,7 @@ export function LinkBar({ onError }: { onError: (message: string | null) => void
           autoComplete="off"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="Paste a YouTube link…"
+          placeholder="Paste a YouTube or Twitch link…"
           className="min-w-0 flex-1 bg-transparent py-2 font-semibold text-ink outline-none placeholder:font-normal placeholder:text-muted"
         />
         <button

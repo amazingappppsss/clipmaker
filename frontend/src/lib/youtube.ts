@@ -10,15 +10,37 @@ const HOSTS = new Set([
   "youtu.be",
 ]);
 
-export function looksLikeYouTubeUrl(raw: string): boolean {
+/** Twitch VODs and clips, where stream clippers actually work. */
+const TWITCH_HOSTS = new Set([
+  "twitch.tv",
+  "www.twitch.tv",
+  "m.twitch.tv",
+  "clips.twitch.tv",
+]);
+
+function host(raw: string): string | null {
   const text = raw.trim();
-  if (!text) return false;
+  if (!text) return null;
   try {
     const url = new URL(text.includes("://") ? text : `https://${text}`);
-    return url.protocol === "https:" && HOSTS.has(url.hostname.toLowerCase());
+    return url.protocol === "https:" ? url.hostname.toLowerCase() : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function looksLikeYouTubeUrl(raw: string): boolean {
+  const name = host(raw);
+  return name !== null && HOSTS.has(name);
+}
+
+/**
+ * Any link the backend will accept. Kept in step with ALLOWED_HOSTS in media/url_import.py —
+ * a stricter check here would reject Twitch links the API is happy to take.
+ */
+export function looksLikeSourceUrl(raw: string): boolean {
+  const name = host(raw);
+  return name !== null && (HOSTS.has(name) || TWITCH_HOSTS.has(name));
 }
 
 /** Public thumbnail for a YouTube link (shown while the video is being fetched), or null. */
