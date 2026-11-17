@@ -17,7 +17,7 @@ export function WaitlistFooter() {
   return (
     <footer className="px-2 pb-8 sm:px-4">
       <div className="blue-grid relative overflow-hidden rounded-[2rem] px-6 py-16 text-center text-white sm:rounded-[2.75rem] sm:py-20">
-        <h2 className="display-heavy mx-auto max-w-3xl text-3xl sm:text-5xl">
+        <h2 className="headline mx-auto max-w-3xl text-[clamp(1.7rem,4vw,2.9rem)]">
           Your next 10 shorts are <span className="text-lime">already recorded</span>
         </h2>
         <p className="mx-auto mt-5 max-w-md font-semibold text-white/90">

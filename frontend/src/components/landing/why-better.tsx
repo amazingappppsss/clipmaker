@@ -32,7 +32,7 @@ export function WhyBetter() {
   return (
     <section aria-labelledby="why-heading" className="px-4 pt-24 sm:px-8">
       <div className="mx-auto max-w-6xl">
-        <h2 id="why-heading" className="display-heavy text-center text-4xl sm:text-6xl">
+        <h2 id="why-heading" className="headline text-center text-[clamp(1.9rem,4.4vw,3.2rem)]">
           Picks like an <span className="text-blue">editor</span>, not a robot
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-center text-muted">
@@ -53,7 +53,7 @@ export function WhyBetter() {
               >
                 {p.tag}
               </span>
-              <h3 className="display-heavy mt-5 text-xl">{p.title}</h3>
+              <h3 className="text-xl font-semibold tracking-[-0.015em]">{p.title}</h3>
               <p
                 className={`mt-2 text-sm leading-relaxed ${i === 1 ? "text-white/85" : "text-muted"}`}
               >

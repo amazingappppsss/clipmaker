@@ -207,7 +207,7 @@ export function AiReads() {
         <p className="text-center text-xs font-bold tracking-widest text-blue uppercase">
           Nobody else shows you this
         </p>
-        <h2 id="reads-heading" className="display-heavy mt-3 text-center text-4xl sm:text-6xl">
+        <h2 id="reads-heading" className="headline mt-3 text-center text-[clamp(1.9rem,4.4vw,3.2rem)]">
           Watch it throw away <span className="text-blue">the bad lines</span>
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-center text-muted">

@@ -11,7 +11,8 @@
 import { Suspense } from "react";
 
 import { AiReads } from "@/components/landing/ai-reads";
-import { PhoneClip } from "@/components/landing/phone-clip";
+import { ClipScanner } from "@/components/landing/clip-scanner";
+import { PixelSprite } from "@/components/landing/pixel-sprite";
 import { Capabilities } from "@/components/landing/capabilities";
 import { LiveDemo } from "@/components/landing/live-demo";
 import { Logo } from "@/components/ui/logo";
@@ -24,64 +25,61 @@ import { FOUNDING_SPOTS, OFFER, PROMISES } from "@/lib/offer";
 export function WaitlistLanding() {
   return (
     <>
-      <main>
-        <section className="blue-grid relative mx-2 mt-2 overflow-hidden rounded-[2rem] px-4 pt-10 pb-16 sm:mx-4 sm:mt-4 sm:rounded-[2.75rem] sm:px-8 sm:pt-14 sm:pb-20">
-          <div className="relative mx-auto mb-4 flex max-w-6xl items-center justify-between">
-            <Logo tone="light" />
-            <span className="text-xs font-semibold text-white/80">Launching soon</span>
+      <main className="bg-surface">
+        <section className="px-4 pt-6 pb-4 sm:px-8">
+          <div className="mx-auto flex max-w-6xl items-center justify-between">
+            <Logo />
+            <span className="rounded-full bg-sunken px-3 py-1.5 text-xs font-semibold text-muted">
+              not open yet · first {FOUNDING_SPOTS} only
+            </span>
           </div>
+        </section>
 
-          <div className="relative mx-auto grid max-w-6xl items-center gap-10 text-center lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-14 lg:text-left">
-            <div className="min-w-0">
-              <p className="animate-pop inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold tracking-wide text-white uppercase ring-1 ring-white/30">
-                <span className="size-2 animate-pulse rounded-full bg-lime" />
-                Not launched yet · first {FOUNDING_SPOTS} only
-              </p>
+        <section className="px-4 pt-10 pb-6 text-center sm:px-8 sm:pt-16">
+          <div className="mx-auto max-w-4xl">
+            {/* Lowercase, light, tight: the headline is a sentence, not a shout. The sprites
+                are the only ornament on the page, so they carry the personality. */}
+            <h1 className="headline text-[clamp(2.2rem,6vw,4.4rem)] text-ink">
+              your <PixelSprite name="controller" className="size-[0.85em]" /> vod has 30 clips
+              in it. you posted 2.
+            </h1>
 
-              <h1 className="display-heavy animate-pop mt-6 text-[clamp(2rem,5vw,3.6rem)] leading-[0.95] text-white">
-                <span className="block">Send us one episode.</span>
-                <span className="block">
-                  We&rsquo;ll clip it{" "}
-                  <span className="rounded-2xl bg-lime px-3 text-ink">by hand.</span>
-                </span>
-              </h1>
+            <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-ink-soft">
+              Clip2Easy listens to the whole stream — the screaming and the gunfire, not just
+              the talking — and hands back vertical clips{" "}
+              <PixelSprite name="phone" className="size-[1.05em]" /> with the captions burned in.
+            </p>
 
-              <p className="animate-pop mx-auto mt-6 max-w-2xl text-lg leading-snug font-semibold text-white [text-shadow:0_1px_2px_rgb(5_10_60/0.35)] [animation-delay:120ms] sm:text-xl">
-                Clip2Easy isn&rsquo;t open to everyone yet. The first {FOUNDING_SPOTS} people get
-                their first episode cut for free before launch, and half off for life after it.
-              </p>
+            <p className="mx-auto mt-3 flex max-w-2xl flex-wrap items-center justify-center gap-x-2 gap-y-2 text-base text-muted">
+              works on
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-sunken px-2.5 py-1 font-semibold text-ink">
+                twitch vods
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-sunken px-2.5 py-1 font-semibold text-ink">
+                youtube links
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-sunken px-2.5 py-1 font-semibold text-ink">
+                your own files
+              </span>
+            </p>
 
-              <div className="animate-pop mx-auto mt-9 max-w-xl text-left [animation-delay:200ms] lg:mx-0">
-                <Suspense fallback={<div className="h-16" />}>
-                  <WaitlistForm source="waitlist-hero" />
-                </Suspense>
-                <p className="mt-4 text-center text-sm font-semibold text-white/90 lg:text-left">
-                  No card. No account. One email when your spot opens.
-                </p>
-              </div>
-
-              <SpotsLeft />
-            </div>
-
-            {/* A real short, playing itself, so something is moving the moment the page lands.
-                Made by scripts/make-demo-clip.py: the picture is synthetic because we own no
-                footage, but the captions are burned in by the same engine that captions real
-                clips. Labelled below so nobody reads it as a customer's episode. */}
-            <div className="mx-auto">
-              <PhoneClip
-                className="animate-float"
-                size="lg"
-                src="/demo/podcast-reframe.mp4"
-                tone="video-tone-1"
-                title="Auto-cropped to 9:16"
-                caption={["Follows", "whoever", "is", "talking"]}
-                score={94}
-                hook="Speaker-tracked"
-              />
-              <p className="mt-2 text-center text-xs font-medium text-white/70">
-                Licensed stock footage · real re-framing, demo captions
+            <div className="mx-auto mt-9 max-w-xl">
+              <Suspense fallback={<div className="h-16" />}>
+                <WaitlistForm source="waitlist-hero" />
+              </Suspense>
+              <p className="mt-3 text-sm text-muted">
+                No card, no account. We cut your first VOD by hand, free, before launch.
               </p>
             </div>
+
+            <SpotsLeft />
+          </div>
+        </section>
+
+        {/* The claim, happening. Replaces the stock video: that could have been any page. */}
+        <section className="px-4 pt-8 sm:px-8">
+          <div className="mx-auto max-w-4xl">
+            <ClipScanner />
           </div>
         </section>
 
@@ -95,7 +93,7 @@ export function WaitlistLanding() {
             <p className="text-center text-xs font-bold tracking-widest text-blue uppercase">
               What founding members get
             </p>
-            <h2 id="offer-heading" className="display-heavy mt-3 text-center text-4xl sm:text-6xl">
+            <h2 id="offer-heading" className="headline mt-3 text-center text-[clamp(1.9rem,4.4vw,3.2rem)]">
               Four things,{" "}
               <span className="text-blue">none of them &ldquo;early access&rdquo;</span>
             </h2>
@@ -111,7 +109,7 @@ export function WaitlistLanding() {
                       {item.kicker}
                     </span>
                   </div>
-                  <h3 className="display-heavy mt-5 text-xl sm:text-2xl">{item.title}</h3>
+                  <h3 className="text-xl font-semibold tracking-[-0.015em]">{item.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted">{item.body}</p>
                   <p className="mt-4 inline-block rounded-full bg-lime px-3 py-1 text-xs font-black text-ink uppercase">
                     {item.worth}

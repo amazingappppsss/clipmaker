@@ -38,7 +38,7 @@ export function Capabilities() {
   return (
     <section id="features" className="scroll-mt-8 px-4 py-24 sm:px-8">
       <div className="mx-auto max-w-6xl">
-        <h2 className="display-heavy text-center text-4xl sm:text-6xl">
+        <h2 className="headline text-center text-[clamp(1.9rem,4.4vw,3.2rem)]">
           An editor, <span className="rounded-2xl bg-lime px-3">minus</span> the editing
         </h2>
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -50,7 +50,7 @@ export function Capabilities() {
               <span className="grid size-12 place-items-center rounded-2xl bg-blue text-white">
                 <Icon className="size-5" aria-hidden />
               </span>
-              <h3 className="display-heavy mt-6 text-lg">{title}</h3>
+              <h3 className="text-lg font-semibold tracking-[-0.01em]">{title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{body}</p>
             </div>
           ))}
